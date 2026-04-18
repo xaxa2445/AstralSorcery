@@ -1,0 +1,104 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2022
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
+package hellfirepvp.astralsorcery.client.util.camera;
+
+import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.CompoundTag;
+
+/**
+ * This class is part of the Astral Sorcery Mod
+ * The complete source code for this mod can be found on github.
+ * Class: CameraTransformerPlayerFocus
+ * Created by HellFirePvP
+ * Date: 02.12.2019 / 20:18
+ */
+public class CameraTransformerPlayerFocus extends CameraTransformerSettingsCache {
+
+    private final EntityCameraRenderView entity;
+    private final ICameraPersistencyFunction func;
+
+    private EntityClientReplacement clientEntity;
+
+    public CameraTransformerPlayerFocus(EntityCameraRenderView renderView, ICameraPersistencyFunction func) {
+        this.entity = renderView;
+        this.func = func;
+    }
+
+    @Override
+    public void onStartTransforming(float pTicks) {
+        super.onStartTransforming(pTicks);
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+
+        EntityClientReplacement repl = new EntityClientReplacement();
+        CompoundTag nbt = new CompoundTag();
+        mc.player.saveWithoutId(nbt);
+        repl.load(nbt);
+        mc.level.putNonPlayerEntity(repl.getId(), repl);
+        this.clientEntity = repl;
+
+        entity.setAsRenderViewEntity();
+    }
+
+    @Override
+    public void onStopTransforming(float pTicks) {
+        super.onStopTransforming(pTicks);
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null && this.clientEntity != null) {
+            // removeEntityFromWorld -> discard
+            this.clientEntity.discard();
+        }
+
+        if (mc.player != null) {
+            Player player = mc.player;
+            player.moveTo(this.clientEntity.getX(), this.clientEntity.getY(), this.clientEntity.getZ(),
+                    this.clientEntity.getYRot(), this.clientEntity.getXRot());
+            player.setDeltaMovement(0, 0, 0);
+        }
+
+        ClientCameraUtil.resetCamera();
+
+        if (mc.level != null) {
+            entity.onStopTransforming();
+        }
+    }
+
+    @Override
+    public void transformRenderView(float pTicks) {
+        super.transformRenderView(pTicks);
+
+        Vector3 focus = entity.getCameraFocus();
+        if (focus != null) {
+            entity.transformToFocusOnPoint(focus, pTicks, true);
+        }
+    }
+
+    @Override
+    public ICameraPersistencyFunction getPersistencyFunction() {
+        return func;
+    }
+
+    @Override
+    public int getPriority() {
+        return 0;
+    }
+
+    @Override
+    public void onClientTick() {
+        entity.tickCount++;
+
+        if (clientEntity != null) {
+            entity.moveEntityTick(entity, clientEntity, entity.tickCount);
+        }
+    }
+}

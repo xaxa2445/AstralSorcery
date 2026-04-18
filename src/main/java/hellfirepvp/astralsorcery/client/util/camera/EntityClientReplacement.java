@@ -1,0 +1,41 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2022
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
+package hellfirepvp.astralsorcery.client.util.camera;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.player.PlayerModelPart;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+
+/**
+ * This class is part of the Astral Sorcery Mod
+ * The complete source code for this mod can be found on github.
+ * Class: EntityClientReplacement
+ * Created by HellFirePvP
+ * Date: 02.12.2019 / 20:13
+ */
+public class EntityClientReplacement extends AbstractClientPlayer {
+
+    public EntityClientReplacement() {
+        super(Minecraft.getInstance().level, Minecraft.getInstance().player.getGameProfile());
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    @Override
+    public boolean isModelPartShown(PlayerModelPart part) {
+        // En 1.20.1 'isWearing' pasó a ser 'isModelPartShown'
+        return Minecraft.getInstance().player != null && Minecraft.getInstance().player.isModelPartShown(part);
+    }
+
+    // Método de compatibilidad para los Transformers que buscan 'read'
+    public void read(net.minecraft.nbt.CompoundTag nbt) {
+        this.load(nbt);
+    }
+}

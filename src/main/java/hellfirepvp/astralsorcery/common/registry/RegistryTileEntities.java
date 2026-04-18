@@ -1,0 +1,99 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2022
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
+package hellfirepvp.astralsorcery.common.registry;
+
+import hellfirepvp.astralsorcery.AstralSorcery;
+import hellfirepvp.astralsorcery.client.render.tile.*;
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
+import hellfirepvp.astralsorcery.common.tile.*;
+import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
+import hellfirepvp.astralsorcery.common.util.NameUtil;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+
+import static hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS.*;
+
+/**
+ * This class is part of the Astral Sorcery Mod
+ * The complete source code for this mod can be found on github.
+ * Class: RegistryTileEntities
+ * Created by HellFirePvP
+ * Date: 01.06.2019 / 13:35
+ */
+public class RegistryTileEntities {
+
+    private RegistryTileEntities() {}
+
+    public static void registerTiles() {
+        SPECTRAL_RELAY = registerTile(TileSpectralRelay.class, BlocksAS.SPECTRAL_RELAY);
+        ALTAR = registerTile(TileAltar.class, BlocksAS.ALTAR_DISCOVERY, BlocksAS.ALTAR_ATTUNEMENT, BlocksAS.ALTAR_CONSTELLATION, BlocksAS.ALTAR_RADIANCE);
+        ATTUNEMENT_ALTAR = registerTile(TileAttunementAltar.class, BlocksAS.ATTUNEMENT_ALTAR);
+        CELESTIAL_CRYSTAL_CLUSTER = registerTile(TileCelestialCrystals.class, BlocksAS.CELESTIAL_CRYSTAL_CLUSTER);
+        GATEWAY = registerTile(TileCelestialGateway.class, BlocksAS.GATEWAY);
+        CHALICE = registerTile(TileChalice.class, BlocksAS.CHALICE);
+        COLLECTOR_CRYSTAL = registerTile(TileCollectorCrystal.class, BlocksAS.ROCK_COLLECTOR_CRYSTAL, BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL);
+        FOUNTAIN = registerTile(TileFountain.class, BlocksAS.FOUNTAIN);
+        GEM_CRYSTAL_CLUSTER = registerTile(TileGemCrystals.class, BlocksAS.GEM_CRYSTAL_CLUSTER);
+        ILLUMINATOR = registerTile(TileIlluminator.class, BlocksAS.ILLUMINATOR);
+        INFUSER = registerTile(TileInfuser.class, BlocksAS.INFUSER);
+        LENS = registerTile(TileLens.class, BlocksAS.LENS);
+        OBSERVATORY = registerTile(TileObservatory.class, BlocksAS.OBSERVATORY);
+        PRISM = registerTile(TilePrism.class, BlocksAS.PRISM);
+        REFRACTION_TABLE = registerTile(TileRefractionTable.class, BlocksAS.REFRACTION_TABLE);
+        RITUAL_LINK = registerTile(TileRitualLink.class, BlocksAS.RITUAL_LINK);
+        RITUAL_PEDESTAL = registerTile(TileRitualPedestal.class, BlocksAS.RITUAL_PEDESTAL);
+        TELESCOPE = registerTile(TileTelescope.class, BlocksAS.TELESCOPE);
+        TRANSLUCENT_BLOCK = registerTile(TileTranslucentBlock.class, BlocksAS.TRANSLUCENT_BLOCK);
+        TREE_BEACON = registerTile(TileTreeBeacon.class, BlocksAS.TREE_BEACON);
+        TREE_BEACON_COMPONENT = registerTile(TileTreeBeaconComponent.class, BlocksAS.TREE_BEACON_COMPONENT);
+        VANISHING = registerTile(TileVanishing.class, BlocksAS.VANISHING);
+        WELL = registerTile(TileWell.class, BlocksAS.WELL);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static void initClient() {
+        ClientRegistry.bindTileEntityRenderer(ALTAR, RenderAltar::new);
+        ClientRegistry.bindTileEntityRenderer(ATTUNEMENT_ALTAR, RenderAttunementAltar::new);
+        ClientRegistry.bindTileEntityRenderer(CHALICE, RenderChalice::new);
+        ClientRegistry.bindTileEntityRenderer(COLLECTOR_CRYSTAL, RenderCollectorCrystal::new);
+        ClientRegistry.bindTileEntityRenderer(INFUSER, RenderInfuser::new);
+        ClientRegistry.bindTileEntityRenderer(LENS, RenderLens::new);
+        ClientRegistry.bindTileEntityRenderer(OBSERVATORY, RenderObservatory::new);
+        ClientRegistry.bindTileEntityRenderer(PRISM, RenderPrism::new);
+        ClientRegistry.bindTileEntityRenderer(REFRACTION_TABLE, RenderRefractionTable::new);
+        ClientRegistry.bindTileEntityRenderer(RITUAL_PEDESTAL, RenderRitualPedestal::new);
+        ClientRegistry.bindTileEntityRenderer(SPECTRAL_RELAY, RenderSpectralRelay::new);
+        ClientRegistry.bindTileEntityRenderer(TELESCOPE, RenderTelescope::new);
+        ClientRegistry.bindTileEntityRenderer(TRANSLUCENT_BLOCK, RenderTileFakedState::new);
+        ClientRegistry.bindTileEntityRenderer(TREE_BEACON_COMPONENT, RenderTileFakedState::new);
+        ClientRegistry.bindTileEntityRenderer(WELL, RenderWell::new);
+    }
+
+    private static <T extends BlockEntity> BlockEntityType<T> registerTile(
+            Class<T> tileClass,
+            BlockEntityType.BlockEntitySupplier<T> factory,
+            Block... validBlocks) {
+
+        ResourceLocation name = NameUtil.fromClass(tileClass, "Tile");
+
+        // Construimos el tipo (el null es para el DataFixer, que en 1.20.1 se puede obviar así)
+        BlockEntityType<T> type = BlockEntityType.Builder.of(factory, validBlocks).build(null);
+
+        // EXPLICACIÓN: Como 'type.setRegistryName' ya no existe,
+        // enviamos el objeto Y el nombre por separado a tu RegistryPrimer.
+        AstralSorcery.getProxy().getRegistryPrimer().register(type, name);
+
+        return type;
+    }
+}

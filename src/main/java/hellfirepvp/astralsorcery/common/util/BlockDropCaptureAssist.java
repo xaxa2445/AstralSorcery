@@ -1,0 +1,60 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2022
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
+package hellfirepvp.astralsorcery.common.util;
+
+import net.minecraft.core.NonNullList;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+
+import java.util.Stack;
+
+/**
+ * This class is part of the Astral Sorcery Mod
+ * The complete source code for this mod can be found on github.
+ * Class: BlockDropCaptureAssist
+ * Created by HellFirePvP
+ * Date: 11.03.2017 / 22:07
+ */
+public class BlockDropCaptureAssist {
+
+    public static final BlockDropCaptureAssist INSTANCE = new BlockDropCaptureAssist();
+
+    private static final Stack<NonNullList<ItemStack>> capturing = new Stack<>();
+
+    private BlockDropCaptureAssist() {}
+
+    public void onDrop(EntityJoinLevelEvent event) {
+        if (event.getLevel() instanceof ServerLevel && event.getEntity() instanceof ItemEntity) {
+            ItemStack itemStack = ((ItemEntity) event.getEntity()).getItem();
+            if (!capturing.isEmpty()) {
+                event.setCanceled(true);
+                if (!itemStack.isEmpty()) {
+                    //Apparently concurrency sometimes gets us here...
+                    if (!capturing.isEmpty()) {
+                        capturing.peek().add(itemStack);
+                    }
+                }
+                event.getEntity().discard();
+            }
+        }
+    }
+
+    public static void startCapturing() {
+        capturing.push(NonNullList.create());
+    }
+
+    public static NonNullList<ItemStack> getCapturedStacksAndStop() {
+        return capturing.pop();
+    }
+
+}

@@ -1,0 +1,108 @@
+/*******************************************************************************
+ * HellFirePvP / Astral Sorcery 2022
+ *
+ * All rights reserved.
+ * The source code is available on github: https://github.com/HellFirePvP/AstralSorcery
+ * For further details, see the License file there.
+ ******************************************************************************/
+
+package hellfirepvp.astralsorcery.common.auxiliary.gateway;
+
+import hellfirepvp.astralsorcery.AstralSorcery;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.Level;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * This class is part of the Astral Sorcery Mod
+ * The complete source code for this mod can be found on github.
+ * Class: CelestialGatewayFilter
+ * Created by HellFirePvP
+ * Date: 23.08.2019 / 22:15
+ */
+public class CelestialGatewayFilter {
+
+    private final File gatewayFilter;
+    private Set<ResourceKey<Level>> cache = new HashSet<>();
+
+    CelestialGatewayFilter() {
+        this.gatewayFilter = this.loadFilter();
+        this.loadCache();
+    }
+
+    private File loadFilter() {
+        File dataDir = AstralSorcery.getProxy().getASServerDataDirectory();
+        File gatewayFilter = new File(dataDir, "gateway_filter.dat");
+        if (!gatewayFilter.exists()) {
+            try {
+                gatewayFilter.createNewFile();
+            } catch (IOException exc) {
+                throw new IllegalStateException("Couldn't create plain world filter file! Are we missing file permissions?", exc);
+            }
+        }
+        return gatewayFilter;
+    }
+
+    public boolean hasGateways(ResourceLocation worldKey) {
+        return this.cache.contains(worldKey);
+    }
+
+    void addDim(ResourceKey<Level> worldKey) {
+        if (cache.add(worldKey)) {
+            this.saveCache();
+        }
+    }
+
+    void removeDim(ResourceKey<Level> worldKey) {
+        if (cache.remove(worldKey)) {
+            this.saveCache();
+        }
+    }
+
+    private void loadCache() {
+        if (!this.gatewayFilter.exists() || this.gatewayFilter.length() == 0) {
+            this.cache = new HashSet<>();
+            return;
+        }
+
+        try {
+            // CompressedStreamTools -> NbtIo
+            CompoundTag tag = NbtIo.read(this.gatewayFilter.toPath());
+            if (tag == null) return;
+
+            // Constants.NBT.TAG_STRING ahora se usa directamente el ID 8 o Tag.TAG_STRING
+            ListTag list = tag.getList("list", Tag.TAG_STRING);
+            this.cache = new HashSet<>();
+            for (int i = 0; i < list.size(); i++) {
+                ResourceLocation location = new ResourceLocation(list.getString(i));
+                // Registry.WORLD_KEY -> Registries.DIMENSION
+                this.cache.add(ResourceKey.create(Registries.DIMENSION, location));
+            }
+        } catch (IOException ignored) {
+            this.cache = new HashSet<>();
+        }
+    }
+
+    private void saveCache() {
+        try {
+            ListTag list = new ListTag();
+            for (ResourceKey<Level> dimType : cache) {
+                list.add(StringTag.valueOf(dimType.location().toString()));
+            }
+            CompoundTag cmp = new CompoundTag();
+            cmp.put("list", list);
+            NbtIo.write(cmp, this.gatewayFilter.toPath());
+        } catch (IOException ignored) {}
+    }
+}
