@@ -11,12 +11,12 @@ package hellfirepvp.astralsorcery.common.util.tile;
 import hellfirepvp.astralsorcery.common.tile.base.TileEntitySynchronized;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
+import net.minecraft.core.Direction; // util.Direction -> core.Direction
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ForgeCapabilities; // Nuevo paquete para capacidades
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 
 import javax.annotation.Nonnull;
@@ -77,7 +77,7 @@ public class TileInventory extends ItemStackHandler implements Iterable<ItemStac
     }
 
     @Nonnull
-    public TileInventory deserialize(CompoundNBT tag) {
+    public TileInventory deserialize(CompoundTag tag) {
         this.deserializeNBT(tag);
         if (this.getSlots() != this.slotCountProvider.get()) {
             TileInventory newInv = makeNewInstance();
@@ -92,7 +92,7 @@ public class TileInventory extends ItemStackHandler implements Iterable<ItemStac
     }
 
     @Nonnull
-    public CompoundNBT serialize() {
+    public CompoundTag serialize() {
         return this.serializeNBT();
     }
 
@@ -111,7 +111,7 @@ public class TileInventory extends ItemStackHandler implements Iterable<ItemStac
     }
 
     public boolean hasCapability(Capability<?> capability, @Nullable Direction facing) {
-        return hasHandlerForSide(facing) && CapabilityItemHandler.ITEM_HANDLER_CAPABILITY == capability;
+        return hasHandlerForSide(facing) && ForgeCapabilities.ITEM_HANDLER == capability;
     }
 
     public LazyOptional<TileInventory> getCapability() {

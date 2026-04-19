@@ -21,8 +21,10 @@ import hellfirepvp.astralsorcery.common.perk.modifier.PerkAttributeModifier;
 import hellfirepvp.astralsorcery.common.perk.reader.PerkAttributeReader;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
 import hellfirepvp.astralsorcery.common.structure.types.StructureType;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegistryBuilder;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -35,6 +37,7 @@ public class RegistriesAS {
 
     private RegistriesAS() {}
 
+    // 1. Definición de nombres (ResourceLocation)
     public static final ResourceLocation REGISTRY_NAME_CONSTELLATIONS = AstralSorcery.key("constellations");
     public static final ResourceLocation REGISTRY_NAME_CONSTELLATION_EFFECTS = AstralSorcery.key("constellation_effect");
     public static final ResourceLocation REGISTRY_NAME_MANTLE_EFFECTS = AstralSorcery.key("mantle_effect");
@@ -48,6 +51,23 @@ public class RegistriesAS {
     public static final ResourceLocation REGISTRY_NAME_CRYSTAL_USAGES = AstralSorcery.key("attribute_crystal_usages");
     public static final ResourceLocation REGISTRY_NAME_ALTAR_EFFECTS = AstralSorcery.key("altar_recipe_effects");
 
+    // 2. Definición de DeferredRegisters
+    // Usamos esto para registrar las cosas durante el ciclo de vida del mod.
+    public static final DeferredRegister<IConstellation> CONSTELLATIONS = DeferredRegister.create(REGISTRY_NAME_CONSTELLATIONS, AstralSorcery.MODID);
+    public static final DeferredRegister<ConstellationEffectProvider> CONSTELLATION_EFFECTS = DeferredRegister.create(REGISTRY_NAME_CONSTELLATION_EFFECTS, AstralSorcery.MODID);
+    public static final DeferredRegister<MantleEffect> MANTLE_EFFECTS = DeferredRegister.create(REGISTRY_NAME_MANTLE_EFFECTS, AstralSorcery.MODID);
+    public static final DeferredRegister<EngravingEffect> ENGRAVING_EFFECTS = DeferredRegister.create(REGISTRY_NAME_ENGRAVING_EFFECT, AstralSorcery.MODID);
+    public static final DeferredRegister<StructureType> STRUCTURE_TYPES = DeferredRegister.create(REGISTRY_NAME_STRUCTURE_TYPES, AstralSorcery.MODID);
+    public static final DeferredRegister<PerkAttributeType> PERK_ATTRIBUTE_TYPES = DeferredRegister.create(REGISTRY_NAME_PERK_ATTRIBUTE_TYPES, AstralSorcery.MODID);
+    public static final DeferredRegister<PerkConverter> PERK_ATTRIBUTE_CONVERTERS = DeferredRegister.create(REGISTRY_NAME_PERK_ATTRIBUTE_CONVERTERS, AstralSorcery.MODID);
+    public static final DeferredRegister<PerkAttributeModifier> PERK_CUSTOM_MODIFIERS = DeferredRegister.create(REGISTRY_NAME_PERK_CUSTOM_MODIFIERS, AstralSorcery.MODID);
+    public static final DeferredRegister<PerkAttributeReader> PERK_ATTRIBUTE_READERS = DeferredRegister.create(REGISTRY_NAME_PERK_ATTRIBUTE_READERS, AstralSorcery.MODID);
+    public static final DeferredRegister<CrystalProperty> CRYSTAL_PROPERTIES = DeferredRegister.create(REGISTRY_NAME_CRYSTAL_PROPERTIES, AstralSorcery.MODID);
+    public static final DeferredRegister<PropertyUsage> CRYSTAL_USAGES = DeferredRegister.create(REGISTRY_NAME_CRYSTAL_USAGES, AstralSorcery.MODID);
+    public static final DeferredRegister<AltarRecipeEffect> ALTAR_EFFECTS = DeferredRegister.create(REGISTRY_NAME_ALTAR_EFFECTS, AstralSorcery.MODID);
+
+    // 3. Proveedores de Registro (Suppliers)
+    // Para cuando necesites acceder al IForgeRegistry directamente.
     public static IForgeRegistry<IConstellation> REGISTRY_CONSTELLATIONS;
     public static IForgeRegistry<ConstellationEffectProvider> REGISTRY_CONSTELLATION_EFFECT;
     public static IForgeRegistry<MantleEffect> REGISTRY_MANTLE_EFFECT;

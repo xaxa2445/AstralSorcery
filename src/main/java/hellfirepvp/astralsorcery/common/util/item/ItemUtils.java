@@ -11,23 +11,23 @@ package hellfirepvp.astralsorcery.common.util.item;
 import hellfirepvp.astralsorcery.common.base.Mods;
 import hellfirepvp.astralsorcery.common.integration.IntegrationBotania;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
@@ -54,25 +54,24 @@ public class ItemUtils {
     public static final IItemHandler EMPTY_INVENTORY = new ItemHandlerEmpty();
     private static final Random rand = new Random();
 
-    public static ItemEntity dropItem(World world, double x, double y, double z, ItemStack stack) {
-        if (world.isRemote) {
+    public static ItemEntity dropItem(Level world, double x, double y, double z, ItemStack stack) {
+        if (world.isClientSide) {
             return null;
         }
         ItemEntity ei = new ItemEntity(world, x, y, z, stack);
-        ei.setMotion(new Vector3d(0, 0, 0));
-        world.addEntity(ei);
-        ei.setPickupDelay(20);
+        ei.setDeltaMovement(new Vec3(0, 0, 0));
+        world.addFreshEntity(ei);
+        ei.setPickUpDelay(20);
         return ei;
     }
 
-    public static ItemEntity dropItemNaturally(World world, double x, double y, double z, ItemStack stack) {
-        if (world.isRemote) {
+    public static ItemEntity dropItemNaturally(Level world, double x, double y, double z, ItemStack stack) {
+        if (world.isClientSide) {
             return null;
-        }
-        ItemEntity ei = new ItemEntity(world, x, y, z, stack);
+        }        ItemEntity ei = new ItemEntity(world, x, y, z, stack);
         applyRandomDropOffset(ei);
-        world.addEntity(ei);
-        ei.setPickupDelay(20);
+        world.addFreshEntity(ei);
+        ei.setPickUpDelay(20);
         return ei;
     }
 
@@ -82,12 +81,13 @@ public class ItemUtils {
 
     public static void decrementItem(Supplier<ItemStack> getFromInventory, Consumer<ItemStack> setIntoInventory, Consumer<ItemStack> handleExcess) {
         ItemStack toConsume = getFromInventory.get();
-        toConsume = ItemUtils.copyStackWithSize(toConsume, toConsume.getCount());
+        if (toConsume.isEmpty()) return;
 
-        ItemStack toReplaceWith = ItemStack.EMPTY;
-        if (toConsume.hasContainerItem()) {
-            toReplaceWith = toConsume.getContainerItem();
-        }
+        // Hacemos una copia para no modificar la referencia original accidentalmente
+        toConsume = copyStackWithSize(toConsume, toConsume.getCount());
+
+        // 1.20.1: getContainerItem() -> getRecipeRemainder()
+        ItemStack toReplaceWith = toConsume.getItem().getCraftingRemainingItem(toConsume);
 
         toConsume.shrink(1);
 
@@ -115,8 +115,8 @@ public class ItemUtils {
     }
 
     public static boolean isEquippableArmor(Entity entity, ItemStack stack) {
-        for (EquipmentSlotType type : EquipmentSlotType.values()) {
-            if (type.getSlotType() == EquipmentSlotType.Group.ARMOR) {
+        for (EquipmentSlot type : EquipmentSlot.values()) {
+            if (type.getType() == EquipmentSlot.Type.ARMOR) {
                 if (stack.canEquip(type, entity)) {
                     return true;
                 }
@@ -125,18 +125,18 @@ public class ItemUtils {
         return false;
     }
 
-    public static ItemStack dropItemToPlayer(PlayerEntity player, ItemStack stack) {
-        World world = player.getEntityWorld();
-        if (world.isRemote() || stack.isEmpty()) {
+    public static ItemStack dropItemToPlayer(Player player, ItemStack stack) {
+        Level world = player.level();
+        if (world.isClientSide || stack.isEmpty()) {
             return stack;
         }
-        ItemEntity item = new ItemEntity(world, player.getPosX(), player.getPosY(), player.getPosZ(), stack);
+        ItemEntity item = new ItemEntity(world, player.getX(), player.getY(), player.getZ(), stack);
         if (item.getItem().isEmpty()) {
             return stack;
         }
-        item.setNoPickupDelay();
+        item.setNoPickUpDelay();
         try {
-            item.onCollideWithPlayer(player);
+            item.playerTouch(player);
         } catch (Exception ignored) {
             //Guess some mod could run into an issue here...
         }
@@ -148,16 +148,16 @@ public class ItemUtils {
     }
 
     private static void applyRandomDropOffset(ItemEntity item) {
-        item.setMotion(rand.nextFloat() * 0.3F - 0.15D,
+        item.setDeltaMovement(rand.nextFloat() * 0.3F - 0.15D,
                 rand.nextFloat() * 0.3F - 0.05D,
                 rand.nextFloat() * 0.3F - 0.15D);
     }
 
     @Nonnull
     public static ItemStack changeItem(@Nonnull ItemStack stack, @Nonnull Item item) {
-        CompoundNBT nbt = stack.write(new CompoundNBT());
-        nbt.putString("id", item.getRegistryName().toString());
-        return ItemStack.read(nbt);
+        CompoundTag nbt = stack.save(new CompoundTag());
+        nbt.putString("id", BuiltInRegistries.ITEM.getKey(item).toString());
+        return ItemStack.of(nbt);
     }
 
     @Nonnull
@@ -167,22 +167,24 @@ public class ItemUtils {
 
     @Nullable
     public static BlockState createBlockState(ItemStack stack) {
-        Block b = Block.getBlockFromItem(stack.getItem());
+        Block b = Block.byItem(stack.getItem());
         if (b == Blocks.AIR) {
             return null;
         }
-        return b.getDefaultState();
+        return b.defaultBlockState();
     }
 
     @Nonnull
     public static List<ItemStack> getItemsOfTag(ResourceLocation key) {
-        ITag<Item> tag = ItemTags.getCollection().get(key);
-        return tag == null ? Collections.emptyList() : getItemsOfTag(tag);
-    }
+        // 1. Creamos una TagKey (la "llave" para buscar en el registro)
+        TagKey<Item> tagKey = TagKey.create(BuiltInRegistries.ITEM.key(), key);
 
-    @Nonnull
-    public static List<ItemStack> getItemsOfTag(ITag<Item> itemTag) {
-        return itemTag.getAllElements().stream().map(ItemStack::new).collect(Collectors.toList());
+        // 2. Buscamos el contenido de esa etiqueta en el registro de Items
+        return BuiltInRegistries.ITEM.getTag(tagKey)
+                .map(named -> named.stream()
+                        .map(holder -> new ItemStack(holder.value()))
+                        .collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
     }
 
     public static Collection<ItemStack> scanInventoryFor(IItemHandler handler, Item i) {
@@ -199,10 +201,14 @@ public class ItemUtils {
         return findItemsInInventory(handler, match, strict);
     }
 
-    public static Collection<ItemStack> findItemsInPlayerInventory(PlayerEntity player, ItemStack match, boolean strict) {
-        IItemHandler handler = player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).orElse(EMPTY_INVENTORY);
+    public static Collection<ItemStack> findItemsInPlayerInventory(Player player, ItemStack match, boolean strict) {
+        // 1.20.1: CapabilityItemHandler.ITEM_HANDLER_CAPABILITY -> ForgeCapabilities.ITEM_HANDLER
+        IItemHandler handler = player.getCapability(net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER)
+                .orElse(EMPTY_INVENTORY);
+
         Collection<ItemStack> results = findItemsInInventory(handler, match, strict);
 
+        // Mantenemos la lógica de compatibilidad con otros mods
         if (Mods.BOTANIA.isPresent()) {
             results.addAll(IntegrationBotania.findProvidersProvidingItems(player, match));
         }
@@ -223,8 +229,8 @@ public class ItemUtils {
         return stacksOut;
     }
 
-    public static Map<Integer, ItemStack> findItemsIndexedInPlayerInventory(PlayerEntity player, Predicate<ItemStack> match) {
-        return findItemsIndexedInInventory(player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).orElse(EMPTY_INVENTORY), match);
+    public static Map<Integer, ItemStack> findItemsIndexedInPlayerInventory(Player player, Predicate<ItemStack> match) {
+        return findItemsIndexedInInventory(player.getCapability(net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER).orElse(EMPTY_INVENTORY), match);
     }
 
     public static Map<Integer, ItemStack> findItemsIndexedInInventory(IItemHandler handler, ItemStack match, boolean strict) {
@@ -245,7 +251,7 @@ public class ItemUtils {
         return stacksOut;
     }
 
-    public static boolean consumeFromPlayerInventory(PlayerEntity player, ItemStack requestingItemStack, ItemStack toConsume, boolean simulate) {
+    public static boolean consumeFromPlayerInventory(Player player, ItemStack requestingItemStack, ItemStack toConsume, boolean simulate) {
         int consumed = 0;
         ItemStack tryConsume = copyStackWithSize(toConsume, toConsume.getCount() - consumed);
 
@@ -253,7 +259,7 @@ public class ItemUtils {
             return true;
         }
 
-        IItemHandlerModifiable handler = (IItemHandlerModifiable) player.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY, null).orElse(EMPTY_INVENTORY);
+        IItemHandlerModifiable handler = (IItemHandlerModifiable) player.getCapability(net.minecraftforge.common.capabilities.ForgeCapabilities.ITEM_HANDLER, null).orElse(EMPTY_INVENTORY);
         if (consumeFromInventory(handler, tryConsume, simulate)) {
             return true;
         }
@@ -290,8 +296,8 @@ public class ItemUtils {
         return cAmt <= 0;
     }
 
-    public static void dropInventory(IItemHandler handle, World worldIn, BlockPos pos) {
-        if (worldIn.isRemote) {
+    public static void dropInventory(IItemHandler handle, Level worldIn, BlockPos pos) {
+        if (worldIn.isClientSide) {
             return;
         }
         for (int i = 0; i < handle.getSlots(); i++) {
@@ -305,11 +311,20 @@ public class ItemUtils {
 
     public static void decrStackInInventory(ItemStack[] stacks, int slot) {
         if (slot < 0 || slot >= stacks.length) return;
+
         ItemStack st = stacks[slot];
-        if (st == null) return;
-        st.getCount()--;
-        if (st.getCount() <= 0) {
-            stacks[slot] = null;
+
+        // En 1.20.1, los stacks nunca deberían ser null, sino ItemStack.EMPTY
+        if (st == null || st.isEmpty()) {
+            return;
+        }
+
+        // Usamos shrink para reducir el contador de forma segura
+        st.shrink(1);
+
+        // Si el stack quedó vacío tras el shrink, nos aseguramos de limpiar la referencia
+        if (st.isEmpty()) {
+            stacks[slot] = ItemStack.EMPTY;
         }
     }
 
@@ -317,12 +332,19 @@ public class ItemUtils {
         if (slot < 0 || slot >= handler.getSlots()) {
             return;
         }
+
         ItemStack st = handler.getStackInSlot(slot);
         if (st.isEmpty()) {
             return;
         }
-        st.setCount(st.getCount() - 1);
-        if (st.getCount() <= 0) {
+
+        // Usamos shrink para reducir la cantidad en 1
+        st.shrink(1);
+
+        // En muchas implementaciones de IItemHandler, llamar a shrink ya actualiza el slot,
+        // pero para asegurar compatibilidad y disparar eventos de cambio (onContentsChanged),
+        // es buena práctica volver a setearlo si el stack quedó vacío.
+        if (st.isEmpty()) {
             handler.setStackInSlot(slot, ItemStack.EMPTY);
         }
     }

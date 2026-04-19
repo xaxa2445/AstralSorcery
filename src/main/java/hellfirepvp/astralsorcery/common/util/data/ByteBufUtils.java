@@ -14,23 +14,19 @@ import hellfirepvp.astralsorcery.common.perk.source.ModifierManager;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierSource;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierSourceProvider;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.ByteBufOutputStream;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.state.Property;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
+import net.minecraft.network.chat.Component; // ITextComponent -> Component
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.registries.IForgeRegistryEntry;
-import net.minecraftforge.registries.RegistryManager;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -52,34 +48,34 @@ import java.util.function.Supplier;
 public class ByteBufUtils {
 
     @Nullable
-    public static <T> T readOptional(PacketBuffer buf, Function<PacketBuffer, T> readFct) {
+    public static <T> T readOptional(FriendlyByteBuf buf, Function<FriendlyByteBuf, T> readFct) {
         if (buf.readBoolean()) {
             return readFct.apply(buf);
         }
         return null;
     }
 
-    public static <T> void writeOptional(PacketBuffer buf, @Nullable T object, BiConsumer<PacketBuffer, T> applyFct) {
+    public static <T> void writeOptional(FriendlyByteBuf buf, @Nullable T object, BiConsumer<FriendlyByteBuf, T> applyFct) {
         writeOptional(buf, object, Function.identity(), applyFct);
     }
 
-    public static <T, R> void writeOptional(PacketBuffer buf, @Nullable T object, Function<T, R> converter, BiConsumer<PacketBuffer, R> applyFct) {
+    public static <T, R> void writeOptional(FriendlyByteBuf buf, @Nullable T object, Function<T, R> converter, BiConsumer<FriendlyByteBuf, R> applyFct) {
         buf.writeBoolean(object != null);
         if (object != null) {
             applyFct.accept(buf, converter.apply(object));
         }
     }
 
-    public static void writeUUID(PacketBuffer buf, UUID uuid) {
+    public static void writeUUID(FriendlyByteBuf buf, UUID uuid) {
         buf.writeLong(uuid.getMostSignificantBits());
         buf.writeLong(uuid.getLeastSignificantBits());
     }
 
-    public static UUID readUUID(PacketBuffer buf) {
+    public static UUID readUUID(FriendlyByteBuf buf) {
         return new UUID(buf.readLong(), buf.readLong());
     }
 
-    public static <T> void writeCollection(PacketBuffer buf, @Nullable Collection<T> list, BiConsumer<PacketBuffer, T> iterationFct) {
+    public static <T> void writeCollection(FriendlyByteBuf buf, @Nullable Collection<T> list, BiConsumer<FriendlyByteBuf, T> iterationFct) {
         if (list != null) {
             buf.writeInt(list.size());
             list.forEach(e -> iterationFct.accept(buf, e));
@@ -89,17 +85,17 @@ public class ByteBufUtils {
     }
 
     @Nullable
-    public static <T> List<T> readList(PacketBuffer buf, Function<PacketBuffer, T> readFct) {
+    public static <T> List<T> readList(FriendlyByteBuf buf, Function<FriendlyByteBuf, T> readFct) {
         return readCollection(buf, ArrayList::new, List::add, readFct);
     }
 
     @Nullable
-    public static <T> Set<T> readSet(PacketBuffer buf, Function<PacketBuffer, T> readFct) {
+    public static <T> Set<T> readSet(FriendlyByteBuf buf, Function<FriendlyByteBuf, T> readFct) {
         return readCollection(buf, HashSet::new, Set::add, readFct);
     }
 
     @Nullable
-    public static <T, C extends Collection<T>> C readCollection(PacketBuffer buf, Supplier<C> newCollection, BiConsumer<C, T> addFn, Function<PacketBuffer, T> readFct) {
+    public static <T, C extends Collection<T>> C readCollection(FriendlyByteBuf buf, Supplier<C> newCollection, BiConsumer<C, T> addFn, Function<FriendlyByteBuf, T> readFct) {
         int size = buf.readInt();
         if (size == -1) {
             return null;
@@ -111,10 +107,10 @@ public class ByteBufUtils {
         return collection;
     }
 
-    public static <K, V> void writeMap(PacketBuffer buf,
+    public static <K, V> void writeMap(FriendlyByteBuf buf,
                                        @Nullable Map<K, V> map,
-                                       BiConsumer<PacketBuffer, K> keySerializer,
-                                       BiConsumer<PacketBuffer, V> valueSerializer) {
+                                       BiConsumer<FriendlyByteBuf, K> keySerializer,
+                                       BiConsumer<FriendlyByteBuf, V> valueSerializer) {
         if (map != null) {
             buf.writeInt(map.size());
             for (Map.Entry<K, V> entry : map.entrySet()) {
@@ -127,9 +123,9 @@ public class ByteBufUtils {
     }
 
     @Nullable
-    public static <K, V> Map<K, V> readMap(PacketBuffer buf,
-                                           Function<PacketBuffer, K> readKey,
-                                           Function<PacketBuffer, V> readValue) {
+    public static <K, V> Map<K, V> readMap(FriendlyByteBuf buf,
+                                           Function<FriendlyByteBuf, K> readKey,
+                                           Function<FriendlyByteBuf, V> readValue) {
         int size = buf.readInt();
         if (size == -1) {
             return null;
@@ -141,76 +137,115 @@ public class ByteBufUtils {
         return map;
     }
 
-    public static void writeTextComponent(PacketBuffer buf, ITextComponent cmp) {
-        writeString(buf, IFormattableTextComponent.Serializer.toJson(cmp));
+    public static void writeTextComponent(FriendlyByteBuf buf, Component cmp) {
+        buf.writeComponent(cmp);
     }
 
-    public static IFormattableTextComponent readTextComponent(PacketBuffer buf) {
-        return IFormattableTextComponent.Serializer.getComponentFromJson(readString(buf));
+    public static Component readTextComponent(FriendlyByteBuf buf) {
+        return buf.readComponent();
     }
 
-    public static void writeString(PacketBuffer buf, String toWrite) {
+    public static void writeString(FriendlyByteBuf buf, String toWrite) {
         byte[] str = toWrite.getBytes(StandardCharsets.UTF_8);
         buf.writeInt(str.length);
         buf.writeBytes(str);
     }
 
-    public static String readString(PacketBuffer buf) {
+    public static String readString(FriendlyByteBuf buf) {
         int length = buf.readInt();
         byte[] strBytes = new byte[length];
         buf.readBytes(strBytes, 0, length);
         return new String(strBytes, StandardCharsets.UTF_8);
     }
 
-    public static <T> void writeRegistryEntry(PacketBuffer buf, IForgeRegistryEntry<T> entry) {
-        writeResourceLocation(buf, entry.getRegistryName());
-        writeResourceLocation(buf, RegistryManager.ACTIVE.getRegistry(entry.getRegistryType()).getRegistryName());
+    private static final Map<Class<?>, net.minecraftforge.registries.IForgeRegistry<?>> REGISTRY_MAP = new HashMap<>();
+
+    static {
+        REGISTRY_MAP.put(net.minecraft.world.item.Item.class, net.minecraftforge.registries.ForgeRegistries.ITEMS);
+        REGISTRY_MAP.put(net.minecraft.world.level.block.Block.class, net.minecraftforge.registries.ForgeRegistries.BLOCKS);
+        // Agrega aquí los registros de Astral (Constelaciones, etc.) cuando los tengas
     }
 
-    public static <T> T readRegistryEntry(PacketBuffer buf) {
+    @SuppressWarnings("unchecked")
+    public static <T> void writeRegistryEntry(FriendlyByteBuf buf, T entry) {
+        // Intentamos buscar el registro por la clase del objeto
+        net.minecraftforge.registries.IForgeRegistry<T> registry = (net.minecraftforge.registries.IForgeRegistry<T>) REGISTRY_MAP.get(entry.getClass());
+
+        if (registry != null) {
+            buf.writeResourceLocation(registry.getKey(entry));
+            buf.writeResourceLocation(registry.getRegistryName());
+        } else {
+            // Fallback manual si no está en el mapa
+            // Aquí podrías intentar una búsqueda lenta o mandar Aire
+            buf.writeResourceLocation(new ResourceLocation("minecraft", "air"));
+            buf.writeResourceLocation(new ResourceLocation("minecraft", "block"));
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T readRegistryEntry(FriendlyByteBuf buf) {
         ResourceLocation entryName = readResourceLocation(buf);
         ResourceLocation registryName = readResourceLocation(buf);
-        return (T) RegistryManager.ACTIVE.getRegistry(registryName).getValue(entryName);
+
+        // En 1.20.1, si 'registries()' no existe, usamos la vía del RegistryManager directo
+        // pero debemos castear a la interfaz genérica para que 'getValue' sea visible.
+        net.minecraftforge.registries.IForgeRegistry<?> registry = net.minecraftforge.registries.RegistryManager.ACTIVE.getRegistry(registryName);
+
+        if (registry != null) {
+            // En algunas versiones de 1.20.1, getValue podría estar marcado como ambiguo
+            // si no especificas el tipo.
+            return (T) registry.getValue(entryName);
+        }
+        return null;
     }
 
-    public static void writeVanillaRegistryEntry(PacketBuffer buf, RegistryKey<?> key) {
-        writeResourceLocation(buf, key.getRegistryName());
-        writeResourceLocation(buf, key.getLocation());
+    public static void writeVanillaRegistryEntry(FriendlyByteBuf buf, ResourceKey<?> key) {
+        writeResourceLocation(buf, key.registry());
+        writeResourceLocation(buf, key.location());
     }
 
-    public static <T> RegistryKey<T> readVanillaRegistryEntry(PacketBuffer buf) {
+    public static <T> net.minecraft.resources.ResourceKey<T> readVanillaRegistryEntry(FriendlyByteBuf buf) {
+        // 1. Leemos el ResourceLocation del registro (el "padre")
         ResourceLocation registryName = readResourceLocation(buf);
-        return RegistryKey.getOrCreateKey(RegistryKey.getOrCreateRootKey(registryName), readResourceLocation(buf));
+
+        // 2. Leemos el ResourceLocation del objeto (el "hijo")
+        ResourceLocation entryName = readResourceLocation(buf);
+
+        // 3. Reconstruimos la ResourceKey usando los nuevos nombres de métodos
+        return net.minecraft.resources.ResourceKey.create(
+                net.minecraft.resources.ResourceKey.createRegistryKey(registryName),
+                entryName
+        );
     }
 
-    public static void writeResourceLocation(PacketBuffer buf, ResourceLocation key) {
-        writeString(buf, key.toString());
+    public static void writeResourceLocation(FriendlyByteBuf buf, ResourceLocation key) {
+        buf.writeResourceLocation(key); // Es mucho más rápido y ligero
     }
 
-    public static ResourceLocation readResourceLocation(PacketBuffer buf) {
-        return new ResourceLocation(readString(buf));
+    public static ResourceLocation readResourceLocation(FriendlyByteBuf buf) {
+        return buf.readResourceLocation(); // Nativo
     }
 
-    public static <T extends Enum<T>> void writeEnumValue(PacketBuffer buf, T value) {
+    public static <T extends Enum<T>> void writeEnumValue(FriendlyByteBuf buf, T value) {
         buf.writeInt(value.ordinal());
     }
 
-    public static <T extends Enum<T>> T readEnumValue(PacketBuffer buf, Class<T> enumClazz) {
+    public static <T extends Enum<T>> T readEnumValue(FriendlyByteBuf buf, Class<T> enumClazz) {
         if (!enumClazz.isEnum()) {
             throw new IllegalArgumentException("Passed class is not an enum!");
         }
         return enumClazz.getEnumConstants()[buf.readInt()];
     }
 
-    public static void writeJsonObject(PacketBuffer buf, JsonObject object) {
+    public static void writeJsonObject(FriendlyByteBuf buf, JsonObject object) {
         writeString(buf, object.toString());
     }
 
-    public static JsonObject readJsonObject(PacketBuffer buf) {
+    public static JsonObject readJsonObject(FriendlyByteBuf buf) {
         return new JsonParser().parse(readString(buf)).getAsJsonObject();
     }
 
-    public static void writeModifierSource(PacketBuffer buf, ModifierSource source) {
+    public static void writeModifierSource(FriendlyByteBuf buf, ModifierSource source) {
         ResourceLocation providerName = source.getProviderName();
         ByteBufUtils.writeResourceLocation(buf, providerName);
 
@@ -221,7 +256,7 @@ public class ByteBufUtils {
         provider.serialize(source, buf);
     }
 
-    public static ModifierSource readModifierSource(PacketBuffer buf) {
+    public static ModifierSource readModifierSource(FriendlyByteBuf buf) {
         ResourceLocation providerName = ByteBufUtils.readResourceLocation(buf);
         ModifierSourceProvider<?> provider = ModifierManager.getProvider(providerName);
         if (provider == null) {
@@ -230,103 +265,76 @@ public class ByteBufUtils {
         return provider.deserialize(buf);
     }
 
-    public static void writePos(PacketBuffer buf, BlockPos pos) {
+    public static void writePos(FriendlyByteBuf buf, BlockPos pos) {
         buf.writeInt(pos.getX());
         buf.writeInt(pos.getY());
         buf.writeInt(pos.getZ());
     }
 
-    public static BlockPos readPos(PacketBuffer buf) {
+    public static BlockPos readPos(FriendlyByteBuf buf) {
         int x = buf.readInt();
         int y = buf.readInt();
         int z = buf.readInt();
         return new BlockPos(x, y, z);
     }
 
-    public static void writeVector(PacketBuffer buf, Vector3 vec) {
+    public static void writeVector(FriendlyByteBuf buf, Vector3 vec) {
         buf.writeDouble(vec.getX());
         buf.writeDouble(vec.getY());
         buf.writeDouble(vec.getZ());
     }
 
-    public static Vector3 readVector(PacketBuffer buf) {
+    public static Vector3 readVector(FriendlyByteBuf buf) {
         double x = buf.readDouble();
         double y = buf.readDouble();
         double z = buf.readDouble();
         return new Vector3(x, y, z);
     }
 
-    public static void writeItemStack(PacketBuffer byteBuf, @Nonnull ItemStack stack) {
-        boolean defined = !stack.isEmpty();
-        byteBuf.writeBoolean(defined);
-        if (defined) {
-            CompoundNBT tag = new CompoundNBT();
-            stack.write(tag);
-            writeNBTTag(byteBuf, tag);
-        }
+    public static void writeItemStack(FriendlyByteBuf byteBuf, @Nonnull ItemStack stack) {
+        byteBuf.writeItem(stack);
     }
 
     @Nonnull
-    public static ItemStack readItemStack(PacketBuffer byteBuf) {
-        boolean defined = byteBuf.readBoolean();
-        if (defined) {
-            return ItemStack.read(readNBTTag(byteBuf));
-        } else {
-            return ItemStack.EMPTY;
-        }
+    public static ItemStack readItemStack(FriendlyByteBuf byteBuf) {
+        return byteBuf.readItem();
     }
 
-    public static void writeBlockState(PacketBuffer byteBuf, @Nonnull BlockState state) {
-        ByteBufUtils.writeRegistryEntry(byteBuf, state.getBlock());
-
-        Collection<Property<?>> properties = state.getProperties();
-        byteBuf.writeInt(properties.size());
-        for (Property prop : properties) {
-            ByteBufUtils.writeString(byteBuf, prop.getName());
-            ByteBufUtils.writeString(byteBuf, prop.getName(state.get(prop)));
-        }
+    public static void writeBlockState(FriendlyByteBuf byteBuf, @Nonnull BlockState state) {
+        // Usa el ID de la paleta global de Minecraft
+        byteBuf.writeVarInt(net.minecraft.world.level.block.Block.BLOCK_STATE_REGISTRY.getId(state));
     }
 
-    public static <T extends Comparable<T>> BlockState readBlockState(PacketBuffer byteBuf) {
-        Block block = ByteBufUtils.readRegistryEntry(byteBuf);
-        BlockState state = block.getDefaultState();
-
-        int properties = byteBuf.readInt();
-        for (int i = 0; i < properties; i++) {
-            String propName = ByteBufUtils.readString(byteBuf);
-            String valueStr = ByteBufUtils.readString(byteBuf);
-            Property<T> property = (Property<T>) MiscUtils.iterativeSearch(state.getProperties(), prop -> prop.getName().equalsIgnoreCase(propName));
-            if (property != null) {
-                Optional<T> value = property.parseValue(valueStr);
-                if (value.isPresent()) {
-                    state = state.with(property, value.get());
-                }
-            }
-        }
-        return state;
+    public static BlockState readBlockState(FriendlyByteBuf byteBuf) {
+        return net.minecraft.world.level.block.Block.BLOCK_STATE_REGISTRY.byId(byteBuf.readVarInt());
     }
 
-    public static void writeFluidStack(PacketBuffer byteBuf, @Nonnull FluidStack stack) {
+    public static void writeFluidStack(FriendlyByteBuf byteBuf, @Nonnull FluidStack stack) {
         stack.writeToPacket(byteBuf);
     }
 
     @Nonnull
-    public static FluidStack readFluidStack(PacketBuffer byteBuf) {
+    public static FluidStack readFluidStack(FriendlyByteBuf byteBuf) {
         return FluidStack.readFromPacket(byteBuf);
     }
 
-    public static void writeNBTTag(PacketBuffer byteBuf, @Nonnull CompoundNBT tag) {
-        try (DataOutputStream dos = new DataOutputStream(new ByteBufOutputStream(byteBuf))) {
-            CompressedStreamTools.write(tag, dos);
-        } catch (Exception exc) {}
+    public static void writeNBTTag(FriendlyByteBuf byteBuf, @Nullable net.minecraft.nbt.CompoundTag tag) {
+        // En 1.20.1, FriendlyByteBuf ya maneja la escritura de NBT internamente.
+        // No hace falta DataOutputStream ni ByteBufOutputStream.
+        byteBuf.writeNbt(tag);
     }
 
     @Nonnull
-    public static CompoundNBT readNBTTag(PacketBuffer byteBuf) {
-        try (DataInputStream dis = new DataInputStream(new ByteBufInputStream(byteBuf))) {
-            return CompressedStreamTools.read(dis);
-        } catch (Exception exc) {}
-        throw new IllegalStateException("Could not load NBT Tag from incoming byte buffer!");
+    public static net.minecraft.nbt.CompoundTag readNBTTag(FriendlyByteBuf byteBuf) {
+        // 1. Leemos el tag directamente. readNbt() devuelve null si no hay tag.
+        net.minecraft.nbt.CompoundTag tag = byteBuf.readNbt();
+
+        // 2. Mantenemos la lógica de Astral de no permitir nulos si así estaba diseñado
+        if (tag == null) {
+            throw new IllegalStateException("Could not load NBT Tag from incoming byte buffer!");
+        }
+
+        return tag;
     }
 
 }

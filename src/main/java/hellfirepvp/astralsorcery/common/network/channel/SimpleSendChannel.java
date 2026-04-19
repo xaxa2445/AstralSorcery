@@ -9,14 +9,14 @@
 package hellfirepvp.astralsorcery.common.network.channel;
 
 import hellfirepvp.astralsorcery.common.network.base.ASPacket;
+import net.minecraft.network.Connection; // NetworkManager -> Connection
+import net.minecraft.server.level.ServerPlayer; // ServerPlayerEntity -> ServerPlayer
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.NetworkManager;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraftforge.fml.network.NetworkDirection;
-import net.minecraftforge.fml.network.NetworkEvent;
-import net.minecraftforge.fml.network.PacketDistributor;
-import net.minecraftforge.fml.network.simple.SimpleChannel;
+import net.minecraft.world.level.chunk.LevelChunk; // Chunk -> LevelChunk
+import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.network.simple.SimpleChannel;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -33,9 +33,9 @@ public abstract class SimpleSendChannel {
         this.channel = channel;
     }
 
-    public <P extends ASPacket<P>> void sendToPlayer(PlayerEntity player, P packet) {
-        if (player instanceof ServerPlayerEntity) {
-            this.send(PacketDistributor.PLAYER.with(() -> (ServerPlayerEntity) player), packet);
+    public <P extends ASPacket<P>> void sendToPlayer(Player player, P packet) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            this.send(PacketDistributor.PLAYER.with(() -> serverPlayer), packet);
         }
     }
 
@@ -43,7 +43,7 @@ public abstract class SimpleSendChannel {
         this.send(PacketDistributor.ALL.noArg(), packet);
     }
 
-    public <P extends ASPacket<P>> void sendToAllObservingChunk(P packet, Chunk ch) {
+    public <P extends ASPacket<P>> void sendToAllObservingChunk(P packet, LevelChunk ch) {
         this.send(PacketDistributor.TRACKING_CHUNK.with(() -> ch), packet);
     }
 
@@ -55,7 +55,7 @@ public abstract class SimpleSendChannel {
         channel.sendToServer(message);
     }
 
-    public <MSG> void sendTo(MSG message, NetworkManager manager, NetworkDirection direction) {
+    public <MSG> void sendTo(MSG message, Connection manager, NetworkDirection direction) {
         channel.sendTo(message, manager, direction);
     }
 

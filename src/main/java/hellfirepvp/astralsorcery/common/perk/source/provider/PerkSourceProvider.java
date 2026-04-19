@@ -13,9 +13,9 @@ import hellfirepvp.astralsorcery.common.perk.PerkTree;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierManager;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierSourceProvider;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer; // ServerPlayerEntity -> ServerPlayer
 import net.minecraftforge.fml.LogicalSide;
 
 /**
@@ -32,19 +32,25 @@ public class PerkSourceProvider extends ModifierSourceProvider<AbstractPerk> {
     }
 
     @Override
-    protected void update(ServerPlayerEntity playerEntity) {}
+    protected void update(ServerPlayer player) {
+        // Lógica de actualización de modificadores
+    }
 
     @Override
-    protected void removeModifiers(ServerPlayerEntity playerEntity) {}
+    protected void removeModifiers(ServerPlayer player) {
+        // Lógica de limpieza al remover el perk
+    }
 
     @Override
-    public void serialize(AbstractPerk source, PacketBuffer buf) {
+    public void serialize(AbstractPerk source, FriendlyByteBuf buf) {
+        // Usamos tu clase de utilidad ByteBufUtils para mantener la consistencia del mod original
         ByteBufUtils.writeResourceLocation(buf, source.getRegistryName());
     }
 
     @Override
-    public AbstractPerk deserialize(PacketBuffer buf) {
+    public AbstractPerk deserialize(FriendlyByteBuf buf) {
         ResourceLocation perkKey = ByteBufUtils.readResourceLocation(buf);
+        // Intentamos obtener el perk desde el árbol del lado cliente usando el LogicalSide de Forge
         return PerkTree.PERK_TREE.getPerk(LogicalSide.CLIENT, perkKey).orElse(null);
     }
 }

@@ -13,9 +13,9 @@ import hellfirepvp.astralsorcery.common.event.ASRegistryEvents;
 import hellfirepvp.astralsorcery.common.perk.source.provider.PerkSourceProvider;
 import hellfirepvp.astralsorcery.common.perk.source.provider.equipment.EquipmentSourceProvider;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
@@ -69,13 +69,13 @@ public class ModifierManager implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = (PlayerEntity) context[0];
+        Player player = (Player) context[0];
         LogicalSide side = (LogicalSide) context[1];
 
-        if (!side.isServer() || !(player instanceof ServerPlayerEntity)) {
+        if (!side.isServer() || !(player instanceof ServerPlayer)) {
             return;
         }
-        ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
+        ServerPlayer serverPlayer = (ServerPlayer) player;
 
         for (ModifierSourceProvider<?> sourceProvider : sourceProviders.values()) {
             sourceProvider.update(serverPlayer);
@@ -83,34 +83,34 @@ public class ModifierManager implements ITickHandler {
     }
 
     @Nonnull
-    private static Set<ModifierSource> getModifiers(PlayerEntity player, LogicalSide side) {
+    private static Set<ModifierSource> getModifiers(Player player, LogicalSide side) {
         if (side.isClient()) {
-            return modifierCacheClient.computeIfAbsent(player.getUniqueID(), uuid -> new HashSet<>());
+            return modifierCacheClient.computeIfAbsent(player.getUUID(), uuid -> new HashSet<>());
         } else {
-            return modifierCache.computeIfAbsent(player.getUniqueID(), uuid -> new HashSet<>());
+            return modifierCache.computeIfAbsent(player.getUUID(), uuid -> new HashSet<>());
         }
     }
 
     @Nonnull
-    public static Set<ModifierSource> getAppliedModifiers(PlayerEntity player, LogicalSide side) {
+    public static Set<ModifierSource> getAppliedModifiers(Player player, LogicalSide side) {
         return new HashSet<>(getModifiers(player, side));
     }
 
-    public static void addModifier(PlayerEntity player, LogicalSide side, ModifierSource source) {
+    public static void addModifier(Player player, LogicalSide side, ModifierSource source) {
         Set<ModifierSource> modifiers = getModifiers(player, side);
         if (!modifiers.contains(source) && modifiers.add(source)) {
             source.onApply(player, side);
         }
     }
 
-    public static void removeModifier(PlayerEntity player, LogicalSide side, ModifierSource source) {
+    public static void removeModifier(Player player, LogicalSide side, ModifierSource source) {
         Set<ModifierSource> modifiers = getModifiers(player, side);
         if (modifiers.remove(source)) {
             source.onRemove(player, side);
         }
     }
 
-    public static boolean isModifierApplied(PlayerEntity player, LogicalSide side, ModifierSource source) {
+    public static boolean isModifierApplied(Player player, LogicalSide side, ModifierSource source) {
         return getModifiers(player, side).contains(source);
     }
 
@@ -119,7 +119,7 @@ public class ModifierManager implements ITickHandler {
         modifierCacheClient.clear();
     }
 
-    public static void onDisconnect(ServerPlayerEntity player) {
+    public static void onDisconnect(ServerPlayer player) {
         for (ModifierSourceProvider<?> sourceProvider : sourceProviders.values()) {
             sourceProvider.removeModifiers(player);
         }

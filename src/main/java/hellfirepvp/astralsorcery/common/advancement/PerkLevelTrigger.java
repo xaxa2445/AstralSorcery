@@ -11,10 +11,13 @@ package hellfirepvp.astralsorcery.common.advancement;
 import com.google.gson.JsonObject;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.advancement.instance.PerkLevelInstance;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.loot.ConditionArrayParser;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.advancements.critereon.ContextAwarePredicate;
+import net.minecraft.advancements.critereon.DeserializationContext;
+import net.minecraft.advancements.critereon.SimpleCriterionTrigger;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 
+import javax.annotation.Nonnull;
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
@@ -22,23 +25,26 @@ import net.minecraft.util.ResourceLocation;
  * Created by HellFirePvP
  * Date: 11.05.2020 / 20:30
  */
-public class PerkLevelTrigger extends ListenerCriterionTrigger<PerkLevelInstance> {
+public class PerkLevelTrigger extends SimpleCriterionTrigger<PerkLevelInstance> {
 
     public static final ResourceLocation ID = AstralSorcery.key("perk_level");
 
-    public PerkLevelTrigger() {
-        super(ID);
-    }
-
+    @Nonnull
     @Override
-    public PerkLevelInstance deserialize(JsonObject object, ConditionArrayParser conditions) {
-        return PerkLevelInstance.deserialize(getId(), object);
+    public ResourceLocation getId() {
+        return ID;
     }
 
-    public void trigger(ServerPlayerEntity player) {
-        Listeners<PerkLevelInstance> listeners = this.listeners.get(player.getAdvancements());
-        if (listeners != null) {
-            listeners.trigger((i) -> i.test(player));
-        }
+
+    @Nonnull
+    @Override
+    protected PerkLevelInstance createInstance(JsonObject json, ContextAwarePredicate playerPredicate, DeserializationContext context) {
+        // Asegúrate de que PerkLevelInstance sea accesible
+        return PerkLevelInstance.deserialize(json, playerPredicate, context);
+    }
+
+    public void trigger(ServerPlayer player) {
+        // SimpleCriterionTrigger ya tiene el método trigger que maneja los listeners internamente
+        this.trigger(player, (instance) -> instance.test(player));
     }
 }

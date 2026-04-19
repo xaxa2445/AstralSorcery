@@ -11,7 +11,7 @@ package hellfirepvp.astralsorcery.common.perk;
 import hellfirepvp.astralsorcery.common.data.config.entry.PerkConfig;
 import hellfirepvp.astralsorcery.common.util.SidedReference;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -46,11 +46,11 @@ public class PerkLevelManager {
         LEVEL_DATA.setData(LogicalSide.SERVER, new LevelData(PerkConfig.CONFIG.perkLevelCap.get()));
     }
 
-    public static int getLevel(double totalExp, PlayerEntity player, LogicalSide side) {
-        return getLevel(MathHelper.lfloor(totalExp), player, side);
+    public static int getLevel(double totalExp, Player player, LogicalSide side) {
+        return getLevel(Mth.lfloor(totalExp), player, side);
     }
 
-    private static int getLevel(long totalExp, PlayerEntity player, LogicalSide side) {
+    private static int getLevel(long totalExp, Player player, LogicalSide side) {
         if (totalExp <= 0) {
             return 1;
         }
@@ -66,7 +66,7 @@ public class PerkLevelManager {
         }).orElse(1);
     }
 
-    public static long getExpForLevel(int targetLevel, PlayerEntity player, LogicalSide side) {
+    public static long getExpForLevel(int targetLevel, Player player, LogicalSide side) {
         if (targetLevel <= 1) {
             return 0;
         }
@@ -81,7 +81,7 @@ public class PerkLevelManager {
         }).orElse(0L);
     }
 
-    public static float getNextLevelPercent(double totalExp, PlayerEntity player, LogicalSide side) {
+    public static float getNextLevelPercent(double totalExp, Player player, LogicalSide side) {
         int level = getLevel(totalExp, player, side);
         if (level >= getLevelCap(side, player)) {
             return 1F; //Done.
@@ -93,7 +93,7 @@ public class PerkLevelManager {
         }).orElse(1F);
     }
 
-    public static int getLevelCap(LogicalSide side, @Nullable PlayerEntity player) {
+    public static int getLevelCap(LogicalSide side, @Nullable Player player) {
         return LEVEL_DATA.getData(side).map(data -> data.levelCap).orElse(1);
     }
 
@@ -111,7 +111,7 @@ public class PerkLevelManager {
             if (this.totalExpLevelRequired.isEmpty()) {
                 for (int i = 1; i <= this.levelCap; i++) {
                     long prev = this.totalExpLevelRequired.getOrDefault(i - 1, 0L);
-                    this.totalExpLevelRequired.put(i, prev + 150L + 100L * MathHelper.floor(Math.pow(1.2F, i)));
+                    this.totalExpLevelRequired.put(i, prev + 150L + 100L * Mth.floor(Math.pow(1.2F, i)));
                 }
             }
         }

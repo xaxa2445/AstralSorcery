@@ -65,6 +65,18 @@ public class NBTHelper {
         }
     }
 
+    public static <T> List<T> readList(CompoundTag tag, String key, int type, Function<Tag, T> mapper) {
+        if (!tag.contains(key, Tag.TAG_LIST)) {
+            return new ArrayList<>();
+        }
+        ListTag list = tag.getList(key, type);
+        List<T> out = new ArrayList<>(list.size());
+        for (Tag entry : list) {
+            out.add(mapper.apply(entry));
+        }
+        return out;
+    }
+
     public static boolean hasPersistentData(Entity entity) {
         return hasPersistentData(entity.getPersistentData());
     }

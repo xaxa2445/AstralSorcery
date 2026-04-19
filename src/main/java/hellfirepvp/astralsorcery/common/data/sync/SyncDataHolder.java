@@ -18,12 +18,13 @@ import hellfirepvp.astralsorcery.common.network.PacketChannel;
 import hellfirepvp.astralsorcery.common.network.play.server.PktSyncData;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.network.PacketDistributor;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -104,10 +105,10 @@ public class SyncDataHolder implements ITickHandler {
         }
     }
 
-    public static void clearWorld(World world) {
-        RegistryKey<World> dim = world.getDimensionKey();
+    public static void clearWorld(Level world) {
+        ResourceKey<Level> dim = world.dimension();
         for (ResourceLocation key : SyncDataRegistry.getKnownKeys()) {
-            if (!world.isRemote()) {
+            if (!world.isClientSide) {
                 executeServer(key, AbstractData.class, data -> data.clear(dim));
             }
         }
@@ -136,12 +137,12 @@ public class SyncDataHolder implements ITickHandler {
         if (dirtyData.isEmpty()) {
             return;
         }
-        Map<ResourceLocation, CompoundNBT> pktData = new HashMap<>();
+        Map<ResourceLocation, CompoundTag> pktData = new HashMap<>();
         synchronized (lck) {
             for (ResourceLocation key : dirtyData) {
                 AbstractData dat = serverData.get(key);
                 if (dat != null) {
-                    CompoundNBT nbt = new CompoundNBT();
+                    CompoundTag nbt = new CompoundTag();
                     dat.writeDiffDataToPacket(nbt);
                     pktData.put(key, nbt);
                 }

@@ -20,7 +20,7 @@ import net.minecraft.world.level.Level;
  */
 public abstract class ClientData<C extends ClientData<C>> {
 
-    public abstract void clear(RegistryKey<World> dim);
+    public abstract void clear(ResourceKey<Level> dim);
 
     public abstract void clearClient();
 }

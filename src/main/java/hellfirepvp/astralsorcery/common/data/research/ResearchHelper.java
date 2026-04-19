@@ -15,21 +15,19 @@ import hellfirepvp.astralsorcery.common.network.PacketChannel;
 import hellfirepvp.astralsorcery.common.network.play.server.PktProgressionUpdate;
 import hellfirepvp.astralsorcery.common.network.play.server.PktSyncKnowledge;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.command.ICommandSource;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.Util;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
-
+import net.minecraftforge.common.util.LogicalSidedProvider;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.File;
@@ -52,11 +50,11 @@ public class ResearchHelper {
     private static final Map<UUID, PlayerProgress> playerProgressServer = new HashMap<>();
 
     @Nonnull
-    public static PlayerProgress getProgress(@Nullable PlayerEntity player, LogicalSide side) {
+    public static PlayerProgress getProgress(@Nullable Player player, LogicalSide side) {
         if (side.isClient()) {
             return getClientProgress();
-        } else if (player instanceof ServerPlayerEntity) {
-            return getProgressServer((ServerPlayerEntity) player);
+        } else if (player instanceof ServerPlayer) {
+            return getProgressServer((ServerPlayer) player);
         } else {
             return new PlayerProgressTestAccess();
         }
@@ -68,11 +66,11 @@ public class ResearchHelper {
     }
 
     @Nonnull
-    private static PlayerProgress getProgressServer(ServerPlayerEntity player) {
+    private static PlayerProgress getProgressServer(ServerPlayer player) {
         if (MiscUtils.isPlayerFakeMP(player)) {
             return new PlayerProgressTestAccess();
         }
-        return getProgress(player.getUniqueID());
+        return getProgress(player.getUUID());
     }
 
     @Nonnull
@@ -96,9 +94,9 @@ public class ResearchHelper {
         }
     }
 
-    public static void loadPlayerKnowledge(ServerPlayerEntity p) {
+    public static void loadPlayerKnowledge(ServerPlayer p) {
         if (!MiscUtils.isPlayerFakeMP(p)) {
-            loadPlayerKnowledge(p.getUniqueID());
+            loadPlayerKnowledge(p.getUUID());
         }
     }
 
@@ -144,11 +142,11 @@ public class ResearchHelper {
     }
 
     private static void load_unsafe(UUID pUUID, File playerFile) throws Exception {
-        CompoundNBT compound = CompressedStreamTools.read(playerFile); //IO-Exc thrown only here.
+        CompoundTag compound = NbtIo.readCompressed(playerFile); //IO-Exc thrown only here.
         load_unsafeFromNBT(pUUID, compound);
     }
 
-    private static void load_unsafeFromNBT(UUID pUUID, @Nullable CompoundNBT compound) {
+    private static void load_unsafeFromNBT(UUID pUUID, @Nullable CompoundTag compound) {
         PlayerProgress progress = new PlayerProgress();
         if (compound != null && !compound.isEmpty()) {
             progress.load(compound);
@@ -159,44 +157,48 @@ public class ResearchHelper {
     }
 
     private static void informPlayersAboutProgressionLoss(UUID pUUID) {
-        MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+        // 1. Forma moderna de obtener el servidor en Forge 1.20.1
+        MinecraftServer server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+
         if (server != null) {
-            ServerPlayerEntity player = server.getPlayerList().getPlayerByUUID(pUUID);
+            ServerPlayer player = server.getPlayerList().getPlayer(pUUID);
             if (player != null) {
-                player.sendMessage(new StringTextComponent("AstralSorcery: Your progression could not be loaded and can't be recovered from backup. Please contact an administrator to lookup what went wrong and/or potentially recover your data from a backup.").mergeStyle(TextFormatting.RED), Util.DUMMY_UUID);
+                player.sendSystemMessage(Component.literal("AstralSorcery: Your progression could not be loaded and can't be recovered from backup. Please contact an administrator to lookup what went wrong and/or potentially recover your data from a backup.")
+                        .withStyle(ChatFormatting.RED));
             }
+
             String resolvedName = player != null ? player.getGameProfile().getName() : pUUID.toString() + " (Not online)";
-            for (String opName : server.getPlayerList().getOppedPlayerNames()) {
-                PlayerEntity pl = server.getPlayerList().getPlayerByUsername(opName);
-                if (pl != null) {
-                    pl.sendMessage(new StringTextComponent("AstralSorcery: The progression of " + resolvedName + " could not be loaded and can't be recovered from backup. Error files might be created from the unloadable progression files, check the console for additional information!").mergeStyle(TextFormatting.RED), Util.DUMMY_UUID);
+
+            // 2. Corregimos la forma de encontrar a los OPs online
+            // Filtramos a los jugadores que tienen nivel de permiso 2 o superior (OP estándar)
+            for (ServerPlayer admin : server.getPlayerList().getPlayers()) {
+                if (server.getPlayerList().isOp(admin.getGameProfile())) {
+                    admin.sendSystemMessage(Component.literal("AstralSorcery: The progression of " + resolvedName + " could not be loaded and can't be recovered from backup. Error files might be created from the unloadable progression files, check the console for additional information!")
+                            .withStyle(ChatFormatting.RED));
                 }
             }
         }
     }
 
-    public static void sendConstellationDiscoveryMessage(ICommandSource src, IConstellation cst) {
-        src.sendMessage(new TranslationTextComponent("astralsorcery.progress.constellation.discover.chat",
-                        cst.getConstellationName().mergeStyle(TextFormatting.GRAY))
-                        .mergeStyle(TextFormatting.BLUE),
-                Util.DUMMY_UUID);
+    public static void sendConstellationDiscoveryMessage(CommandSourceStack src, IConstellation cst) {
+        src.sendSystemMessage(Component.translatable("astralsorcery.progress.constellation.discover.chat",
+                        cst.getConstellationName().withStyle(ChatFormatting.GRAY))
+                        .withStyle(ChatFormatting.BLUE));
     }
 
-    public static void sendConstellationMemorizationMessage(ICommandSource src, PlayerProgress progress, IConstellation cst) {
-        src.sendMessage(
-                new TranslationTextComponent("astralsorcery.progress.constellation.seen.chat",
-                        cst.getConstellationName().mergeStyle(TextFormatting.GRAY))
-                        .mergeStyle(TextFormatting.BLUE),
-                Util.DUMMY_UUID);
+    public static void sendConstellationMemorizationMessage(CommandSourceStack src, PlayerProgress progress, IConstellation cst) {
+        src.sendSystemMessage(
+                Component.translatable("astralsorcery.progress.constellation.seen.chat",
+                        cst.getConstellationName().withStyle(ChatFormatting.GRAY))
+                        .withStyle(ChatFormatting.BLUE));
         if (progress.getSeenConstellations().size() == 1) {
-            src.sendMessage(
-                    new TranslationTextComponent("astralsorcery.progress.constellation.seen.track")
-                            .mergeStyle(TextFormatting.BLUE),
-                    Util.DUMMY_UUID);
+            src.sendSystemMessage(
+                    Component.translatable("astralsorcery.progress.constellation.seen.track")
+                            .withStyle(ChatFormatting.BLUE));
         }
     }
 
-    public static boolean mergeApplyPlayerprogress(PlayerProgress toMergeFrom, PlayerEntity player) {
+    public static boolean mergeApplyPlayerprogress(PlayerProgress toMergeFrom, Player player) {
         PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
         if (!progress.isValid()) return false;
 
@@ -207,10 +209,10 @@ public class ResearchHelper {
         return true;
     }
 
-    public static void wipeKnowledge(ServerPlayerEntity p) {
+    public static void wipeKnowledge(ServerPlayer p) {
         ResearchManager.resetPerks(p);
         wipeFile(p);
-        playerProgressServer.remove(p.getUniqueID());
+        playerProgressServer.remove(p.getUUID());
         PktProgressionUpdate pkt = new PktProgressionUpdate();
         PacketChannel.CHANNEL.sendToPlayer(p, pkt);
         PktSyncKnowledge pk = new PktSyncKnowledge(PktSyncKnowledge.STATE_WIPE);
@@ -219,14 +221,14 @@ public class ResearchHelper {
         ResearchSyncHelper.pushProgressToClientUnsafe(getProgressServer(p), p);
     }
 
-    private static void wipeFile(ServerPlayerEntity player) {
+    private static void wipeFile(ServerPlayer player) {
         getPlayerFile(player).delete();
-        ResearchIOThread.cancelSave(player.getUniqueID());
+        ResearchIOThread.cancelSave(player.getUUID());
     }
 
-    public static void savePlayerKnowledge(PlayerEntity p) {
-        if (p instanceof ServerPlayerEntity && !MiscUtils.isPlayerFakeMP((ServerPlayerEntity) p)) {
-            savePlayerKnowledge(p.getUniqueID(), false);
+    public static void savePlayerKnowledge(Player p) {
+        if (p instanceof ServerPlayer && !MiscUtils.isPlayerFakeMP((ServerPlayer) p)) {
+            savePlayerKnowledge(p.getUUID(), false);
         }
     }
 
@@ -244,33 +246,33 @@ public class ResearchHelper {
         playerProgressServer.clear();
     }
 
-    public static File getPlayerFile(PlayerEntity player) {
-        return getPlayerFile(player.getUniqueID());
+    public static File getPlayerFile(Player player) {
+        return getPlayerFile(player.getUUID());
     }
 
     public static File getPlayerFile(UUID pUUID) {
         File f = new File(getPlayerDirectory(), pUUID.toString() + ".astral");
         if (!f.exists()) {
             try {
-                CompressedStreamTools.write(new CompoundNBT(), f);
+                NbtIo.writeCompressed(new CompoundTag(), f);
             } catch (IOException ignored) {} //Will be created later anyway... just as fail-safe.
         }
         return f;
     }
 
-    public static boolean doesPlayerFileExist(PlayerEntity player) {
-        return new File(getPlayerDirectory(), player.getUniqueID().toString() + ".astral").exists();
+    public static boolean doesPlayerFileExist(Player player) {
+        return new File(getPlayerDirectory(), player.getUUID().toString() + ".astral").exists();
     }
 
-    public static File getPlayerBackupFile(PlayerEntity player) {
-        return getPlayerBackupFile(player.getUniqueID());
+    public static File getPlayerBackupFile(Player player) {
+        return getPlayerBackupFile(player.getUUID());
     }
 
     public static File getPlayerBackupFile(UUID pUUID) {
         File f = new File(getPlayerDirectory(), pUUID.toString() + ".astralback");
         if (!f.exists()) {
             try {
-                CompressedStreamTools.write(new CompoundNBT(), f);
+                NbtIo.writeCompressed(new CompoundTag(), f);
             } catch (IOException ignored) {} //Will be created later anyway... just as fail-safe.
         }
         return f;

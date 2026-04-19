@@ -9,11 +9,11 @@
 package hellfirepvp.astralsorcery.common.network.base;
 
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent; // fml.network -> network
 
 import javax.annotation.Nonnull;
 import java.util.Random;
@@ -41,9 +41,9 @@ public abstract class ASPacket<T extends ASPacket<T>> {
     @Nonnull
     public abstract Handler<T> handler();
 
-    public static interface Encoder<T extends ASPacket<T>> extends BiConsumer<T, PacketBuffer> {}
+    public static interface Encoder<T extends ASPacket<T>> extends BiConsumer<T, FriendlyByteBuf> {}
 
-    public static interface Decoder<T extends ASPacket<T>> extends Function<PacketBuffer, T> {}
+    public static interface Decoder<T extends ASPacket<T>> extends Function<FriendlyByteBuf, T> {}
 
     public static interface Handler<T extends ASPacket<T>> extends BiConsumer<T, Supplier<NetworkEvent.Context>> {
 

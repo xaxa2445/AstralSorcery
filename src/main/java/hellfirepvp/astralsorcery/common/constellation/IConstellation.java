@@ -14,17 +14,16 @@ import hellfirepvp.astralsorcery.common.constellation.star.StarLocation;
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -38,7 +37,7 @@ import java.util.function.Supplier;
  * Created by HellFirePvP
  * Date: 16.11.2016 / 23:04
  */
-public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Comparable<IConstellation> {
+public interface IConstellation extends Comparable<IConstellation> {
 
     // 0-indexed
     public static final int STAR_GRID_INDEX = 31;
@@ -53,6 +52,9 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
     /**
      * Should only be called before registering the Constellation.
      */
+
+    ResourceLocation getRegistryName();
+
     public StarConnection addConnection(StarLocation star1, StarLocation star2);
 
     public int getSortingId();
@@ -65,11 +67,11 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
 
     public String getTranslationKey();
 
-    default public IFormattableTextComponent getConstellationName() {
-        return new TranslationTextComponent(this.getTranslationKey());
+    default public MutableComponent getConstellationName() {
+        return Component.translatable(this.getTranslationKey());
     }
 
-    default public IFormattableTextComponent getConstellationTypeDescription() {
+    default public MutableComponent getConstellationTypeDescription() {
         String type = "unknown";
         if (this instanceof IMajorConstellation) {
             type = "major";
@@ -78,19 +80,19 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
         } else if (this instanceof IMinorConstellation) {
             type = "minor";
         }
-        return new TranslationTextComponent(String.format("astralsorcery.journal.constellation.type.%s", type));
+        return Component.translatable(String.format("astralsorcery.journal.constellation.type.%s", type));
     }
 
-    default public IFormattableTextComponent getConstellationTag() {
-        return new TranslationTextComponent(this.getTranslationKey() + ".tag");
+    default public MutableComponent getConstellationTag() {
+        return Component.translatable(this.getTranslationKey() + ".tag");
     }
 
-    default public IFormattableTextComponent getConstellationDescription() {
-        return new TranslationTextComponent(this.getTranslationKey() + ".description");
+    default public MutableComponent getConstellationDescription() {
+        return Component.translatable(this.getTranslationKey() + ".description");
     }
 
-    default public IFormattableTextComponent getConstellationEnchantmentDescription() {
-        return new TranslationTextComponent(this.getTranslationKey() + ".enchantments");
+    default public MutableComponent getConstellationEnchantmentDescription() {
+        return Component.translatable(this.getTranslationKey() + ".enchantments");
     }
 
     public static String getDefaultSaveKey() {
@@ -105,15 +107,15 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
     }
 
     default public IConstellation addSignatureItem(ItemStack item) {
-        return this.addSignatureItem(() -> Ingredient.fromStacks(item));
+        return this.addSignatureItem(() -> Ingredient.of(item));
     }
 
-    default public IConstellation addSignatureItem(IItemProvider item) {
-        return this.addSignatureItem(() -> Ingredient.fromItems(item));
+    default public IConstellation addSignatureItem(ItemLike item) {
+        return this.addSignatureItem(() -> Ingredient.of(item));
     }
 
-    default public IConstellation addSignatureItem(ITag<Item> tag) {
-        return this.addSignatureItem(() -> Ingredient.fromTag(tag));
+    default public IConstellation addSignatureItem(TagKey<Item> tag) {
+        return this.addSignatureItem(() -> Ingredient.of(tag));
     }
 
     public IConstellation addSignatureItem(Supplier<Ingredient> ingredient);
@@ -130,29 +132,29 @@ public interface IConstellation extends IForgeRegistryEntry<IConstellation>, Com
         return ColorsAS.CONSTELLATION_TYPE_WEAK;
     }
 
-    boolean canDiscover(PlayerEntity player, PlayerProgress progress);
+    boolean canDiscover(Player player, PlayerProgress progress);
 
-    default public void writeToNBT(CompoundNBT compound) {
+    default public void writeToNBT(CompoundTag compound) {
         writeToNBT(compound, getDefaultSaveKey());
     }
 
-    default public void writeToNBT(CompoundNBT compound, String key) {
+    default public void writeToNBT(CompoundTag compound, String key) {
         compound.putString(key, getRegistryName().toString());
     }
 
     @Nullable
-    public static IConstellation readFromNBT(CompoundNBT compound) {
+    public static IConstellation readFromNBT(CompoundTag compound) {
         return readFromNBT(compound, getDefaultSaveKey());
     }
 
     @Nullable
-    public static IConstellation readFromNBT(CompoundNBT compound, String key) {
+    public static IConstellation readFromNBT(CompoundTag compound, String key) {
         return ConstellationRegistry.getConstellation(new ResourceLocation(compound.getString(key)));
     }
 
     @Override
-    default Class<IConstellation> getRegistryType() {
-        return IConstellation.class;
+    default int compareTo(IConstellation o) {
+        return Integer.compare(this.getSortingId(), o.getSortingId());
     }
 
 }

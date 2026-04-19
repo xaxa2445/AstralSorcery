@@ -17,7 +17,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 
-import vazkii.botania.api.item.IBlockProvider;
+import vazkii.botania.api.item.BlockProvider;
 
 import java.util.*;
 
@@ -29,60 +29,66 @@ import java.util.*;
  * Date: 12.26.2020 / 16:45
  */
 public class IntegrationBotania {
-    
+
     public static Collection<ItemStack> findProvidersProvidingItems(Player player, ItemStack match) {
         List<ItemStack> stacksOut = new LinkedList<>();
 
-        // Botania can only supply blocks, so let's filter that out first.
-        if(!(match.getItem() instanceof BlockItem)) {
+        if(!(match.getItem() instanceof BlockItem blockItem)) {
             return stacksOut;
         }
-        Block matchBlock = ((BlockItem) match.getItem()).getBlock();
+        Block matchBlock = blockItem.getBlock();
 
         IItemHandler handler = player.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(ItemUtils.EMPTY_INVENTORY);
         for (int j = 0; j < handler.getSlots(); j++) {
             ItemStack s = handler.getStackInSlot(j);
             Item sItem = s.getItem();
-            if (sItem instanceof IBlockProvider provider) {
-                IBlockProvider = (IBlockProvider) sItem;
-                int blockCount = provider.getBlockCount(player, ItemStack.EMPTY, s, matchBlock);
+
+            // Cambiado IBlockProvider -> BlockProvider
+            if (sItem instanceof BlockProvider provider) {
+                int blockCount = provider.getBlockCount(player, s, matchBlock);
+
                 if (blockCount == -1) {
-                    // Used by rods to indicate infinite.  That doesn't suit our needs, so let's just report a lot.
                     blockCount = 9001;
                 }
+
                 if (blockCount > 0) {
-                    stacksOut.add(ItemUtils.copyStackWithSize(s, blockCount));
+                    stacksOut.add(ItemUtils.copyStackWithSize(new ItemStack(match.getItem()), blockCount));
                 }
             }
         }
         return stacksOut;
     }
-    
+
     public static boolean consumeFromPlayerInventory(Player player, ItemStack requestingItemStack, ItemStack toConsume, boolean simulate) {
-        // Botania can only supply blocks, so let's filter that out first.
-        if (!(toConsume.getItem() instanceof BlockItem)) {
+        if (!(toConsume.getItem() instanceof BlockItem blockItem)) {
             return false;
         }
 
-        Block consumeBlock = ((BlockItem) toConsume.getItem()).getBlock();
+        Block consumeBlock = blockItem.getBlock();
         IItemHandler handler = player.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(ItemUtils.EMPTY_INVENTORY);
+
         for (int j = 0; j < handler.getSlots(); j++) {
             ItemStack s = handler.getStackInSlot(j);
-            Item sItem = s.getItem();
-            if (sItem instanceof IBlockProvider) {
-                IBlockProvider provider = (IBlockProvider) sItem;
-                int blockCount = provider.getBlockCount(player, requestingItemStack, s, consumeBlock);
-                if (blockCount == -1 || blockCount > toConsume.getCount()) {
+
+            if (s.getItem() instanceof BlockProvider provider) {
+                // CORRECCIÓN: De 4 a 3 argumentos (se elimina requestingItemStack)
+                int blockCount = provider.getBlockCount(player, s, consumeBlock);
+
+                if (blockCount == -1 || blockCount >= toConsume.getCount()) {
+                    if (simulate) return true;
+
+                    boolean success = true;
                     for (int i = 0; i < toConsume.getCount(); i++) {
-                        if (!provider.provideBlock(player, requestingItemStack, s, consumeBlock, !simulate)) {
-                            return false;
+                        // CORRECCIÓN: De 5 a 4 argumentos (se elimina requestingItemStack)
+                        if (!provider.provideBlock(player, s, consumeBlock, true)) {
+                            success = false;
+                            break;
                         }
                     }
-                    return true;
+                    return success;
                 }
             }
         }
         return false;
     }
-
 }

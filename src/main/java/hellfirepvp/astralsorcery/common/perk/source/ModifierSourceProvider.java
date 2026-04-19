@@ -11,9 +11,9 @@ package hellfirepvp.astralsorcery.common.perk.source;
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
 import hellfirepvp.astralsorcery.common.network.play.server.PktSyncModifierSource;
 import hellfirepvp.astralsorcery.common.perk.PerkEffectHelper;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
+import net.minecraft.resources.ResourceLocation; // util -> resources
+import net.minecraft.server.level.ServerPlayer; // ServerPlayerEntity -> ServerPlayer
 import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nullable;
@@ -38,22 +38,22 @@ public abstract class ModifierSourceProvider<T extends ModifierSource> {
         this.key = key;
     }
 
-    protected abstract void update(ServerPlayerEntity playerEntity);
+    protected abstract void update(ServerPlayer playerEntity);
 
-    protected abstract void removeModifiers(ServerPlayerEntity playerEntity);
+    protected abstract void removeModifiers(ServerPlayer playerEntity);
 
-    public abstract void serialize(T source, PacketBuffer buf);
+    public abstract void serialize(T source, FriendlyByteBuf buf);
 
-    public abstract T deserialize(PacketBuffer buf);
+    public abstract T deserialize(FriendlyByteBuf buf);
 
     @Nullable
-    private T getModifier(ServerPlayerEntity player, ResourceLocation identifier) {
-        Map<ResourceLocation, T> playerModifiers = cachedSources.computeIfAbsent(player.getUniqueID(), uuid -> new HashMap<>());
+    private T getModifier(ServerPlayer player, ResourceLocation identifier) {
+        Map<ResourceLocation, T> playerModifiers = cachedSources.computeIfAbsent(player.getUUID(), uuid -> new HashMap<>());
         return playerModifiers.get(identifier);
     }
 
-    private void setModifier(ServerPlayerEntity player, ResourceLocation identifier, @Nullable T source) {
-        Map<ResourceLocation, T> playerModifiers = cachedSources.computeIfAbsent(player.getUniqueID(), uuid -> new HashMap<>());
+    private void setModifier(ServerPlayer player, ResourceLocation identifier, @Nullable T source) {
+        Map<ResourceLocation, T> playerModifiers = cachedSources.computeIfAbsent(player.getUUID(), uuid -> new HashMap<>());
         if (source != null) {
             playerModifiers.put(identifier, source);
         } else {
@@ -61,7 +61,7 @@ public abstract class ModifierSourceProvider<T extends ModifierSource> {
         }
     }
 
-    protected void updateSource(ServerPlayerEntity player, ResourceLocation identifier, @Nullable T source) {
+    protected void updateSource(ServerPlayer player, ResourceLocation identifier, @Nullable T source) {
         boolean needsRemoval = false, needsAddition = false;
 
         T existing = this.getModifier(player, identifier);
