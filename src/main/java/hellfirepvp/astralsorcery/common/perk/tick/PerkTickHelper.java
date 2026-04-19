@@ -34,7 +34,7 @@ public class PerkTickHelper implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity ticked = (PlayerEntity) context[0];
+        Player ticked = (Player) context[0];
         LogicalSide side = (LogicalSide) context[1];
         PlayerProgress prog = ResearchHelper.getProgress(ticked, side);
         if (prog.isValid()) {

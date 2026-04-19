@@ -32,15 +32,14 @@ import hellfirepvp.astralsorcery.common.starlight.network.StarlightTransmissionH
 import hellfirepvp.astralsorcery.common.starlight.network.StarlightUpdateHandler;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
 import hellfirepvp.astralsorcery.common.util.world.WorldSeedCache;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.level.Level;
+import net.minecraft.server.level.ServerPlayer; // Cambio de ServerPlayerEntity
+import net.minecraft.world.item.ItemStack;      // Cambio de paquete
+import net.minecraft.world.level.Level;        // Cambio de paquete
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.event.level.LevelEvent; // WorldEvent -> LevelEvent
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
@@ -62,7 +61,7 @@ public class EventHandlerCache {
 
     @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
-    public static void onClientDisconnect(ClientPlayerNetworkEvent.LoggedOutEvent event) {
+    public static void onClientDisconnect(ClientPlayerNetworkEvent.LoggingOut event) {
         AreaOfInfluencePreview.INSTANCE.clearClient();
         EffectHandler.cleanUp();
         ScreenJournalProgression.resetJournal();
@@ -103,11 +102,8 @@ public class EventHandlerCache {
     }
 
     @SubscribeEvent
-    public static void onUnload(WorldEvent.Unload event) {
-        IWorld w = event.getWorld();
-        if (w instanceof World) {
-            World world = (World) w;
-
+    public static void onUnload(LevelEvent.Unload event) { // WorldEvent -> LevelEvent
+        if (event.getLevel() instanceof Level world) { // getLevel() y uso de pattern matching
             SyncDataHolder.clearWorld(world);
             StarlightTransmissionHandler.getInstance().informWorldUnload(world);
             TimeStopController.onWorldUnload(world);
@@ -117,30 +113,36 @@ public class EventHandlerCache {
 
     @SubscribeEvent
     public static void onPlayerConnect(PlayerEvent.PlayerLoggedInEvent event) {
-        ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
-
-        PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
-        if (GeneralConfig.CONFIG.giveJournalOnJoin.get() && !progress.didReceiveTome()) {
-            if (player.inventory.addItemStackToInventory(new ItemStack(ItemsAS.TOME))) {
-                ResearchManager.setTomeReceived(player);
+        // En 1.20.1, getPlayer() ahora es getEntity()
+        if (event.getEntity() instanceof ServerPlayer player) {
+            PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
+            if (GeneralConfig.CONFIG.giveJournalOnJoin.get() && !progress.didReceiveTome()) {
+                // addItemStackToInventory -> getInventory().add()
+                if (player.getInventory().add(new ItemStack(ItemsAS.TOME))) {
+                    ResearchManager.setTomeReceived(player);
+                }
             }
-        }
 
-        ResearchSyncHelper.pushProgressToClientUnsafe(progress, player);
-        PerkEffectHelper.onPlayerConnectEvent(player);
+            ResearchSyncHelper.pushProgressToClientUnsafe(progress, player);
+            PerkEffectHelper.onPlayerConnectEvent(player);
+        }
     }
 
     @SubscribeEvent
     public static void onPlayerDisconnect(PlayerEvent.PlayerLoggedOutEvent event) {
-        ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
-
-        EventHelperTemporaryFlight.onDisconnect(player);
-        PerkEffectHelper.onPlayerDisconnectEvent(player);
-        ModifierManager.onDisconnect(player);
+        if (event.getEntity() instanceof ServerPlayer player) {
+            EventHelperTemporaryFlight.onDisconnect(player);
+            PerkEffectHelper.onPlayerDisconnectEvent(player);
+            ModifierManager.onDisconnect(player);
+        }
     }
 
     @SubscribeEvent
     public static void onPlayerClone(PlayerEvent.Clone event) {
-        PerkEffectHelper.onPlayerCloneEvent((ServerPlayerEntity) event.getOriginal(), (ServerPlayerEntity) event.getPlayer());
+        // Usamos pattern matching para el cast directo
+        if (event.getEntity() instanceof ServerPlayer newPlayer &&
+                event.getOriginal() instanceof ServerPlayer oldPlayer) {
+            PerkEffectHelper.onPlayerCloneEvent(oldPlayer, newPlayer);
+        }
     }
 }

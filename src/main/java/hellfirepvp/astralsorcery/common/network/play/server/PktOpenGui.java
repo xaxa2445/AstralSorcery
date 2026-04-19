@@ -13,11 +13,12 @@ import hellfirepvp.astralsorcery.common.GuiType;
 import hellfirepvp.astralsorcery.common.network.base.ASPacket;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent; // fml.network -> network
 
 import javax.annotation.Nonnull;
 
@@ -31,11 +32,11 @@ import javax.annotation.Nonnull;
 public class PktOpenGui extends ASPacket<PktOpenGui> {
 
     private GuiType type;
-    private CompoundNBT data;
+    private CompoundTag data;
 
     public PktOpenGui() {}
 
-    public PktOpenGui(GuiType type, CompoundNBT data) {
+    public PktOpenGui(GuiType type, CompoundTag data) {
         this.type = type;
         this.data = data;
     }

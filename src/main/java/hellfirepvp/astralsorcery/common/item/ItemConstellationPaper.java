@@ -24,19 +24,21 @@ import hellfirepvp.astralsorcery.common.lib.SoundsAS;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
+import net.minecraft.ChatFormatting; // TextFormatting -> ChatFormatting
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.network.chat.Component; // ITextComponent -> Component
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.*;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -56,9 +58,7 @@ import java.util.List;
 public class ItemConstellationPaper extends Item implements ItemDynamicColor, ConstellationBaseItem {
 
     public ItemConstellationPaper() {
-        super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS_PAPERS));
+        super(new Item.Properties().stacksTo(1)); // maxStackSize -> stacksTo
     }
 
     @Override
@@ -76,26 +76,27 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World world, List<ITextComponent> toolTip, ITooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> toolTip, TooltipFlag flag) {
         IConstellation c = getConstellation(stack);
         if (c != null && c.canDiscover(Minecraft.getInstance().player, ResearchHelper.getClientProgress())) {
-            toolTip.add(c.getConstellationName().mergeStyle(TextFormatting.BLUE));
+            // mergeStyle -> withStyle
+            toolTip.add(c.getConstellationName().copy().withStyle(ChatFormatting.BLUE));
         } else {
-            toolTip.add(new TranslationTextComponent("astralsorcery.misc.noinformation").mergeStyle(TextFormatting.GRAY));
+            toolTip.add(Component.translatable("astralsorcery.misc.noinformation").withStyle(ChatFormatting.GRAY));
         }
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, PlayerEntity player, Hand hand) {
-        ItemStack held = player.getHeldItem(hand);
+    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
         if (held.isEmpty()) {
-            return ActionResult.resultSuccess(held);
+            return InteractionResultHolder.success(held);
         }
-        if (world.isRemote() && getConstellation(held) != null) {
+        if (world.isClientSide() && getConstellation(held) != null) {
             SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE, 1F, 1F);
             AstralSorcery.getProxy().openGui(player, GuiType.CONSTELLATION_PAPER, getConstellation(held));
         }
-        return ActionResult.resultSuccess(held);
+        return InteractionResultHolder.success(held);
     }
 
     @Override
@@ -105,9 +106,13 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
 
     @Nullable
     @Override
-    public Entity createEntity(World world, Entity location, ItemStack itemstack) {
-        EntityItemExplosionResistant res = new EntityItemExplosionResistant(EntityTypesAS.ITEM_EXPLOSION_RESISTANT, world, location.getPosX(), location.getPosY(), location.getPosZ(), itemstack);
-        res.read(location.writeWithoutTypeId(new CompoundNBT()));
+    public Entity createEntity(Level world, Entity location, ItemStack itemstack) {
+        // En 1.20.1 usamos las coordenadas directamente
+        EntityItemExplosionResistant res = new EntityItemExplosionResistant(EntityTypesAS.ITEM_EXPLOSION_RESISTANT, world, location.getX(), location.getY(), location.getZ(), itemstack);
+
+        // writeWithoutTypeId -> saveWithoutId
+        res.load(location.saveWithoutId(new CompoundTag()));
+
         if (itemstack.getItem() instanceof ItemConstellationPaper) {
             IConstellation cst = getConstellation(itemstack);
             if (cst != null) {
@@ -121,46 +126,41 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean isSelected) {
-        if (world.isRemote || !(entity instanceof PlayerEntity)) {
+    public void inventoryTick(ItemStack stack, Level world, Entity entity, int slot, boolean isSelected) {
+        if (world.isClientSide() || !(entity instanceof Player player)) {
             return;
         }
 
         IConstellation cst = getConstellation(stack);
         if (cst == null) {
-            PlayerProgress progress = ResearchHelper.getProgress((PlayerEntity) entity, LogicalSide.SERVER);
+            PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
 
             List<IConstellation> constellations = new ArrayList<>();
             for (IConstellation c : ConstellationRegistry.getAllConstellations()) {
-                if (c.canDiscover((PlayerEntity) entity, progress)) {
+                if (c.canDiscover(player, progress)) {
                     constellations.add(c);
                 }
             }
 
             for (ResourceLocation strConstellation : progress.getKnownConstellations()) {
                 IConstellation c = ConstellationRegistry.getConstellation(strConstellation);
-                if (c != null) {
-                    constellations.remove(c);
-                }
+                if (c != null) constellations.remove(c);
             }
             for (ResourceLocation strConstellation : progress.getSeenConstellations()) {
                 IConstellation c = ConstellationRegistry.getConstellation(strConstellation);
-                if (c != null) {
-                    constellations.remove(c);
-                }
+                if (c != null) constellations.remove(c);
             }
 
-            IConstellation constellation = MiscUtils.getRandomEntry(constellations, world.rand);
+            // rand -> getRandom()
+            IConstellation constellation = MiscUtils.getRandomEntry(constellations, world.getRandom());
             if (constellation != null) {
                 setConstellation(stack, constellation);
             }
         }
 
-
         cst = getConstellation(stack);
         if (cst != null) {
-            PlayerProgress progress = ResearchHelper.getProgress((PlayerEntity) entity, LogicalSide.SERVER);
-
+            PlayerProgress progress = ResearchHelper.getProgress(player, LogicalSide.SERVER);
             boolean has = false;
             for (ResourceLocation strConstellation : progress.getSeenConstellations()) {
                 IConstellation c = ConstellationRegistry.getConstellation(strConstellation);
@@ -170,12 +170,11 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
                 }
             }
             if (!has) {
-                if (cst.canDiscover((PlayerEntity) entity, progress) && ResearchManager.memorizeConstellation(cst, (PlayerEntity) entity)) {
-                    ResearchHelper.sendConstellationMemorizationMessage(entity, progress, cst);
+                if (cst.canDiscover(player, progress) && ResearchManager.memorizeConstellation(cst, player)) {
+                    ResearchHelper.sendConstellationMemorizationMessage(player, progress, cst);
                 }
             }
         }
-
         super.inventoryTick(stack, world, entity, slot, isSelected);
     }
 

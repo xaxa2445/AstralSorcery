@@ -13,19 +13,23 @@ import hellfirepvp.astralsorcery.common.integration.IntegrationCurios;
 import hellfirepvp.astralsorcery.common.item.ItemEnchantmentAmulet;
 import hellfirepvp.astralsorcery.common.util.item.ItemComparator;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
+import net.minecraft.Util;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.Util;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Inventory; // PlayerInventory -> Inventory
+import net.minecraft.world.entity.player.Player; // PlayerEntity -> Player
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
-import net.minecraftforge.fml.common.thread.EffectiveSide;
+import net.minecraftforge.common.util.LogicalSidedProvider; // Cambio de paquete
+import net.minecraftforge.fml.util.thread.EffectiveSide; // Cambio de paquete
+import net.minecraftforge.server.ServerLifecycleHooks; // Útil para obtener el servidor
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 
 import javax.annotation.Nonnull;
@@ -44,21 +48,21 @@ public class AmuletEnchantmentHelper {
 
     public static final String KEY_AS_OWNER = "AS_Amulet_Holder";
 
-    public static void removeAmuletTagsAndCleanup(PlayerEntity player, boolean keepEquipped) {
-        PlayerInventory inv = player.inventory;
-        for (int i = 0; i < inv.mainInventory.size(); i++) {
-            if (i == inv.currentItem && keepEquipped) {
+    public static void removeAmuletTagsAndCleanup(Player player, boolean keepEquipped) {
+        Inventory inv = player.getInventory();
+        for (int i = 0; i < inv.items.size(); i++) {
+            if (i == inv.selected && keepEquipped) {
                 continue;
             }
-            removeAmuletOwner(inv.mainInventory.get(i));
+            removeAmuletOwner(inv.items.get(i));
         }
-        removeAmuletOwner(inv.getItemStack());
+        removeAmuletOwner(inv.getSelected());
         if (!keepEquipped) {
-            for (int i = 0; i < inv.armorInventory.size(); i++) {
-                removeAmuletOwner(inv.armorInventory.get(i));
+            for (int i = 0; i < inv.armor.size(); i++) {
+                removeAmuletOwner(inv.armor.get(i));
             }
-            for (int i = 0; i < inv.offHandInventory.size(); i++) {
-                removeAmuletOwner(inv.offHandInventory.get(i));
+            for (int i = 0; i < inv.offhand.size(); i++) {
+                removeAmuletOwner(inv.offhand.get(i));
             }
         }
     }
@@ -66,14 +70,14 @@ public class AmuletEnchantmentHelper {
     @Nonnull
     private static UUID getWornPlayerUUID(ItemStack anyTool) {
         if (DynamicEnchantmentHelper.canHaveDynamicEnchantment(anyTool) && anyTool.hasTag()) {
-            return NBTHelper.getUUID(anyTool.getTag(), KEY_AS_OWNER, Util.DUMMY_UUID);
+            return NBTHelper.getUUID(anyTool.getTag(), KEY_AS_OWNER, Util.NIL_UUID);
         }
-        return Util.DUMMY_UUID;
+        return Util.NIL_UUID;
     }
 
-    public static void applyAmuletOwner(ItemStack tool, PlayerEntity wearer) {
+    public static void applyAmuletOwner(ItemStack tool, Player wearer) {
         if (DynamicEnchantmentHelper.canHaveDynamicEnchantment(tool)) {
-            tool.getOrCreateTag().putUniqueId(KEY_AS_OWNER, wearer.getUniqueID());
+            tool.getOrCreateTag().putUUID(KEY_AS_OWNER, wearer.getUUID());
         }
     }
 
@@ -81,53 +85,53 @@ public class AmuletEnchantmentHelper {
         if (stack.isEmpty() || !stack.hasTag()) {
             return;
         }
-        NBTHelper.removeUUID(stack.getTag(), KEY_AS_OWNER);
+        stack.getOrCreateTag().remove(KEY_AS_OWNER);
         if (stack.getTag().isEmpty()) {
             stack.setTag(null);
         }
     }
 
     @Nullable
-    public static PlayerEntity getPlayerHavingTool(ItemStack anyTool) {
+    public static Player getPlayerHavingTool(ItemStack anyTool) {
         UUID plUUID = getWornPlayerUUID(anyTool);
         if (plUUID.getLeastSignificantBits() == 0 && plUUID.getMostSignificantBits() == 0) {
             return null;
         }
-        PlayerEntity player;
+        Player player;
         if (EffectiveSide.get() == LogicalSide.CLIENT) {
             player = resolvePlayerClient(plUUID);
         } else {
-            MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
             if (server == null) {
                 return null;
             }
-            player = server.getPlayerList().getPlayerByUUID(plUUID);
+            player = server.getPlayerList().getPlayer(plUUID);
         }
         if (player == null) {
             return null;
         }
 
-        int originalDamage = anyTool.getDamage(); //Save the original damage on the tool
+        int originalDamage = anyTool.getDamageValue(); //Save the original damage on the tool
 
         //Check if the player actually wears/carries the tool
         boolean foundTool = false;
-        for (EquipmentSlotType slot : EquipmentSlotType.values()) {
-            ItemStack stack = player.getItemStackFromSlot(slot);
-            anyTool.setDamage(stack.getDamage()); //Make sure the damages are equal before comparing
+        for (EquipmentSlot slot : EquipmentSlot.values()) {
+            ItemStack stack = player.getItemBySlot(slot);
+            anyTool.setDamageValue(stack.getDamageValue()); //Make sure the damages are equal before comparing
             if (ItemComparator.compare(stack, anyTool, ItemComparator.Clause.Sets.ITEMSTACK_STRICT)) {
                 foundTool = true;
                 break;
             }
         }
-        anyTool.setDamage(originalDamage); //Reset original damage on the tool
+        anyTool.setDamageValue(originalDamage); //Reset original damage on the tool
         if (!foundTool) return null;
 
         return player;
     }
 
     @Nullable
-    static Tuple<ItemStack, PlayerEntity> getWornAmulet(ItemStack anyTool) {
-        PlayerEntity player = getPlayerHavingTool(anyTool);
+    static Tuple<ItemStack, Player> getWornAmulet(ItemStack anyTool) {
+        Player player = getPlayerHavingTool(anyTool);
         if (player == null) return null;
 
         Optional<ImmutableTriple<String, Integer, ItemStack>> curios =
@@ -136,9 +140,9 @@ public class AmuletEnchantmentHelper {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private static PlayerEntity resolvePlayerClient(UUID plUUID) {
-        Optional<World> w = LogicalSidedProvider.CLIENTWORLD.get(LogicalSide.CLIENT);
-        return w.map(world -> world.getPlayerByUuid(plUUID)).orElse(null);
+    private static Player resolvePlayerClient(UUID plUUID) {
+        Level world = LogicalSidedProvider.CLIENTWORLD.get(LogicalSide.CLIENT).orElse(null);
+        return world != null ? world.getPlayerByUUID(plUUID) : null;
     }
 
 }

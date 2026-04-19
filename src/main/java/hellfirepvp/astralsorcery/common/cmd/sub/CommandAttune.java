@@ -16,13 +16,13 @@ import hellfirepvp.astralsorcery.common.cmd.argument.ArgumentTypeConstellation;
 import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.constellation.IMajorConstellation;
 import hellfirepvp.astralsorcery.common.data.research.ResearchManager;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.Commands;
-import net.minecraft.command.arguments.EntityArgument;
-import net.minecraft.command.arguments.EntitySelector;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.ChatFormatting; // TextFormatting -> ChatFormatting
+import net.minecraft.commands.CommandSourceStack; // CommandSource -> CommandSourceStack
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.network.chat.Component; // StringTextComponent -> Component
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerPlayer; // ServerPlayerEntity -> ServerPlayer
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -31,33 +31,39 @@ import net.minecraft.util.text.TextFormatting;
  * Created by HellFirePvP
  * Date: 21.07.2019 / 20:19
  */
-public class CommandAttune implements Command<CommandSource> {
+public class CommandAttune implements Command<CommandSourceStack> {
 
     private static final CommandAttune CMD = new CommandAttune();
 
     private CommandAttune() {}
 
-    public static ArgumentBuilder<CommandSource, ?> register() {
+    public static ArgumentBuilder<CommandSourceStack, ?> register() {
         return Commands.literal("attune")
-                .requires(cs -> cs.hasPermissionLevel(2))
+                .requires(cs -> cs.hasPermission(2))
                 .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("constellation", ArgumentTypeConstellation.major())
                                 .executes(CMD)));
     }
 
     @Override
-    public int run(CommandContext<CommandSource> context) throws CommandSyntaxException {
-        PlayerEntity player = (PlayerEntity) context.getArgument("player", EntitySelector.class).selectOne(context.getSource());
+    public int run(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        ServerPlayer player = EntityArgument.getPlayer(context, "player");
         IMajorConstellation cst = (IMajorConstellation) context.getArgument("constellation", IConstellation.class);
 
         if (ResearchManager.setAttunedConstellation(player, cst)) {
-            context.getSource().sendFeedback(
-                    new StringTextComponent("Success! Player has been attuned to ").append(cst.getConstellationName().mergeStyle(TextFormatting.BLUE))
-                            .mergeStyle(TextFormatting.GREEN), true);
+            // Construcción de mensaje complejo:
+            // .appendString() ahora es .append() con un Component.literal()
+            MutableComponent successMsg = Component.literal("Success! Player has been attuned to ")
+                    .withStyle(ChatFormatting.GREEN)
+                    .append(cst.getConstellationName().copy().withStyle(ChatFormatting.BLUE));
+
+            context.getSource().sendSuccess(() -> successMsg, true);
         } else {
-            context.getSource().sendFeedback(
-                    new StringTextComponent("Failed! Player specified doesn't seem to have the research progress necessary!").mergeStyle(TextFormatting.RED), true);
+            context.getSource().sendFailure(
+                    Component.literal("Failed! Player specified doesn't seem to have the research progress necessary!")
+                            .withStyle(ChatFormatting.RED)
+            );
         }
-        return 0;
+        return Command.SINGLE_SUCCESS;
     }
 }

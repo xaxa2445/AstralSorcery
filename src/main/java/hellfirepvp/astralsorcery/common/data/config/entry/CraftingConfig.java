@@ -10,7 +10,7 @@ package hellfirepvp.astralsorcery.common.data.config.entry;
 
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigEntry;
 import hellfirepvp.astralsorcery.common.util.block.BlockStateHelper;
-import net.minecraft.block.BlockState;
+import net.minecraft.world.level.block.state.BlockState; // Cambio de paquete
 import net.minecraftforge.common.ForgeConfigSpec;
 
 /**

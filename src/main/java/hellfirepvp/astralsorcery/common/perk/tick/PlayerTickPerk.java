@@ -20,6 +20,6 @@ import net.minecraftforge.fml.LogicalSide;
  */
 public interface PlayerTickPerk {
 
-    void onPlayerTick(PlayerEntity player, LogicalSide side);
+    void onPlayerTick(Player player, LogicalSide side);
 
 }

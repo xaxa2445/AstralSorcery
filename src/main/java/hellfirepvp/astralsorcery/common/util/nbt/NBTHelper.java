@@ -220,6 +220,45 @@ public class NBTHelper {
                 tag.getDouble("boxMaxX"), tag.getDouble("boxMaxY"), tag.getDouble("boxMaxZ"));
     }
 
+    public static <E extends Enum<E>> void writeEnum(CompoundTag tag, String key, E value) {
+        tag.putInt(key, value.ordinal());
+    }
+
+    public static <E extends Enum<E>> E readEnum(CompoundTag tag, String key, Class<E> enumClass) {
+        if (tag.contains(key, Tag.TAG_INT)) {
+            E[] constants = enumClass.getEnumConstants();
+            int ordinal = tag.getInt(key);
+            if (ordinal >= 0 && ordinal < constants.length) {
+                return constants[ordinal];
+            }
+        }
+        return enumClass.getEnumConstants()[0]; // Devuelve el primer valor por defecto
+    }
+
+    public static <T> void writeOptional(CompoundTag tag, String key, @Nullable T value, BiConsumer<CompoundTag, T> writer) {
+        if (value != null) {
+            CompoundTag subTag = new CompoundTag();
+            writer.accept(subTag, value);
+            tag.put(key, subTag);
+        }
+    }
+
+    @Nullable
+    public static <T> T readOptional(CompoundTag tag, String key, Function<CompoundTag, T> reader) {
+        if (tag.contains(key, Tag.TAG_COMPOUND)) {
+            return reader.apply(tag.getCompound(key));
+        }
+        return null;
+    }
+
+    public static <T> void writeList(CompoundTag tag, String key, Collection<T> collection, Function<T, Tag> mapper) {
+        ListTag list = new ListTag();
+        for (T item : collection) {
+            list.add(mapper.apply(item));
+        }
+        tag.put(key, list);
+    }
+
     @Nullable
     public static <T> T readFromSubTag(CompoundTag tag, String key, Function<CompoundTag, T> reader) {
         if (tag.contains(key, Tag.TAG_COMPOUND)) {

@@ -15,16 +15,17 @@ import hellfirepvp.astralsorcery.common.enchantment.amulet.AmuletEnchantmentHelp
 import hellfirepvp.astralsorcery.common.event.DynamicEnchantmentEvent;
 import hellfirepvp.astralsorcery.common.event.EventFlags;
 import hellfirepvp.astralsorcery.common.util.object.ObjectReference;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.QuickChargeEnchantment;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.BookItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.item.BookItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.QuickChargeEnchantment;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -45,7 +46,7 @@ public class DynamicEnchantmentHelper {
         if (enchantment != null) {
             current = getNewEnchantmentLevel(current, enchantment, item, context);
             if (enchantment instanceof QuickChargeEnchantment) {
-                current = MathHelper.clamp(current, 0, 5);
+                current = Mth.clamp(current, 0, 5);
             }
         }
         return current;
@@ -83,12 +84,12 @@ public class DynamicEnchantmentHelper {
             }
         }
         if (enchantment instanceof QuickChargeEnchantment) {
-            current = MathHelper.clamp(current, 0, 5);
+            current = Mth.clamp(current, 0, 5);
         }
         return current;
     }
 
-    public static ListNBT modifyEnchantmentTags(ListNBT existingEnchantments, ItemStack stack) {
+    public static ListTag modifyEnchantmentTags(ListTag existingEnchantments, ItemStack stack) {
         if (!canHaveDynamicEnchantment(stack)) {
             return existingEnchantments;
         }
@@ -98,15 +99,15 @@ public class DynamicEnchantmentHelper {
             return existingEnchantments;
         }
 
-        ListNBT returnNew = new ListNBT();
+        ListTag returnNew = new ListTag();
         Set<String> enchantments = new HashSet<>(existingEnchantments.size());
         for (int i = 0; i < existingEnchantments.size(); i++) {
-            CompoundNBT cmp = existingEnchantments.getCompound(i);
+            CompoundTag cmp = existingEnchantments.getCompound(i);
             String enchKey = cmp.getString("id");
             int lvl = cmp.getInt("lvl");
             int newLvl = getNewEnchantmentLevel(lvl, enchKey, stack, context);
 
-            CompoundNBT newEnchTag = new CompoundNBT();
+            CompoundTag newEnchTag = new CompoundTag();
             newEnchTag.putString("id", enchKey);
             newEnchTag.putInt("lvl", newLvl);
             returnNew.add(newEnchTag);
@@ -124,9 +125,9 @@ public class DynamicEnchantmentHelper {
                 if (!stack.canApplyAtEnchantingTable(ench)) {
                     continue;
                 }
-                String enchName = ench.getRegistryName().toString();
+                String enchName = ForgeRegistries.ENCHANTMENTS.getKey(ench).toString();
                 if (!enchantments.contains(enchName)) { //Means we didn't add the levels on the other iteration
-                    CompoundNBT newEnchTag = new CompoundNBT();
+                    CompoundTag newEnchTag = new CompoundTag();
                     newEnchTag.putString("id", enchName);
                     newEnchTag.putInt("lvl", getNewEnchantmentLevel(0, ench, stack, context));
                     returnNew.add(newEnchTag);
@@ -174,7 +175,8 @@ public class DynamicEnchantmentHelper {
                     return;
                 }
                 Item i = stack.getItem();
-                if (i.getRegistryName() == null) {
+                ResourceLocation name = ForgeRegistries.ITEMS.getKey(i);
+                if (name == null) {
                     return;
                 }
                 try {
@@ -186,7 +188,8 @@ public class DynamicEnchantmentHelper {
                     //Silently ignore for now
                     return;
                 }
-                if (Mods.DRACONIC_EVOLUTION.owns(stack.getItem())) {
+                ResourceLocation itemKey = ForgeRegistries.ITEMS.getKey(stack.getItem());
+                if (itemKey != null && Mods.DRACONIC_EVOLUTION.owns(itemKey)) {
                     return;
                 }
                 mayHaveDynamicEnchantments.set(true);
@@ -201,7 +204,7 @@ public class DynamicEnchantmentHelper {
 
     //This is more or less just a map to say whatever we add upon.
     private static List<DynamicEnchantment> fireEnchantmentGatheringEvent(ItemStack tool) {
-        PlayerEntity foundEntity = AmuletEnchantmentHelper.getPlayerHavingTool(tool);
+        Player foundEntity = AmuletEnchantmentHelper.getPlayerHavingTool(tool);
         if (foundEntity == null) {
             return new ArrayList<>();
         }

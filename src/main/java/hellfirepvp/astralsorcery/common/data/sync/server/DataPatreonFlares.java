@@ -14,12 +14,12 @@ import hellfirepvp.astralsorcery.common.data.sync.base.AbstractData;
 import hellfirepvp.astralsorcery.common.data.sync.base.AbstractDataProvider;
 import hellfirepvp.astralsorcery.common.data.sync.base.ClientDataReader;
 import hellfirepvp.astralsorcery.common.data.sync.client.ClientPatreonFlares;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.nbt.ListTag;     // ListNBT -> ListTag
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.DimensionType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player; // PlayerEntity -> Player
 import net.minecraft.world.level.Level;
 
 import javax.annotation.Nonnull;
@@ -46,8 +46,8 @@ public class DataPatreonFlares extends AbstractData {
 
     //Only actually called when there's an entity to be provided.
     @Nullable
-    public PatreonPartialEntity createEntity(PlayerEntity player, PatreonEffect value) {
-        UUID owner = player.getUniqueID();
+    public PatreonPartialEntity createEntity(Player player, PatreonEffect value) {
+        UUID owner = player.getUUID();
         PatreonPartialEntity entity = value.createEntity(owner);
         if (entity == null) {
             return null;
@@ -94,7 +94,7 @@ public class DataPatreonFlares extends AbstractData {
     }
 
     @Override
-    public void clear(RegistryKey<World> dim) {}
+    public void clear(ResourceKey<Level> dim) {}
 
     @Override
     public void clearServer() {
@@ -104,18 +104,18 @@ public class DataPatreonFlares extends AbstractData {
     }
 
     @Override
-    public void writeAllDataToPacket(CompoundNBT compound) {
-        ListNBT entities = new ListNBT();
+    public void writeAllDataToPacket(CompoundTag compound) {
+        ListTag entities = new ListTag();
         for (UUID playerUUID : this.entitiesServer.keySet()) {
-            CompoundNBT tag = new CompoundNBT();
-            tag.putUniqueId("playerUUID", playerUUID);
+            CompoundTag tag = new CompoundTag();
+            tag.putUUID("playerUUID", playerUUID);
 
-            ListNBT entityList = new ListNBT();
+            ListTag entityList = new ListTag();
             for (PatreonPartialEntity entity : this.entitiesServer.get(playerUUID)) {
-                CompoundNBT entityNBT = new CompoundNBT();
-                entityNBT.putUniqueId("id", entity.getEffectUUID());
+                CompoundTag entityNBT = new CompoundTag();
+                entityNBT.putUUID("id", entity.getEffectUUID());
 
-                CompoundNBT data = new CompoundNBT();
+                CompoundTag data = new CompoundTag();
                 entity.writeToNBT(data);
                 entityNBT.put("data", data);
 
@@ -129,18 +129,18 @@ public class DataPatreonFlares extends AbstractData {
     }
 
     @Override
-    public void writeDiffDataToPacket(CompoundNBT compound) {
-        ListNBT listUpdates = new ListNBT();
+    public void writeDiffDataToPacket(CompoundTag compound) {
+        ListTag listUpdates = new ListTag();
         for (UUID playerUUID : this.flarePlayerUpdates) {
-            CompoundNBT tag = new CompoundNBT();
-            tag.putUniqueId("playerUUID", playerUUID);
+            CompoundTag tag = new CompoundTag();
+            tag.putUUID("playerUUID", playerUUID);
 
-            ListNBT entityList = new ListNBT();
+            ListTag entityList = new ListTag();
             for (PatreonPartialEntity entity : this.entitiesServer.get(playerUUID)) {
-                CompoundNBT entityNBT = new CompoundNBT();
-                entityNBT.putUniqueId("id", entity.getEffectUUID());
+                CompoundTag entityNBT = new CompoundTag();
+                entityNBT.putUUID("id", entity.getEffectUUID());
 
-                CompoundNBT data = new CompoundNBT();
+                CompoundTag data = new CompoundTag();
                 entity.writeToNBT(data);
                 entityNBT.put("data", data);
 
@@ -150,10 +150,10 @@ public class DataPatreonFlares extends AbstractData {
             listUpdates.add(tag);
         }
 
-        ListNBT listRemovals = new ListNBT();
+        ListTag listRemovals = new ListTag();
         for (UUID playerUUID : this.flareRemovals) {
-            CompoundNBT playerTag = new CompoundNBT();
-            playerTag.putUniqueId("playerUUID", playerUUID);
+            CompoundTag playerTag = new CompoundTag();
+            playerTag.putUUID("playerUUID", playerUUID);
             listRemovals.add(playerTag);
         }
 

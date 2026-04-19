@@ -12,11 +12,12 @@ import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataAdapter;
 import hellfirepvp.astralsorcery.common.data.config.registry.sets.EntityTransmutationEntry;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.server.level.ServerLevel; // ServerWorld -> ServerLevel
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobSpawnType; // Útil para spawnear correctamente
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -63,19 +64,19 @@ public class EntityTransmutationRegistry extends ConfigDataAdapter<EntityTransmu
     }
 
     @Nullable
-    public LivingEntity transmuteEntity(ServerWorld world, LivingEntity entity) {
+    public LivingEntity transmuteEntity(ServerLevel world, LivingEntity entity) {
         EntityType<?> transmute = getEntityTransmuteTo(entity.getType());
         if (transmute != null) {
-            CompoundNBT tag = new CompoundNBT();
-            entity.writeWithoutTypeId(tag);
-            world.removeEntity(entity);
-            NBTHelper.removeUUID(tag, "UUID");
+            CompoundTag tag = new CompoundTag();
+            entity.saveWithoutId(tag);
+            entity.discard();
+            tag.remove( "UUID");
             try {
                 Entity e = transmute.create(world);
                 if (!(e instanceof LivingEntity)) {
                     return null;
                 }
-                e.read(tag);
+                e.load(tag);
                 return (LivingEntity) e;
             } catch (Exception exc) {
                 return null;

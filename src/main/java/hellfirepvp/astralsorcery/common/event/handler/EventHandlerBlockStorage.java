@@ -11,7 +11,7 @@ package hellfirepvp.astralsorcery.common.event.handler;
 import hellfirepvp.astralsorcery.common.item.base.ItemBlockStorage;
 import hellfirepvp.astralsorcery.common.network.PacketChannel;
 import hellfirepvp.astralsorcery.common.network.play.client.PktClearBlockStorageStack;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack; // Cambio de paquete
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 
@@ -31,8 +31,8 @@ public class EventHandlerBlockStorage {
 
     private static void onClickBlockServer(PlayerInteractEvent.LeftClickBlock event) {
         ItemStack held = event.getItemStack();
-        if (!event.getWorld().isRemote() && !held.isEmpty() && held.getItem() instanceof ItemBlockStorage) {
-            ItemBlockStorage.clearContainerFor(event.getPlayer());
+        if (!event.getLevel().isClientSide() && !held.isEmpty() && held.getItem() instanceof ItemBlockStorage) {
+            ItemBlockStorage.clearContainerFor(event.getEntity());
         }
     }
 

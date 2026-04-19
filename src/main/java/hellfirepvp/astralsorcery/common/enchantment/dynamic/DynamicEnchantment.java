@@ -8,7 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.enchantment.dynamic;
 
-import net.minecraft.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantment;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

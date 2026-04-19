@@ -8,9 +8,10 @@
 
 package hellfirepvp.astralsorcery.common.container.slot;
 
+import net.minecraft.world.Container; // IInventory -> Container
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.container.Slot;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -21,12 +22,17 @@ import net.minecraft.inventory.container.Slot;
  */
 public class SlotUnclickable extends Slot {
 
-    public SlotUnclickable(IInventory inventoryIn, int index, int xPosition, int yPosition) {
+    public SlotUnclickable(Container inventoryIn, int index, int xPosition, int yPosition) {
         super(inventoryIn, index, xPosition, yPosition);
     }
 
     @Override
-    public boolean canTakeStack(PlayerEntity playerIn) {
+    public boolean mayPickup(Player playerIn) {
+        return false;
+    }
+
+    @Override
+    public boolean mayPlace(ItemStack stack) {
         return false;
     }
 }

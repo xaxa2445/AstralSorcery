@@ -25,25 +25,19 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.registry.Transmis
 import hellfirepvp.astralsorcery.common.structure.types.StructureType;
 import hellfirepvp.observerlib.api.ObserverProvider;
 import hellfirepvp.observerlib.api.structure.MatchableStructure;
-import net.minecraft.block.Block;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.EntityType;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.item.Item;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.potion.Effect;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.world.gen.feature.Feature;
-import net.minecraft.world.gen.feature.structure.Structure;
-import net.minecraft.world.gen.placement.Placement;
-import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
-import net.minecraftforge.event.RegistryEvent;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.block.entity.BlockEntityType; // TileEntityType -> BlockEntityType
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.inventory.MenuType; // ContainerType -> MenuType
+import net.minecraft.world.effect.MobEffect; // Effect -> MobEffect
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.crafting.RecipeSerializer; // IRecipeSerializer -> RecipeSerializer
 import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.registries.DataSerializerEntry;
-import net.minecraftforge.registries.IForgeRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegisterEvent; // El nuevo evento unificado
 
 /**
  * This class is part of the Astral Sorcery Mod

@@ -22,25 +22,21 @@ import hellfirepvp.astralsorcery.common.item.base.PerkExperienceRevealer;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.LecternBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.LogicalSide;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -55,50 +51,58 @@ import java.util.Objects;
 public class ItemTome extends Item implements PerkExperienceRevealer {
 
     public ItemTome() {
-        super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
+        super(new Item.Properties()
+                .stacksTo(1)); // maxStackSize -> stacksTo
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, PlayerEntity player, Hand hand) {
-        if (world.isRemote() && !player.isSneaking()) {
-            AstralSorcery.getProxy().openGui(player, GuiType.TOME);
-        } else if (!world.isRemote() && player.isSneaking() && hand == Hand.MAIN_HAND && player instanceof ServerPlayerEntity) {
-            new ContainerTomeProvider(player.getHeldItem(hand), player.inventory.currentItem)
-                    .openFor((ServerPlayerEntity) player);
-        }
-        return ActionResult.resultSuccess(player.getHeldItem(hand));
-    }
+    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
 
-    @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
-        World world = context.getWorld();
-        BlockState blockstate = world.getBlockState(context.getPos());
-        if (blockstate.getBlock() instanceof LecternBlock) {
-            return LecternBlock.tryPlaceBook(world, context.getPos(), blockstate, context.getItem()) ? ActionResultType.SUCCESS : ActionResultType.PASS;
+        if (world.isClientSide()) {
+            if (!player.isShiftKeyDown()) { // isSneaking -> isShiftKeyDown
+                AstralSorcery.getProxy().openGui(player, GuiType.TOME);
+            }
         } else {
-            return ActionResultType.PASS;
+            if (player.isShiftKeyDown() && hand == InteractionHand.MAIN_HAND && player instanceof ServerPlayer serverPlayer) {
+                // En 1.20.1 usamos serverPlayer.getInventory().selected para el slot actual
+                new ContainerTomeProvider(held, serverPlayer.getInventory().selected)
+                        .openFor(serverPlayer);
+            }
         }
+        return InteractionResultHolder.success(held);
     }
 
-    public static IInventory getTomeStorage(ItemStack stack, PlayerEntity player) {
-        Inventory inventory = new Inventory(27);
+    @Override
+    public InteractionResult useOn(UseOnContext context) {
+        Level world = context.getLevel();
+        BlockState blockstate = world.getBlockState(context.getClickedPos());
+        if (blockstate.getBlock() instanceof LecternBlock) {
+            // tryPlaceBook ahora devuelve un booleano
+            return LecternBlock.tryPlaceBook(context.getPlayer(), world, context.getClickedPos(), blockstate, context.getItemInHand())
+                    ? InteractionResult.SUCCESS : InteractionResult.PASS;
+        }
+        return InteractionResult.PASS;
+    }
+
+    public static Container getTomeStorage(ItemStack stack, Player player) {
+        // IInventory -> Container | Inventory -> SimpleContainer
+        SimpleContainer inventory = new SimpleContainer(27);
         getStoredConstellations(stack, player).stream().map(cst -> {
             ItemStack cstPaper = new ItemStack(ItemsAS.CONSTELLATION_PAPER);
-            if (cstPaper.getItem() instanceof ConstellationBaseItem) {
-                ((ConstellationBaseItem) cstPaper.getItem()).setConstellation(cstPaper, cst);
+            if (cstPaper.getItem() instanceof ConstellationBaseItem baseItem) {
+                baseItem.setConstellation(cstPaper, cst);
             }
             return cstPaper;
         }).forEach(inventory::addItem);
         return inventory;
     }
 
-    public static List<IConstellation> getStoredConstellations(ItemStack stack, PlayerEntity player) {
+    public static List<IConstellation> getStoredConstellations(ItemStack stack, Player player) {
         LinkedList<IConstellation> out = new LinkedList<>();
 
-        PlayerProgress prog = ResearchHelper.getProgress(player, player.getEntityWorld().isRemote() ? LogicalSide.CLIENT : LogicalSide.SERVER);
-        if (prog.isValid()) {
+        PlayerProgress prog = ResearchHelper.getProgress(player, player.level().isClientSide() ? LogicalSide.CLIENT : LogicalSide.SERVER);
+        if (prog != null && prog.isValid()) {
             prog.getStoredConstellationPapers().stream()
                     .map(ConstellationRegistry::getConstellation)
                     .filter(Objects::nonNull)

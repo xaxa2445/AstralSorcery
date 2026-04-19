@@ -17,11 +17,11 @@ import hellfirepvp.astralsorcery.common.item.ItemConstellationPaper;
 import hellfirepvp.astralsorcery.common.item.ItemTome;
 import hellfirepvp.astralsorcery.common.lib.ContainerTypesAS;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Container;
-import net.minecraft.inventory.container.Slot;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.thread.EffectiveSide;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.fml.util.thread.EffectiveSide;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
 
@@ -34,13 +34,13 @@ import java.util.LinkedList;
  * Created by HellFirePvP
  * Date: 09.08.2019 / 21:14
  */
-public class ContainerTome extends Container {
+public class ContainerTome extends AbstractContainerMenu {
 
-    private final PlayerEntity owningPlayer;
+    private final Player owningPlayer;
     private final ItemStack parentTome;
     private final int tomeIndex;
 
-    public ContainerTome(int id, PlayerInventory plInventory, PlayerEntity owningPlayer, ItemStack tome, int tomeIndex) {
+    public ContainerTome(int id, Inventory plInventory, Player owningPlayer, ItemStack tome, int tomeIndex) {
         super(ContainerTypesAS.TOME, id);
         this.parentTome = tome;
         this.tomeIndex = tomeIndex;
@@ -49,7 +49,7 @@ public class ContainerTome extends Container {
         buildSlots(new InvWrapper(ItemTome.getTomeStorage(tome, this.owningPlayer)));
     }
 
-    private void buildPlayerSlots(PlayerInventory playerInv) {
+    private void buildPlayerSlots(Inventory playerInv) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 9; j++) {
                 int index = j + i * 9 + 9;
@@ -79,38 +79,38 @@ public class ContainerTome extends Container {
     }
 
     @Override
-    public ItemStack transferStackInSlot(PlayerEntity playerIn, int index) {
+    public ItemStack quickMoveStack(Player playerIn, int index) {
         ItemStack itemstack = ItemStack.EMPTY;
-        Slot slot = this.inventorySlots.get(index);
+        Slot slot = this.slots.get(index);
 
-        if (slot != null && slot.getHasStack()) {
-            ItemStack itemstack1 = slot.getStack();
+        if (slot != null && slot.hasItem()) {
+            ItemStack itemstack1 = slot.getItem();
             itemstack = itemstack1.copy();
 
             if (!itemstack1.isEmpty() && itemstack1.getItem() instanceof ItemConstellationPaper && ((ItemConstellationPaper) itemstack1.getItem()).getConstellation(itemstack1) != null) {
                 if (index >= 0 && index < 36) {
-                    if (!this.mergeItemStack(itemstack1, 36, 63, false)) {
+                    if (!this.moveItemStackTo(itemstack1, 36, 63, false)) {
                         return ItemStack.EMPTY;
                     }
                 }
             }
 
             if (index >= 0 && index < 27) {
-                if (!this.mergeItemStack(itemstack1, 27, 36, false)) {
+                if (!this.moveItemStackTo(itemstack1, 27, 36, false)) {
                     return ItemStack.EMPTY;
                 }
             } else if (index >= 27 && index < 36) {
-                if (!this.mergeItemStack(itemstack1, 0, 27, false)) {
+                if (!this.moveItemStackTo(itemstack1, 0, 27, false)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (!this.mergeItemStack(itemstack1, 0, 36, false)) {
+            } else if (!this.moveItemStackTo(itemstack1, 0, 36, false)) {
                 return ItemStack.EMPTY;
             }
 
             if (itemstack1.getCount() == 0) {
-                slot.putStack(ItemStack.EMPTY);
+                slot.set(ItemStack.EMPTY);
             } else {
-                slot.onSlotChanged();
+                slot.setChanged();
             }
 
             if (itemstack1.getCount() == itemstack.getCount()) {
@@ -124,7 +124,7 @@ public class ContainerTome extends Container {
     }
 
     @Override
-    public boolean canInteractWith(PlayerEntity playerIn) {
+    public boolean stillValid(Player playerIn) {
         return true;
     }
 
@@ -132,7 +132,7 @@ public class ContainerTome extends Container {
         if (EffectiveSide.get().isServer()) {
             LinkedList<IConstellation> saveConstellations = new LinkedList<>();
             for (int i = 36; i < 63; i++) {
-                ItemStack in = inventorySlots.get(i).getStack();
+                ItemStack in = slots.get(i).getItem();
                 if (in.isEmpty()) {
                     continue;
                 }

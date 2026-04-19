@@ -19,18 +19,15 @@ import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.observerlib.common.data.WorldCacheDomain;
 import hellfirepvp.observerlib.common.data.base.GlobalWorldData;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.DyeColor;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.world.IWorld;
+import net.minecraft.core.BlockPos; // et.minecraft.core
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.nbt.ListTag;     // ListNBT -> ListTag
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
+import net.minecraft.network.chat.Component;   // ITextComponent -> Component
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -81,7 +78,7 @@ public class GatewayCache extends GlobalWorldData {
         CelestialGatewayHandler.INSTANCE.syncToAll();
     }
 
-    public boolean offerPosition(World world, BlockPos pos) {
+    public boolean offerPosition(Level world, BlockPos pos) {
         TileCelestialGateway te = MiscUtils.getTileAt(world, pos, TileCelestialGateway.class, false);
         if (te == null) {
             return false;
@@ -92,26 +89,26 @@ public class GatewayCache extends GlobalWorldData {
         }
         markDirty();
         CelestialGatewayHandler.INSTANCE.addPosition(world, node);
-        LogUtil.info(LogCategory.GATEWAY_CACHE, () -> "Added new gateway node at: dim=" + world.getDimensionKey().getLocation() + ", " + pos.toString());
+        LogUtil.info(LogCategory.GATEWAY_CACHE, () -> "Added new gateway node at: dim=" + world.dimension().location() + ", " + pos.toString());
         return true;
     }
 
-    public void removePosition(World world, BlockPos pos) {
+    public void removePosition(Level world, BlockPos pos) {
         if (gatewayPositions.removeIf(node -> node.getPos().equals(pos))) {
             markDirty();
             CelestialGatewayHandler.INSTANCE.removePosition(world, pos);
-            LogUtil.info(LogCategory.GATEWAY_CACHE, () -> "Removed gateway node at: dim=" + world.getDimensionKey().getLocation() + ", " + pos.toString());
+            LogUtil.info(LogCategory.GATEWAY_CACHE, () -> "Removed gateway node at: dim=" + world.dimension().location() + ", " + pos.toString());
         }
     }
 
     @Override
-    public void updateTick(World world) {}
+    public void updateTick(Level world) {}
 
     @Override
-    public void onLoad(World world) {
+    public void onLoad(Level world) {
         super.onLoad(world);
 
-        LogUtil.info(LogCategory.GATEWAY_CACHE, () -> "Checking GatewayCache integrity for dimension " + world.getDimensionKey().getLocation());
+        LogUtil.info(LogCategory.GATEWAY_CACHE, () -> "Checking GatewayCache integrity for dimension " + world.dimension().location());
         long msStart = System.currentTimeMillis();
 
         Iterator<GatewayNode> iterator = gatewayPositions.iterator();
@@ -136,10 +133,10 @@ public class GatewayCache extends GlobalWorldData {
     }
 
     @Override
-    public void writeToNBT(CompoundNBT compound) {
-        ListNBT list = new ListNBT();
+    public void writeToNBT(CompoundTag compound) {
+        ListTag list = new ListTag();
         for (GatewayNode node : gatewayPositions) {
-            CompoundNBT tag = new CompoundNBT();
+            CompoundTag tag = new CompoundTag();
             node.write(tag);
             list.add(tag);
         }
@@ -147,10 +144,10 @@ public class GatewayCache extends GlobalWorldData {
     }
 
     @Override
-    public void readFromNBT(CompoundNBT compound) {
-        ListNBT list = compound.getList("posList", Constants.NBT.TAG_COMPOUND);
+    public void readFromNBT(CompoundTag compound) {
+        ListTag list = compound.getList("posList", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++) {
-            CompoundNBT tag = list.getCompound(i);
+            CompoundTag tag = list.getCompound(i);
             gatewayPositions.add(GatewayNode.read(tag));
         }
     }
@@ -158,7 +155,7 @@ public class GatewayCache extends GlobalWorldData {
     public static class GatewayNode {
 
         private final BlockPos pos;
-        private ITextComponent display;
+        private Component display;
         private DyeColor color;
 
         private boolean locked = false;
@@ -179,7 +176,7 @@ public class GatewayCache extends GlobalWorldData {
         }
 
         @Nullable
-        public ITextComponent getDisplayName() {
+        public Component getDisplayName() {
             return display;
         }
 
@@ -201,7 +198,7 @@ public class GatewayCache extends GlobalWorldData {
             return Collections.unmodifiableMap(this.allowedUsers);
         }
 
-        public boolean hasAccess(PlayerEntity player) {
+        public boolean hasAccess(Player player) {
             PlayerReference owner = this.getOwner();
             if (owner == null || !this.isLocked()) {
                 return true;
@@ -209,10 +206,10 @@ public class GatewayCache extends GlobalWorldData {
             return owner.isPlayer(player) || this.getAllowedUsers().values().stream().anyMatch(ref -> ref.isPlayer(player));
         }
 
-        public void write(CompoundNBT tag) {
+        public void write(CompoundTag tag) {
             NBTHelper.writeBlockPosToNBT(this.getPos(), tag);
             if (this.getDisplayName() != null) {
-                tag.putString("display", ITextComponent.Serializer.toJson(this.getDisplayName()));
+                tag.putString("display", Component.Serializer.toJson(this.getDisplayName()));
             }
             if (this.getColor() != null) {
                 NBTHelper.writeEnum(tag, "color", this.getColor());
@@ -221,26 +218,26 @@ public class GatewayCache extends GlobalWorldData {
             tag.putBoolean("locked", this.isLocked());
             NBTHelper.writeOptional(tag, "owningPlayer", this.getOwner(), (compound, playerRef) -> playerRef.writeToNBT(compound));
             NBTHelper.writeList(tag, "allowedUsers", this.allowedUsers.entrySet(), entry -> {
-                CompoundNBT compound = new CompoundNBT();
+                CompoundTag compound = new CompoundTag();
                 compound.putInt("index", entry.getKey());
                 compound.put("player", entry.getValue().serialize());
                 return compound;
             });
         }
 
-        public void write(PacketBuffer buf) {
+        public void write(FriendlyByteBuf buf) {
             ByteBufUtils.writePos(buf, this.getPos());
             ByteBufUtils.writeOptional(buf, this.getDisplayName(), ByteBufUtils::writeTextComponent);
             ByteBufUtils.writeOptional(buf, this.getColor(), ByteBufUtils::writeEnumValue);
             buf.writeBoolean(this.isLocked());
             ByteBufUtils.writeOptional(buf, this.getOwner(), (buffer, ref) -> ref.write(buffer));
-            ByteBufUtils.writeMap(buf, this.getAllowedUsers(), PacketBuffer::writeInt, (buffer, ref) -> ref.write(buffer));
+            ByteBufUtils.writeMap(buf, this.getAllowedUsers(), FriendlyByteBuf::writeInt, (buffer, ref) -> ref.write(buffer));
         }
 
-        public static GatewayNode read(CompoundNBT tag) {
+        public static GatewayNode read(CompoundTag tag) {
             GatewayNode node = new GatewayNode(NBTHelper.readBlockPosFromNBT(tag));
             if (tag.contains("display")) {
-                node.display = ITextComponent.Serializer.getComponentFromJson(tag.getString("display"));
+                node.display = Component.Serializer.fromJson(tag.getString("display"));
             }
             if (tag.contains("color")) {
                 node.color = NBTHelper.readEnum(tag, "color", DyeColor.class);
@@ -248,20 +245,20 @@ public class GatewayCache extends GlobalWorldData {
 
             node.locked = tag.getBoolean("locked");
             node.owner = NBTHelper.readOptional(tag, "owningPlayer", PlayerReference::deserialize);
-            NBTHelper.readList(tag, "allowedUsers", Constants.NBT.TAG_COMPOUND, nbt -> {
-                CompoundNBT compound = (CompoundNBT) nbt;
-                return new Tuple<>(compound.getInt("index"), PlayerReference.deserialize(compound.getCompound("player")));
-            }).forEach(tpl -> node.allowedUsers.put(tpl.getA(), tpl.getB()));
+            NBTHelper.readList(tag, "allowedUsers", Tag.TAG_COMPOUND, nbt -> {
+                CompoundTag compound = (CompoundTag) nbt;
+                return new AbstractMap.SimpleEntry<>(compound.getInt("index"), PlayerReference.deserialize(compound.getCompound("player"))) {};
+            }).forEach(entry -> node.allowedUsers.put(entry.getKey(), entry.getValue()));
             return node;
         }
 
-        public static GatewayNode read(PacketBuffer buf) {
+        public static GatewayNode read(FriendlyByteBuf buf) {
             GatewayNode node = new GatewayNode(ByteBufUtils.readPos(buf));
             node.display = ByteBufUtils.readOptional(buf, ByteBufUtils::readTextComponent);
             node.color = ByteBufUtils.readOptional(buf, buffer -> ByteBufUtils.readEnumValue(buffer, DyeColor.class));
             node.locked = buf.readBoolean();
             node.owner = ByteBufUtils.readOptional(buf, PlayerReference::read);
-            node.allowedUsers = ByteBufUtils.readMap(buf, PacketBuffer::readInt, PlayerReference::read);
+            node.allowedUsers = ByteBufUtils.readMap(buf, FriendlyByteBuf::readInt, PlayerReference::read);
             return node;
         }
 
@@ -300,11 +297,11 @@ public class GatewayCache extends GlobalWorldData {
 
         @Nullable
         @Override
-        public ITextComponent getDisplayName() {
+        public Component getDisplayName() {
             return this.decorated.getDisplayName();
         }
 
-        public void setDisplayName(@Nullable ITextComponent displayName) {
+        public void setDisplayName(@Nullable Component displayName) {
             this.decorated.display = displayName;
         }
 

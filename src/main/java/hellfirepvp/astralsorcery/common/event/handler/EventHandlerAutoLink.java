@@ -11,13 +11,13 @@ package hellfirepvp.astralsorcery.common.event.handler;
 import hellfirepvp.astralsorcery.common.block.tile.BlockAltar;
 import hellfirepvp.astralsorcery.common.starlight.WorldNetworkHandler;
 import hellfirepvp.observerlib.common.event.BlockChangeNotifier;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.core.BlockPos; // util.math -> core
+import net.minecraft.world.level.Level; // World -> Level
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess; // Chunk -> ChunkAccess
+import net.minecraft.world.level.chunk.ChunkStatus;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -29,28 +29,28 @@ import net.minecraft.world.chunk.ChunkStatus;
 public class EventHandlerAutoLink implements BlockChangeNotifier.Listener {
 
     @Override
-    public void onChange(World world, Chunk chunk, BlockPos pos, BlockState oldState, BlockState newState) {
-        if (world.isRemote() || !chunk.getStatus().isAtLeast(ChunkStatus.FULL)) {
+    public void onChange(Level world, ChunkAccess chunk, BlockPos pos, BlockState oldState, BlockState newState) {
+        // En 1.20.1 world.isClientSide() reemplaza a isRemote()
+        // ChunkAccess es la interfaz moderna para manejar Chunks
+        if (world.isClientSide() || !chunk.getStatus().isOrAfter(ChunkStatus.FULL)) {
             return;
         }
 
         Block oldB = oldState.getBlock();
         Block newB = newState.getBlock();
 
+        // Verificamos si el bloque realmente cambió (no solo una propiedad como la dirección)
         if (oldB != newB) {
             WorldNetworkHandler handle = WorldNetworkHandler.getNetworkHandler(world);
             handle.informBlockChange(pos);
 
-            if (oldB == Blocks.CRAFTING_TABLE) {
+            // Lógica de desvinculación (Old Block)
+            if (oldB == Blocks.CRAFTING_TABLE || oldB instanceof BlockAltar) {
                 handle.removeAutoLinkTo(pos);
             }
-            if (newB == Blocks.CRAFTING_TABLE) {
-                handle.attemptAutoLinkTo(pos);
-            }
-            if (oldB instanceof BlockAltar) {
-                handle.removeAutoLinkTo(pos);
-            }
-            if (newB instanceof BlockAltar) {
+
+            // Lógica de vinculación automática (New Block)
+            if (newB == Blocks.CRAFTING_TABLE || newB instanceof BlockAltar) {
                 handle.attemptAutoLinkTo(pos);
             }
         }

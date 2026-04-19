@@ -15,17 +15,18 @@ import hellfirepvp.astralsorcery.common.enchantment.amulet.AmuletEnchantment;
 import hellfirepvp.astralsorcery.common.enchantment.amulet.AmuletRandomizeHelper;
 import hellfirepvp.astralsorcery.common.item.base.client.ItemDynamicColor;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.text.*;
-import net.minecraft.world.level.Level;
+import net.minecraft.ChatFormatting; // TextFormatting -> ChatFormatting
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.nbt.ListTag; // ListNBT -> ListTag
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component; // ITextComponent -> Component
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag; // ITooltipFlag -> TooltipFlag
+import net.minecraft.world.level.Level; // World -> Level
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nullable;
 import java.awt.Color;
@@ -44,34 +45,34 @@ public class ItemEnchantmentAmulet extends Item implements ItemDynamicColor {
     private static final Random rand = new Random();
 
     public ItemEnchantmentAmulet() {
-        super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
+        super(new Item.Properties()
+                .stacksTo(1));
+        // El .group() se elimina porque la firma del método ya no existe en Minecraft 1.20.1
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-        super.addInformation(stack, worldIn, tooltip, flagIn);
+    public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip, TooltipFlag flagIn) {
+        super.appendHoverText(stack, worldIn, tooltip, flagIn);
 
         List<AmuletEnchantment> enchantments = getAmuletEnchantments(stack);
         for (AmuletEnchantment ench : enchantments) {
-            tooltip.add(ench.getDisplay().mergeStyle(TextFormatting.BLUE));
+            tooltip.add(ench.getDisplay().withStyle(ChatFormatting.BLUE));
         }
 
         if (getAmuletColor(stack).map(color -> color == 0xFFFFFFFF).orElse(false)) {
-            tooltip.add(new TranslationTextComponent("astralsorcery.amulet.color.colorless")
-                    .mergeStyle(TextFormatting.ITALIC)
-                    .mergeStyle(TextFormatting.GRAY));
+            tooltip.add(Component.translatable("astralsorcery.amulet.color.colorless")
+                    .withStyle(ChatFormatting.ITALIC)
+                    .withStyle(ChatFormatting.GRAY));
         }
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, World worldIn, Entity entityIn, int itemSlot, boolean isSelected) {
-        if (!worldIn.isRemote() && !getAmuletColor(stack).isPresent()) {
+    public void inventoryTick(ItemStack stack, Level worldIn, Entity entityIn, int itemSlot, boolean isSelected) {
+        if (!worldIn.isClientSide && !getAmuletColor(stack).isPresent()) {
             freezeAmuletColor(stack);
         }
-        if (!worldIn.isRemote() && getAmuletEnchantments(stack).isEmpty()) {
+        if (!worldIn.isClientSide && getAmuletEnchantments(stack).isEmpty()) {
             AmuletRandomizeHelper.rollAmulet(stack);
         }
         super.inventoryTick(stack, worldIn, entityIn, itemSlot, isSelected);
@@ -95,7 +96,7 @@ public class ItemEnchantmentAmulet extends Item implements ItemDynamicColor {
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemEnchantmentAmulet)) {
             return Optional.empty();
         }
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
+        CompoundTag tag = NBTHelper.getPersistentData(stack);
         if (!tag.contains("amuletColor")) {
             return Optional.empty();
         }
@@ -106,7 +107,7 @@ public class ItemEnchantmentAmulet extends Item implements ItemDynamicColor {
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemEnchantmentAmulet)) {
             return;
         }
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
+        CompoundTag tag = NBTHelper.getPersistentData(stack);
         if (tag.contains("amuletColor")) {
             return;
         }
@@ -122,11 +123,11 @@ public class ItemEnchantmentAmulet extends Item implements ItemDynamicColor {
             return Lists.newArrayList();
         }
 
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
+        CompoundTag tag = NBTHelper.getPersistentData(stack);
         if (!tag.contains("amuletEnchantments")) {
             return Lists.newArrayList();
         }
-        ListNBT enchants = tag.getList("amuletEnchantments", Constants.NBT.TAG_COMPOUND);
+        ListTag enchants = tag.getList("amuletEnchantments", Tag.TAG_COMPOUND);
         List<AmuletEnchantment> enchantments = new ArrayList<>(enchants.size());
         for (int i = 0; i < enchants.size(); i++) {
             AmuletEnchantment ench = AmuletEnchantment.deserialize(enchants.getCompound(i));
@@ -144,8 +145,8 @@ public class ItemEnchantmentAmulet extends Item implements ItemDynamicColor {
         }
         enchantments.sort(Comparator.comparing(AmuletEnchantment::getType));
 
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
-        ListNBT enchants = new ListNBT();
+        CompoundTag tag = NBTHelper.getPersistentData(stack);
+        ListTag enchants = new ListTag();
         for (AmuletEnchantment enchant : enchantments) {
             enchants.add(enchant.serialize());
         }

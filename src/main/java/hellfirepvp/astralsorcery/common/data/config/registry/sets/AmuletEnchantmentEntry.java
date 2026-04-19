@@ -10,8 +10,8 @@ package hellfirepvp.astralsorcery.common.data.config.registry.sets;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataSet;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation; // net.minecraft.util -> net.minecraft.resources
+import net.minecraft.world.item.enchantment.Enchantment; // net.minecraft.enchantment -> net.minecraft.world.item.enchantment
 import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
@@ -50,7 +50,9 @@ public class AmuletEnchantmentEntry implements ConfigDataSet, Comparable<AmuletE
     @Nonnull
     @Override
     public String serialize() {
-        return this.enchantment.getRegistryName().toString() + ";" + weight;
+        // CAMBIO: En 1.20.1 usamos ForgeRegistries para obtener la llave, ya que getRegistryName() no existe en Enchantment
+        ResourceLocation key = ForgeRegistries.ENCHANTMENTS.getKey(this.enchantment);
+        return (key != null ? key.toString() : "minecraft:empty") + ";" + weight;
     }
 
     @Nullable

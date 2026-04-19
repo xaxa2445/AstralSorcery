@@ -10,16 +10,15 @@ package hellfirepvp.astralsorcery.common.util.data;
 
 import com.google.gson.*;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.core.registries.BuiltInRegistries; // Reemplazo para algunos accesos de Registry
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.nbt.TagParser;  // JsonToNBT -> TagParser
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper; // JSONUtils -> GsonHelper
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.fluids.FluidAttributes;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
@@ -28,6 +27,8 @@ import java.awt.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import static net.minecraftforge.fluids.FluidType.BUCKET_VOLUME;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -85,7 +86,7 @@ public class JsonHelper {
         if (fluidElement.isJsonPrimitive() && ((JsonPrimitive) fluidElement).isString()) {
             String strKey = fluidElement.getAsString();
             ResourceLocation fluidKey = new ResourceLocation(strKey);
-            fluidStack = new FluidStack(ForgeRegistries.FLUIDS.getValue(fluidKey), FluidAttributes.BUCKET_VOLUME);
+            fluidStack = new FluidStack(ForgeRegistries.FLUIDS.getValue(fluidKey), BUCKET_VOLUME);
         } else if (fluidElement.isJsonObject()) {
             fluidStack = getFluidStack(fluidElement.getAsJsonObject(), true);
         } else {
@@ -96,7 +97,7 @@ public class JsonHelper {
 
     @Nonnull
     public static FluidStack getFluidStack(JsonObject json, boolean readNBT) {
-        String fluidName = JSONUtils.getString(json, "fluid");
+        String fluidName = GsonHelper.getAsString(json, "fluid");
         Fluid fluid = ForgeRegistries.FLUIDS.getValue(new ResourceLocation(fluidName));
         if (fluid == null || fluid == Fluids.EMPTY) {
             return FluidStack.EMPTY;
@@ -105,17 +106,17 @@ public class JsonHelper {
             //Copied from CraftingHelper.getItemStack's NBT deserialization.
             try {
                 JsonElement element = json.get("nbt");
-                CompoundNBT nbt;
+                CompoundTag nbt;
                 if (element.isJsonObject()) {
-                    nbt = JsonToNBT.getTagFromJson(GSON.toJson(element));
+                    nbt = TagParser.parseTag(GSON.toJson(element));
                 } else {
-                    nbt = JsonToNBT.getTagFromJson(JSONUtils.getString(element, "nbt"));
+                    nbt = TagParser.parseTag(GsonHelper.convertToString(element, "nbt"));
                 }
 
-                CompoundNBT tempRead = new CompoundNBT();
+                CompoundTag tempRead = new CompoundTag();
                 tempRead.put("Tag", nbt);
                 tempRead.putString("FluidName", fluidName);
-                tempRead.putInt("Amount", JSONUtils.getInt(json, "amount", FluidAttributes.BUCKET_VOLUME));
+                tempRead.putInt("Amount", GsonHelper.getAsInt(json, "amount", BUCKET_VOLUME));
 
                 return FluidStack.loadFluidStackFromNBT(tempRead);
             }
@@ -124,7 +125,7 @@ public class JsonHelper {
                 throw new JsonSyntaxException("Invalid NBT Entry: " + e.toString());
             }
         }
-        return new FluidStack(fluid, JSONUtils.getInt(json, "amount", FluidAttributes.BUCKET_VOLUME));
+        return new FluidStack(fluid, GsonHelper.getAsInt(json, "amount", BUCKET_VOLUME));
     }
 
     @Nonnull
@@ -144,14 +145,14 @@ public class JsonHelper {
 
     @Nonnull
     public static ItemStack getItemStack(JsonObject root, String key) {
-        if (!JSONUtils.hasField(root, key)) {
+        if (!root.has(key)) {
             throw new JsonSyntaxException("Missing " + key + ", expected to find a string or object");
         }
         ItemStack itemstack;
         if (root.get(key).isJsonObject()) {
-            itemstack = CraftingHelper.getItemStack(JSONUtils.getJsonObject(root, key), true);
+            itemstack = CraftingHelper.getItemStack(GsonHelper.getAsJsonObject(root, key), true);
         } else {
-            String strKey = JSONUtils.getString(root, key);
+            String strKey = GsonHelper.getAsString(root, key);
             ResourceLocation itemKey = new ResourceLocation(strKey);
             itemstack = new ItemStack(ForgeRegistries.ITEMS.getValue(itemKey));
         }
@@ -161,7 +162,8 @@ public class JsonHelper {
     @Nonnull
     public static JsonObject serializeItemStack(ItemStack stack) {
         JsonObject object = new JsonObject();
-        object.addProperty("item", stack.getItem().getRegistryName().toString());
+        ResourceLocation id = ForgeRegistries.ITEMS.getKey(stack.getItem());
+        object.addProperty("item", id != null ? id.toString() : "minecraft:air");
         object.addProperty("count", stack.getCount());
         if (stack.hasTag()) {
             object.addProperty("nbt", stack.getTag().toString());
@@ -170,7 +172,7 @@ public class JsonHelper {
     }
 
     public static Color getColor(JsonObject object, String key) {
-        String value = JSONUtils.getString(object, key);
+        String value = GsonHelper.getAsString(object, key);
         if (value.startsWith("0x")) { //Assume hex color.
             String hexNbr = value.substring(2);
             try {

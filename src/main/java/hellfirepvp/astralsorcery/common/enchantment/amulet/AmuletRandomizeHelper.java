@@ -12,8 +12,9 @@ import hellfirepvp.astralsorcery.common.data.config.base.ConfigEntry;
 import hellfirepvp.astralsorcery.common.data.config.registry.AmuletEnchantmentRegistry;
 import hellfirepvp.astralsorcery.common.enchantment.dynamic.DynamicEnchantmentType;
 import hellfirepvp.astralsorcery.common.item.ItemEnchantmentAmulet;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.item.ItemStack;
+import net.minecraft.util.RandomSource; // Reemplazo de Random
+import net.minecraft.world.item.ItemStack; // net.minecraft.item -> net.minecraft.world.item
+import net.minecraft.world.item.enchantment.Enchantment; // net.minecraft.enchantment -> net.minecraft.world.item.enchantment
 import net.minecraftforge.common.ForgeConfigSpec;
 
 import javax.annotation.Nullable;

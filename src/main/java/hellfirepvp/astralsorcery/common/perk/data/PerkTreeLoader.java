@@ -13,11 +13,11 @@ import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.PerkTree;
 import hellfirepvp.astralsorcery.common.util.MapStream;
-import net.minecraft.client.resources.JsonReloadListener;
-import net.minecraft.profiler.IProfiler;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager; // IResourceManager -> ResourceManager
+import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener; // JsonReloadListener -> SimpleJsonResourceReloadListener
+import net.minecraft.util.GsonHelper; // JSONUtils -> GsonHelper
+import net.minecraft.util.profiling.ProfilerFiller; // IProfiler -> ProfilerFiller
 
 import java.util.Collection;
 import java.util.Map;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  * Created by HellFirePvP
  * Date: 12.08.2020 / 22:15
  */
-public class PerkTreeLoader extends JsonReloadListener {
+public class PerkTreeLoader extends SimpleJsonResourceReloadListener {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
@@ -41,7 +41,7 @@ public class PerkTreeLoader extends JsonReloadListener {
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> dataMap, IResourceManager resourceManager, IProfiler profiler) {
+    protected void apply(Map<ResourceLocation, JsonElement> dataMap, ResourceManager resourceManager, ProfilerFiller profiler) {
         Collection<JsonObject> loadingPerkObjects = MapStream.of(dataMap)
                 .filterKey(key -> !key.getPath().startsWith("_"))
                 .filterValue(JsonElement::isJsonObject)
@@ -57,38 +57,38 @@ public class PerkTreeLoader extends JsonReloadListener {
         int count = 0;
         for(JsonObject serializedPerkData : perkTreeObjects) {
 
-            ResourceLocation perkRegistryName = new ResourceLocation(JSONUtils.getString(serializedPerkData, "registry_name"));
+            ResourceLocation perkRegistryName = new ResourceLocation(GsonHelper.getAsString(serializedPerkData, "registry_name"));
             ResourceLocation customClass = PerkTypeHandler.DEFAULT.getKey();
             if (serializedPerkData.has("perk_class")) {
-                customClass = new ResourceLocation(JSONUtils.getString(serializedPerkData, "perk_class"));
+                customClass = new ResourceLocation(GsonHelper.getAsString(serializedPerkData, "perk_class"));
                 if (!PerkTypeHandler.hasCustomType(customClass)) {
                     throw new JsonParseException("Unknown perk_class: " + customClass.toString());
                 }
             }
 
-            float posX = JSONUtils.getFloat(serializedPerkData, "x");
-            float posY = JSONUtils.getFloat(serializedPerkData, "y");
+            float posX = GsonHelper.getAsFloat(serializedPerkData, "x");
+            float posY = GsonHelper.getAsFloat(serializedPerkData, "y");
 
             AbstractPerk perk = PerkTypeHandler.convert(perkRegistryName, posX, posY, customClass);
             if (serializedPerkData.has("name")) {
-                String name = JSONUtils.getString(serializedPerkData, "name");
+                String name = GsonHelper.getAsString(serializedPerkData, "name");
                 perk.setName(name);
             }
             if (serializedPerkData.has("hiddenUnlessAllocated")) {
-                perk.setHiddenUnlessAllocated(JSONUtils.getBoolean(serializedPerkData, "hiddenUnlessAllocated"));
+                perk.setHiddenUnlessAllocated(GsonHelper.getAsBoolean(serializedPerkData, "hiddenUnlessAllocated"));
             }
 
             if (serializedPerkData.has("data")) {
-                JsonObject perkData = JSONUtils.getJsonObject(serializedPerkData, "data");
+                JsonObject perkData = GsonHelper.getAsJsonObject(serializedPerkData, "data");
                 perk.deserializeData(perkData);
             }
 
             LoadedPerkData connector = newTree.addPerk(perk, serializedPerkData);
             if (serializedPerkData.has("connection")) {
-                JsonArray connectionArray = JSONUtils.getJsonArray(serializedPerkData, "connection");
+                JsonArray connectionArray = GsonHelper.getAsJsonArray(serializedPerkData, "connection");
                 for (int i = 0; i < connectionArray.size(); i++) {
                     JsonElement connection = connectionArray.get(i);
-                    String connectedPerkKey = JSONUtils.getString(connection, String.format("connection[%s]", i));
+                    String connectedPerkKey = GsonHelper.getAsString(connection, String.format("connection[%s]", i));
                     connector.addConnection(new ResourceLocation(connectedPerkKey));
                 }
             }

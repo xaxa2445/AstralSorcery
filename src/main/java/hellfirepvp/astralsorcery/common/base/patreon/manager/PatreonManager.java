@@ -15,12 +15,13 @@ import hellfirepvp.astralsorcery.common.data.sync.SyncDataHolder;
 import hellfirepvp.astralsorcery.common.data.sync.server.DataPatreonFlares;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.server.level.ServerLevel; // World -> ServerLevel
+import net.minecraft.server.level.ServerPlayer; // ServerPlayerEntity -> ServerPlayer
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.*;
 
@@ -39,7 +40,7 @@ public class PatreonManager implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) {
             return;
         }
@@ -50,7 +51,7 @@ public class PatreonManager implements ITickHandler {
             Map<UUID, List<PatreonEffect>> playerEffects = PatreonEffectHelper.getPatreonEffects(server.getPlayerList().getPlayers());
 
             for (UUID playerUUID : playerEffects.keySet()) {
-                ServerPlayerEntity player = server.getPlayerList().getPlayerByUUID(playerUUID);
+                ServerPlayer player = server.getPlayerList().getPlayer(playerUUID);
                 if (player == null) {
                     continue;
                 }
@@ -67,9 +68,9 @@ public class PatreonManager implements ITickHandler {
                         effectEntity = data.createEntity(player, effect);
                     }
 
-                    World playerWorld = player.getServerWorld();
+                    Level playerWorld = player.serverLevel();
                     if (effectEntity.getLastTickedDimension() != null &&
-                            !playerWorld.getDimensionKey().equals(effectEntity.getLastTickedDimension())) {
+                            !playerWorld.dimension().equals(effectEntity.getLastTickedDimension())) {
                         effectEntity.placeNear(player);
                     }
 

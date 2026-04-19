@@ -17,19 +17,20 @@ import hellfirepvp.astralsorcery.common.item.ItemTome;
 import hellfirepvp.astralsorcery.common.item.crystal.ItemCrystalBase;
 import hellfirepvp.astralsorcery.common.lib.CapabilitiesAS;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.entity.AreaEffectCloudEntity;
+import net.minecraft.world.entity.AreaEffectCloud;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.LecternTileEntity;
-import net.minecraft.world.ISeedReader;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.block.entity.LecternBlockEntity;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.PlayerSleepInBedEvent;
-import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 
 /**
@@ -51,42 +52,44 @@ public class EventHandlerMisc {
     }
 
     private static void onCrystalToss(ItemTossEvent event) {
-        if (!event.getPlayer().getEntityWorld().isRemote()) {
-            ItemStack thrown = event.getEntityItem().getItem();
+        if (!event.getPlayer().level().isClientSide) {
+            ItemStack thrown = event.getEntity().getItem();
+            ItemEntity entityItem = event.getEntity();
             if (thrown.getItem() instanceof ItemCrystalBase) {
-                event.getEntityItem().setThrowerId(event.getPlayer().getUniqueID());
+                entityItem.setTarget(event.getPlayer().getUUID());
             }
         }
     }
 
     private static void onLecternOpen(PlayerInteractEvent.RightClickBlock event) {
-        if (event.getWorld().isRemote()) {
+        if (event.getLevel().isClientSide()) {
             return;
         }
-        LecternTileEntity lectern = MiscUtils.getTileAt(event.getWorld(), event.getPos(), LecternTileEntity.class, false);
+        LecternBlockEntity lectern = MiscUtils.getTileAt(event.getLevel(), event.getPos(), LecternBlockEntity.class, false);
         if (lectern != null) {
             ItemStack contained = lectern.getBook();
             if (contained.getItem() instanceof ItemTome) {
                 event.setCanceled(true);
-                AstralSorcery.getProxy().openGui(event.getPlayer(), GuiType.TOME);
+                AstralSorcery.getProxy().openGui(event.getEntity(), GuiType.TOME);
             }
         }
     }
 
     private static void onChunkLoad(ChunkEvent.Load event) {
-        IChunk ch = event.getChunk();
-        if (ch instanceof Chunk && !event.getWorld().isRemote()) {
-            ((Chunk) ch).getCapability(CapabilitiesAS.CHUNK_FLUID).ifPresent(entry -> {
+        ChunkAccess ch = event.getChunk();
+        // IChunk -> ChunkAccess | Chunk -> LevelChunk
+        if (ch instanceof LevelChunk levelChunk && !event.getLevel().isClientSide()) {
+            levelChunk.getCapability(CapabilitiesAS.CHUNK_FLUID).ifPresent(entry -> {
                 if (!entry.isInitialized()) {
-                    IWorld w = event.getWorld();
-                    if (w instanceof ISeedReader) {
-                        long seed = ((ISeedReader) w).getSeed();
+                    // IWorld -> LevelAccessor/WorldGenLevel
+                    if (event.getLevel() instanceof WorldGenLevel worldGenLevel) {
+                        long seed = worldGenLevel.getSeed();
                         long chX = event.getChunk().getPos().x;
                         long chZ = event.getChunk().getPos().z;
                         seed ^= chX << 32;
                         seed ^= chZ;
                         entry.generate(seed);
-                        ((Chunk) ch).markDirty();
+                        levelChunk.setUnsaved(true); // markDirty -> setUnsaved
                     }
                 }
             });
@@ -94,17 +97,16 @@ public class EventHandlerMisc {
     }
 
     private static void onPlayerSleepEclipse(PlayerSleepInBedEvent event) {
-        WorldContext ctx = SkyHandler.getContext(event.getEntityLiving().getEntityWorld());
+        WorldContext ctx = SkyHandler.getContext(event.getEntity().level());
         if (ctx != null && ctx.getCelestialEventHandler().getSolarEclipse().isActiveNow()) {
-            if (event.getResultStatus() == null) {
-                event.setResult(PlayerEntity.SleepResult.NOT_POSSIBLE_NOW);
-            }
+            // PlayerEntity.SleepResult -> Player.BedSleepingProblem
+            event.setResult(Player.BedSleepingProblem.NOT_POSSIBLE_NOW);
         }
     }
 
-    private static void onSpawnEffectCloud(EntityJoinWorldEvent event) {
-        if (event.getEntity() instanceof AreaEffectCloudEntity &&
-                MiscUtils.contains(((AreaEffectCloudEntity) event.getEntity()).effects, effect -> effect.getPotion() instanceof EffectDropModifier)) {
+    private static void onSpawnEffectCloud(EntityJoinLevelEvent event) {
+        if (event.getEntity() instanceof AreaEffectCloud cloud &&
+                MiscUtils.contains(cloud.effects, effect -> effect.getEffect() instanceof EffectDropModifier)) {
             event.setCanceled(true);
         }
     }

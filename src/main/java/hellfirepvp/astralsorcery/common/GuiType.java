@@ -46,9 +46,9 @@ public enum GuiType {
     TELESCOPE,
     HAND_TELESCOPE;
 
-    public CompoundNBT serializeArguments(Object[] data) {
+    public CompoundTag serializeArguments(Object[] data) {
         try {
-            CompoundNBT nbt = new CompoundNBT();
+            CompoundTag nbt = new CompoundTag();
             switch (this) {
                 case CONSTELLATION_PAPER:
                     nbt.putString("cst", ((IConstellation) data[0]).getRegistryName().toString());
@@ -68,9 +68,9 @@ public enum GuiType {
 
     @Nullable
     @OnlyIn(Dist.CLIENT)
-    public Screen deserialize(CompoundNBT data) {
-        World clWorld = Minecraft.getInstance().world;
-        PlayerEntity clPlayer = Minecraft.getInstance().player;
+    public Screen deserialize(CompoundTag data) {
+        Level clWorld = Minecraft.getInstance().level;
+        Player clPlayer = Minecraft.getInstance().player;
         if (clWorld == null || clPlayer == null) {
             return null;
         }

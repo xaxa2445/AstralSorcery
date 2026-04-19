@@ -10,13 +10,12 @@ package hellfirepvp.astralsorcery.common.enchantment.amulet;
 
 import hellfirepvp.astralsorcery.common.enchantment.dynamic.DynamicEnchantment;
 import hellfirepvp.astralsorcery.common.enchantment.dynamic.DynamicEnchantmentType;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.LanguageMap;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.client.resources.language.I18n; // Cambio de paquete
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.network.chat.Component; // IFormattableTextComponent -> Component / MutableComponent
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation; // net.minecraft.util -> net.minecraft.resources
+import net.minecraft.world.item.enchantment.Enchantment; // Cambio de paquete
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -43,15 +42,18 @@ public class AmuletEnchantment extends DynamicEnchantment {
 
     //TODO nested translation components..?
     @OnlyIn(Dist.CLIENT)
-    public IFormattableTextComponent getDisplay() {
+    public MutableComponent getDisplay() {
         String typeStr = this.getType().getDisplayName();
-        String levelsStr = I18n.format(String.format("astralsorcery.amulet.enchantment.level.%s", this.levelAddition > 1 ? "more" : "one"));
+        String levelsStr = I18n.get(String.format("astralsorcery.amulet.enchantment.level.%s", this.levelAddition > 1 ? "more" : "one"));
 
         if (this.getType().isEnchantmentSpecific()) {
-            return new TranslationTextComponent(typeStr,
-                    String.valueOf(this.getLevelAddition()), levelsStr, LanguageMap.getInstance().func_230503_a_(this.getEnchantment().getName()));
+            // En 1.20.1 usamos Component.translatable en lugar de TranslationTextComponent
+            return Component.translatable(typeStr,
+                    String.valueOf(this.getLevelAddition()),
+                    levelsStr,
+                    this.getEnchantment().getFullname(1)); // getFullname es más limpio que buscar el nombre en el LanguageMap manualmente
         } else {
-            return new TranslationTextComponent(typeStr, String.valueOf(this.getLevelAddition()), levelsStr);
+            return Component.translatable(typeStr, String.valueOf(this.getLevelAddition()), levelsStr);
         }
     }
 
@@ -65,18 +67,18 @@ public class AmuletEnchantment extends DynamicEnchantment {
         }
     }
 
-    public CompoundNBT serialize() {
-        CompoundNBT cmp = new CompoundNBT();
+    public CompoundTag serialize() {
+        CompoundTag cmp = new CompoundTag();
         cmp.putInt("type", this.type.ordinal());
         cmp.putInt("level", this.levelAddition);
         if (this.type.isEnchantmentSpecific()) { //Enchantment must not be null here anyway as the type requires a ench to begin with
-            cmp.putString("ench", this.enchantment.getRegistryName().toString());
+            ResourceLocation key = ForgeRegistries.ENCHANTMENTS.getKey(this.getEnchantment());
         }
         return cmp;
     }
 
     @Nullable
-    public static AmuletEnchantment deserialize(CompoundNBT cmp) {
+    public static AmuletEnchantment deserialize(CompoundTag cmp) {
         int typeId = cmp.getInt("type");
         DynamicEnchantmentType type = DynamicEnchantmentType.values()[typeId];
         int level = Math.max(0, cmp.getInt("level"));

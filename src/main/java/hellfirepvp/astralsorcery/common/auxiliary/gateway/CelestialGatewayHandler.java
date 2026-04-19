@@ -24,6 +24,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.level.LevelEvent; // WorldEvent -> LevelEvent
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.common.util.LogicalSidedProvider;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -97,16 +98,17 @@ public class CelestialGatewayHandler {
 
     private void forceLoad(ResourceKey<Level> world) {
         //TODO re-check once worlds aren't ALL statically loaded.
-        MinecraftServer srv = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-        srv.getWorld(world);
+        MinecraftServer srv = ServerLifecycleHooks.getCurrentServer();
+        srv.getLevel(world);
     }
 
     public void onServerStart() {
         startUp = true;
         CelestialGatewayFilter filter = getFilter();
-        MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
         //TODO re-check once worlds aren't ALL statically loaded.
         //TODO gateway network startup load
+
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         //DimensionManager.getRegistry().stream()
         //        .filter(DimensionManager::keepLoaded)
         //        .forEach(type -> {
@@ -127,12 +129,12 @@ public class CelestialGatewayHandler {
             return; //We're already loading up there.
         }
 
-        IWorld world = event.getWorld();
-        if (world.isRemote() || !(world instanceof World)) {
+        LevelAccessor world = event.getLevel();
+        if (world.isClientSide() || !(world instanceof Level)) {
             return;
         }
 
-        this.loadIntoCache((World) world);
+        this.loadIntoCache((Level) world);
         this.syncToAll();
     }
 
@@ -141,20 +143,20 @@ public class CelestialGatewayHandler {
         PacketChannel.CHANNEL.sendToAll(pkt);
     }
 
-    public Collection<GatewayCache.GatewayNode> getGatewaysForWorld(World world, LogicalSide side) {
+    public Collection<GatewayCache.GatewayNode> getGatewaysForWorld(Level world, LogicalSide side) {
         return this.cache.getData(side)
-                .map(data -> data.getOrDefault(world.getDimensionKey(), Collections.emptyList()))
+                .map(data -> data.getOrDefault(world.dimension(), Collections.emptyList()))
                 .orElse(Collections.emptyList());
     }
 
-    public Map<RegistryKey<World>, Collection<GatewayCache.GatewayNode>> getGatewayCache(LogicalSide side) {
+    public Map<ResourceKey<Level>, Collection<GatewayCache.GatewayNode>> getGatewayCache(LogicalSide side) {
         return this.cache.getData(side).orElse(Collections.emptyMap());
     }
 
     @Nullable
-    public GatewayCache.GatewayNode getGatewayNode(World world, LogicalSide side, BlockPos pos) {
+    public GatewayCache.GatewayNode getGatewayNode(Level world, LogicalSide side, BlockPos pos) {
         return this.cache.getData(side)
-                .map(data -> data.get(world.getDimensionKey()))
+                .map(data -> data.get(world.dimension()))
                 .orElse(Collections.emptyList())
                 .stream()
                 .filter(node -> node.getPos().equals(pos))
@@ -163,14 +165,14 @@ public class CelestialGatewayHandler {
     }
 
     @OnlyIn(Dist.CLIENT)
-    public void updateClientCache(@Nullable Map<RegistryKey<World>, Collection<GatewayCache.GatewayNode>> positions) {
+    public void updateClientCache(@Nullable Map<ResourceKey<Level>, Collection<GatewayCache.GatewayNode>> positions) {
         this.cache.setData(LogicalSide.CLIENT, positions);
     }
 
-    private void loadIntoCache(World world) {
+    private void loadIntoCache(Level world) {
         GatewayCache cache = DataAS.DOMAIN_AS.getData(world, DataAS.KEY_GATEWAY_CACHE);
-        Map<RegistryKey<World>, Collection<GatewayCache.GatewayNode>> gatewayCache = this.cache.getData(LogicalSide.SERVER).orElse(new HashMap<>());
-        gatewayCache.put(world.getDimensionKey(), new HashSet<>(cache.getGatewayPositions()));
+        Map<ResourceKey<Level>, Collection<GatewayCache.GatewayNode>> gatewayCache = this.cache.getData(LogicalSide.SERVER).orElse(new HashMap<>());
+        gatewayCache.put(world.dimension(), new HashSet<>(cache.getGatewayPositions()));
         this.cache.setData(LogicalSide.SERVER, gatewayCache);
     }
 
