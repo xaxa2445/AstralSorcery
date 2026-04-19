@@ -220,6 +220,21 @@ public class NBTHelper {
                 tag.getDouble("boxMaxX"), tag.getDouble("boxMaxY"), tag.getDouble("boxMaxZ"));
     }
 
+    @Nullable
+    public static <T> T readFromSubTag(CompoundTag tag, String key, Function<CompoundTag, T> reader) {
+        if (tag.contains(key, Tag.TAG_COMPOUND)) {
+            return reader.apply(tag.getCompound(key));
+        }
+        return null;
+    }
+
+    // Este método facilita escribir un objeto en un sub-tag Compound usando un consumidor
+    public static void setAsSubTag(CompoundTag tag, String key, Consumer<CompoundTag> writer) {
+        CompoundTag sub = new CompoundTag();
+        writer.accept(sub);
+        tag.put(key, sub);
+    }
+
     public static BlockPos readBlockPosFromNBT(CompoundTag compound) {
         if (compound == null || !compound.contains("bposX") || !compound.contains("bposY") || !compound.contains("bposZ")) {
             return BlockPos.ZERO;

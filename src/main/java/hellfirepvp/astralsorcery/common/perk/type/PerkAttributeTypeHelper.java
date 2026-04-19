@@ -10,7 +10,7 @@ package hellfirepvp.astralsorcery.common.perk.type;
 
 import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
 import hellfirepvp.astralsorcery.common.perk.type.vanilla.VanillaPerkAttributeType;
-import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.Attribute;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -30,7 +30,7 @@ public class PerkAttributeTypeHelper {
         return RegistriesAS.REGISTRY_PERK_ATTRIBUTE_TYPES.getValues().stream()
                 .filter(type -> type instanceof VanillaPerkAttributeType)
                 .map(type -> (VanillaPerkAttributeType) type)
-                .filter(type -> type.getAttribute().equals(attribute))
+                .filter(type -> type.getAttribute() == attribute)
                 .findFirst()
                 .map(type -> (PerkAttributeType) type)
                 .orElse(null);

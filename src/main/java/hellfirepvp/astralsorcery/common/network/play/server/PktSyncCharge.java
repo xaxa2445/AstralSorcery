@@ -15,7 +15,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent; // net.minecraftforge.fml.network -> net.minecraftforge.network
 
 import javax.annotation.Nonnull;
 
@@ -38,7 +38,7 @@ public class PktSyncCharge extends ASPacket<PktSyncCharge> {
         this.charge = charge;
     }
 
-    public PktSyncCharge(PlayerEntity player) {
+    public PktSyncCharge(Player player) {
         this.maxCharge = AlignmentChargeHandler.INSTANCE.getMaximumCharge(player, LogicalSide.SERVER);
         this.charge = AlignmentChargeHandler.INSTANCE.getCurrentCharge(player, LogicalSide.SERVER);
     }

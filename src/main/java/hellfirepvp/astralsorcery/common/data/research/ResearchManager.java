@@ -507,7 +507,7 @@ public class ResearchManager {
         Player crafter = recipe.tryGetCraftingPlayerServer();
         if (!(crafter instanceof ServerPlayer)) {
             AstralSorcery.log.warn("Infusion finished, player that initialized crafting could not be found!");
-            AstralSorcery.log.warn("Affected tile: " + infuser.getPos() + " in dim " + infuser.getLevel().dimension().location());
+            AstralSorcery.log.warn("Affected tile: " + infuser.getBlockPos() + " in dim " + infuser.getLevel().dimension().location());
             return;
         }
 
@@ -518,7 +518,7 @@ public class ResearchManager {
         Player crafter = recipe.tryGetCraftingPlayerServer();
         if (!(crafter instanceof ServerPlayer)) {
             AstralSorcery.log.warn("Crafting finished, player that initialized crafting could not be found!");
-            AstralSorcery.log.warn("Affected tile: " + altar.getPos() + " in dim " + altar.getLevel().dimension().location());
+            AstralSorcery.log.warn("Affected tile: " + altar.getBlockPos() + " in dim " + altar.getLevel().dimension().location());
             return;
         }
 
@@ -529,7 +529,10 @@ public class ResearchManager {
 
     public static void informCrafted(@Nonnull Player player, @Nonnull ItemStack out) {
         if (!out.isEmpty()) {
-            informCraftCompletion(player, out, out.getItem(), Block.getBlockFromItem(out.getItem()));
+            // En 1.20.1, aunque Block.byItem(out.getItem()) funciona,
+            // a veces es preferible usar los tags o el registro directamente.
+            // Pero para mantener la lógica:
+            informCraftCompletion(player, out, out.getItem(), net.minecraft.world.level.block.Block.byItem(out.getItem()));
         }
     }
 

@@ -19,16 +19,14 @@ import hellfirepvp.astralsorcery.common.network.login.server.PktLoginSyncGateway
 import hellfirepvp.astralsorcery.common.network.login.server.PktLoginSyncPerkInformation;
 import hellfirepvp.astralsorcery.common.network.play.client.*;
 import hellfirepvp.astralsorcery.common.network.play.server.*;
-import hellfirepvp.observerlib.common.util.RegistryUtil;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.Vec3i;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.FMLHandshakeHandler;
-import net.minecraftforge.fml.network.NetworkEvent;
-import net.minecraftforge.fml.network.NetworkRegistry;
-import net.minecraftforge.fml.network.PacketDistributor;
+import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Collections;
@@ -98,15 +96,11 @@ public class PacketChannel {
                 .loginIndex(ASLoginPacket::getLoginIndex, ASLoginPacket::setLoginIndex)
                 .encoder(packet.encoder())
                 .decoder(packet.decoder())
-                .consumer((t, contextSupplier) -> {
-                    BiConsumer<T, Supplier<NetworkEvent.Context>> handler;
-                    if (contextSupplier.get().getDirection().getReceptionSide().isServer()) {
-                        handler = FMLHandshakeHandler.indexFirst((handshakeHandler, pkt, ctxSupplier) -> packet.handler().accept(pkt, ctxSupplier));
-                    } else {
-                        handler = packet.handler();
-                    }
+                .consumerNetworkThread((pkt, ctxSupplier) -> {
+                    NetworkEvent.Context ctx = ctxSupplier.get();
+                    packet.handler().accept(pkt, ctx);
+                    ctx.setPacketHandled(true);
 
-                    handler.accept(t, contextSupplier);
                 })
                 .buildLoginPacketList((local) -> Collections.singletonList(Pair.of(packet.getClass().getName(), makeLoginPacket.get())))
                 .add();
@@ -117,15 +111,19 @@ public class PacketChannel {
         CHANNEL.messageBuilder((Class<T>) packet.getClass(), packetIndex++)
                 .encoder(packet.encoder())
                 .decoder(packet.decoder())
-                .consumer(packet.handler())
+                .consumerNetworkThread((pkt, ctxSupplier) -> {
+                    NetworkEvent.Context ctx = ctxSupplier.get();
+                    packet.handler().accept(pkt, ctx);
+                    ctx.setPacketHandled(true);
+                })
                 .add();
     }
 
-    public static PacketDistributor.TargetPoint pointFromPos(World world, Vector3i pos, double range) {
-        return pointFromPos(world.getDimensionKey(), pos, range);
+    public static PacketDistributor.TargetPoint pointFromPos(Level world, Vec3i pos, double range) {
+        return pointFromPos(world.dimension(), pos, range);
     }
 
-    public static PacketDistributor.TargetPoint pointFromPos(RegistryKey<World> world, Vector3i pos, double range) {
+    public static PacketDistributor.TargetPoint pointFromPos(ResourceKey<Level> world, Vec3i pos, double range) {
         return new PacketDistributor.TargetPoint(pos.getX(), pos.getY(), pos.getZ(), range, world);
     }
 }

@@ -19,8 +19,8 @@ import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.key.KeyChargeBalancing;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.gen.Heightmap;
+import net.minecraft.util.Mth; // MathHelper -> Mth
+import net.minecraft.world.level.levelgen.Heightmap; // Paquete actualizado
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.TickEvent;
@@ -48,41 +48,41 @@ public class AlignmentChargeHandler implements ITickHandler {
 
     private AlignmentChargeHandler() {}
 
-    public void updateMaximum(PlayerEntity player, LogicalSide side) {
+    public void updateMaximum(Player player, LogicalSide side) {
         float cap = PerkAttributeHelper.getOrCreateMap(player, side)
                 .modifyValue(player, ResearchHelper.getProgress(player, side), PerkAttributeTypesAS.ATTR_TYPE_ALIGNMENT_CHARGE_MAXIMUM, MAX_CHARGE);
         cap = AttributeEvent.postProcessModded(player, PerkAttributeTypesAS.ATTR_TYPE_ALIGNMENT_CHARGE_MAXIMUM, cap);
         cap = Math.max(0, cap);
 
-        maximumCharge.computeIfAbsent(side, s -> new HashMap<>()).put(player.getUniqueID(), cap);
+        maximumCharge.computeIfAbsent(side, s -> new HashMap<>()).put(player.getUUID(), cap);
         if (getCurrentCharge(player, side) > cap) {
-            currentCharge.computeIfAbsent(side, s -> new HashMap<>()).put(player.getUniqueID(), cap);
+            currentCharge.computeIfAbsent(side, s -> new HashMap<>()).put(player.getUUID(), cap);
         }
     }
 
-    public float getMaximumCharge(PlayerEntity player, LogicalSide side) {
+    public float getMaximumCharge(Player player, LogicalSide side) {
         return maximumCharge.computeIfAbsent(side, s -> new HashMap<>())
-                .computeIfAbsent(player.getUniqueID(), uuid -> MAX_CHARGE);
+                .computeIfAbsent(player.getUUID(), uuid -> MAX_CHARGE);
     }
 
-    public float getCurrentCharge(PlayerEntity player, LogicalSide side) {
+    public float getCurrentCharge(Player player, LogicalSide side) {
         if (player.isCreative() || player.isSpectator()) {
             return getMaximumCharge(player, side);
         }
         return currentCharge.computeIfAbsent(side, s -> new HashMap<>())
-                .computeIfAbsent(player.getUniqueID(), uuid -> MAX_CHARGE);
+                .computeIfAbsent(player.getUUID(), uuid -> MAX_CHARGE);
     }
 
-    public float getFilledPercentage(PlayerEntity player, LogicalSide side) {
+    public float getFilledPercentage(Player player, LogicalSide side) {
         if (player.isCreative() || player.isSpectator()) {
             return 1F;
         }
         float max = this.getMaximumCharge(player, side);
         float current = this.getCurrentCharge(player, side);
-        return MathHelper.clamp(current / max, 0F, 1F);
+        return Mth.clamp(current / max, 0F, 1F);
     }
 
-    public boolean hasCharge(PlayerEntity player, LogicalSide side, float charge) {
+    public boolean hasCharge(Player player, LogicalSide side, float charge) {
         if (player.isCreative() || player.isSpectator()) {
             return true;
         }
@@ -90,7 +90,7 @@ public class AlignmentChargeHandler implements ITickHandler {
         return current >= charge;
     }
 
-    public boolean drainCharge(PlayerEntity player, LogicalSide side, float charge, boolean simulate) {
+    public boolean drainCharge(Player player, LogicalSide side, float charge, boolean simulate) {
         if (player.isCreative() || player.isSpectator()) {
             return true;
         }
@@ -104,20 +104,20 @@ public class AlignmentChargeHandler implements ITickHandler {
         }
         if (!simulate) {
             currentCharge.computeIfAbsent(side, s -> new HashMap<>())
-                    .put(player.getUniqueID(), MathHelper.clamp(result, 0, this.getMaximumCharge(player, side)));
+                    .put(player.getUUID(), Mth.clamp(result, 0, this.getMaximumCharge(player, side)));
         }
         return true;
     }
 
     @OnlyIn(Dist.CLIENT)
-    public void receiveCharge(PktSyncCharge pkt, PlayerEntity player) {
-        maximumCharge.computeIfAbsent(LogicalSide.CLIENT, s -> new HashMap<>()).put(player.getUniqueID(), pkt.getMaxCharge());
-        currentCharge.computeIfAbsent(LogicalSide.CLIENT, s -> new HashMap<>()).put(player.getUniqueID(), pkt.getCharge());
+    public void receiveCharge(PktSyncCharge pkt, Player player) {
+        maximumCharge.computeIfAbsent(LogicalSide.CLIENT, s -> new HashMap<>()).put(player.getUUID(), pkt.getMaxCharge());
+        currentCharge.computeIfAbsent(LogicalSide.CLIENT, s -> new HashMap<>()).put(player.getUUID(), pkt.getCharge());
     }
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = (PlayerEntity) context[0];
+        Player player = (Player) context[0];
         LogicalSide side = (LogicalSide) context[1];
 
         float charge = this.getCurrentCharge(player, side);
@@ -129,9 +129,9 @@ public class AlignmentChargeHandler implements ITickHandler {
 
         float regenPerTick = max / (6F * 20F);
 
-        boolean underground = player.getEntityWorld().getHeight(Heightmap.Type.WORLD_SURFACE, player.getPosition()).getY() > player.getPosition().getY() + 1;
+        boolean underground = player.level().getHeight(Heightmap.Types.WORLD_SURFACE, player.blockPosition().getX(), player.blockPosition().getZ()) > player.blockPosition().getY() + 1;
 
-        float dayMultiplier = underground ? 0.85F : 0.3F + 0.7F * DayTimeHelper.getCurrentDaytimeDistribution(player.getEntityWorld());
+        float dayMultiplier = underground ? 0.85F : 0.3F + 0.7F * DayTimeHelper.getCurrentDaytimeDistribution(player.level());
         float caveMultiplier = underground ? 0.25F : 1F;
         if (progress.getPerkData().hasPerkEffect(p -> p instanceof KeyChargeBalancing)) {
             dayMultiplier = 0.6F + dayMultiplier * 0.4F;
@@ -146,9 +146,11 @@ public class AlignmentChargeHandler implements ITickHandler {
         regenPerTick = AttributeEvent.postProcessModded(player, PerkAttributeTypesAS.ATTR_TYPE_ALIGNMENT_CHARGE_REGENERATION, regenPerTick);
 
         charge += regenPerTick;
-        currentCharge.computeIfAbsent(side, s -> new HashMap<>()).put(player.getUniqueID(), Math.min(charge, max));
+        currentCharge.computeIfAbsent(side, s -> new HashMap<>()).put(player.getUUID(), Math.min(charge, max));
 
-        PacketChannel.CHANNEL.sendToPlayer(player, new PktSyncCharge(player));
+        if (side.isServer()) {
+            PacketChannel.CHANNEL.sendToPlayer(player, new PktSyncCharge(player));
+        }
     }
 
     @Override

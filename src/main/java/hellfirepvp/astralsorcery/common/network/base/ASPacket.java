@@ -45,11 +45,11 @@ public abstract class ASPacket<T extends ASPacket<T>> {
 
     public static interface Decoder<T extends ASPacket<T>> extends Function<FriendlyByteBuf, T> {}
 
-    public static interface Handler<T extends ASPacket<T>> extends BiConsumer<T, Supplier<NetworkEvent.Context>> {
+    public static interface Handler<T extends ASPacket<T>> extends BiConsumer<T, NetworkEvent.Context> {
 
         @Override
-        default void accept(T t, Supplier<NetworkEvent.Context> contextSupplier) {
-            NetworkEvent.Context ctx = contextSupplier.get();
+        default void accept(T t, NetworkEvent.Context ctx) {
+            // Ya no necesitamos llamar a contextSupplier.get()
             switch (ctx.getDirection().getReceptionSide()) {
                 case CLIENT:
                     this.handleClient(t, ctx);

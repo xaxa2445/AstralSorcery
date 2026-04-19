@@ -21,13 +21,11 @@ import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.CelestialStrike;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopEffectHelper;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
@@ -42,9 +40,8 @@ import java.util.function.Consumer;
 public class PktPlayEffect extends ASPacket<PktPlayEffect> {
 
     private Type type;
-    private Consumer<PacketBuffer> encoder = (buf) -> {};
-
-    private PacketBuffer data = null;
+    private Consumer<FriendlyByteBuf> encoder = (buf) -> {};
+    private FriendlyByteBuf data = null;
 
     public PktPlayEffect() {}
 
@@ -52,12 +49,13 @@ public class PktPlayEffect extends ASPacket<PktPlayEffect> {
         this.type = type;
     }
 
-    public PktPlayEffect addData(Consumer<PacketBuffer> encoder) {
+
+    public PktPlayEffect addData(Consumer<FriendlyByteBuf> encoder) {
         this.encoder = this.encoder.andThen(encoder);
         return this;
     }
 
-    public PacketBuffer getExtraData() {
+    public FriendlyByteBuf getExtraData() {
         return data;
     }
 
@@ -76,9 +74,13 @@ public class PktPlayEffect extends ASPacket<PktPlayEffect> {
         return buffer -> {
             Type type = ByteBufUtils.readEnumValue(buffer, Type.class);
             PktPlayEffect pkt = new PktPlayEffect(type);
-            ByteBuf buf = Unpooled.buffer(buffer.readableBytes());
-            buffer.readBytes(buf);
-            pkt.data = new PacketBuffer(buf);
+            int readable = buffer.readableBytes();
+            if (readable > 0) {
+                // Creamos un nuevo buffer con el contenido restante
+                pkt.data = new FriendlyByteBuf(buffer.readBytes(readable));
+            } else {
+                pkt.data = new FriendlyByteBuf(io.netty.buffer.Unpooled.EMPTY_BUFFER);
+            }
             return pkt;
         };
     }

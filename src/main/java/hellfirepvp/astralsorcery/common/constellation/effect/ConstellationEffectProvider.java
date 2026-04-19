@@ -10,8 +10,7 @@ package hellfirepvp.astralsorcery.common.constellation.effect;
 
 import hellfirepvp.astralsorcery.common.constellation.IWeakConstellation;
 import hellfirepvp.astralsorcery.common.util.block.ILocatable;
-import net.minecraftforge.registries.ForgeRegistryEntry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -23,13 +22,16 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 11.06.2019 / 19:34
  */
-public abstract class ConstellationEffectProvider extends ForgeRegistryEntry<ConstellationEffectProvider> implements IForgeRegistryEntry<ConstellationEffectProvider> {
+public abstract class ConstellationEffectProvider  {
 
     private final IWeakConstellation cst;
 
+    private ResourceLocation registryName;
+
     protected ConstellationEffectProvider(IWeakConstellation cst) {
         this.cst = cst;
-        this.setRegistryName(cst.getRegistryName());
+        // Obtenemos el nombre desde la constelación
+        this.registryName = cst.getRegistryName();
     }
 
     @Nonnull

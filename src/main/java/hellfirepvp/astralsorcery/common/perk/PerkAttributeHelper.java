@@ -33,11 +33,11 @@ public class PerkAttributeHelper {
     private PerkAttributeHelper() {}
 
     @Nonnull
-    public static PerkAttributeMap getOrCreateMap(PlayerEntity player, LogicalSide dist) {
+    public static PerkAttributeMap getOrCreateMap(Player player, LogicalSide dist) {
         if (dist.isClient()) {
-            return playerPerkAttributesClient.computeIfAbsent(player.getUniqueID(), (uuid) -> new PerkAttributeMap(dist));
+            return playerPerkAttributesClient.computeIfAbsent(player.getUUID(), (uuid) -> new PerkAttributeMap(dist));
         } else {
-            return playerPerkAttributes.computeIfAbsent(player.getUniqueID(), (uuid) -> new PerkAttributeMap(dist));
+            return playerPerkAttributes.computeIfAbsent(player.getUUID(), (uuid) -> new PerkAttributeMap(dist));
         }
     }
 
