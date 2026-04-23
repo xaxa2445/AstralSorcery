@@ -10,9 +10,14 @@ package hellfirepvp.astralsorcery.common.registry;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.structure.*;
+import hellfirepvp.observerlib.api.ObserverProvider;
 import hellfirepvp.observerlib.api.structure.MatchableStructure;
 import hellfirepvp.observerlib.api.util.PatternBlockArray;
 import hellfirepvp.observerlib.common.change.ObserverProviderStructure;
+import net.minecraft.core.RegistryAccess;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static hellfirepvp.astralsorcery.common.lib.StructuresAS.*;
 
@@ -44,10 +49,23 @@ public class RegistryStructures {
     }
 
     private static <T extends MatchableStructure> T register(T struct) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(struct);
-        ObserverProviderStructure structureProvider = new ObserverProviderStructure(struct.getRegistryName());
-        AstralSorcery.getProxy().getRegistryPrimer().register(structureProvider);
+
+        // registrar estructura directamente
+        AstralSorcery.getProxy().getRegistryPrimer().register(
+                MatchableStructure.class,
+                struct
+        );
+
+        // crear provider
+        ObserverProviderStructure provider =
+                new ObserverProviderStructure(struct.getRegistryName());
+
+        // registrar provider directamente
+        AstralSorcery.getProxy().getRegistryPrimer().register(
+                ObserverProvider.class,
+                provider
+        );
+
         return struct;
     }
-
 }

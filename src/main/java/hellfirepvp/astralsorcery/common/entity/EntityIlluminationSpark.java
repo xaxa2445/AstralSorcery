@@ -17,23 +17,22 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.projectile.ThrowableEntity;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.network.IPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.util.BlockSnapshot;
 import net.minecraftforge.event.ForgeEventFactory;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraftforge.network.NetworkHooks;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -42,23 +41,23 @@ import net.minecraftforge.fml.network.NetworkHooks;
  * Created by HellFirePvP
  * Date: 17.08.2019 / 10:45
  */
-public class EntityIlluminationSpark extends ThrowableEntity {
+public class EntityIlluminationSpark extends ThrowableItemProjectile {
 
-    public EntityIlluminationSpark(World world) {
+    public EntityIlluminationSpark(Level world) {
         super(EntityTypesAS.ILLUMINATION_SPARK, world);
     }
 
-    public EntityIlluminationSpark(double x, double y, double z, World world) {
+    public EntityIlluminationSpark(double x, double y, double z, Level world) {
         super(EntityTypesAS.ILLUMINATION_SPARK, x, y, z, world);
     }
 
-    public EntityIlluminationSpark(LivingEntity thrower, World world) {
+    public EntityIlluminationSpark(LivingEntity thrower, Level world) {
         super(EntityTypesAS.ILLUMINATION_SPARK, thrower, world);
-        this.func_234612_a_(thrower, thrower.rotationPitch, thrower.rotationYaw, 0F, 0.7F, 0.9F);
+        this.shootFromRotation(thrower, thrower.getXRot(), thrower.getYRot(), 0F, 0.7F, 0.9F);
     }
 
-    public static EntityType.IFactory<EntityIlluminationSpark> factory() {
-        return (type, world) -> new EntityIlluminationSpark(world);
+    public EntityIlluminationSpark(EntityType<? extends EntityIlluminationSpark> type, Level level) {
+        super(type, level);
     }
 
     @Override
@@ -68,7 +67,7 @@ public class EntityIlluminationSpark extends ThrowableEntity {
     public void tick() {
         super.tick();
 
-        if (world.isRemote()) {
+        if (level().isClientSide) {
             spawnEffects();
         }
     }
@@ -80,9 +79,9 @@ public class EntityIlluminationSpark extends ThrowableEntity {
             p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(Vector3.atEntityCorner(this))
                     .setMotion(new Vector3(
-                            0.04F - rand.nextFloat() * 0.08F,
-                            0.04F - rand.nextFloat() * 0.08F,
-                            0.04F - rand.nextFloat() * 0.08F
+                            0.04F - random.nextFloat() * 0.08F,
+                            0.04F - random.nextFloat() * 0.08F,
+                            0.04F - random.nextFloat() * 0.08F
                     ))
                     .setScaleMultiplier(0.25F);
             randomizeColor(p);
@@ -94,7 +93,8 @@ public class EntityIlluminationSpark extends ThrowableEntity {
         randomizeColor(p);
 
         p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                .spawn(Vector3.atEntityCorner(this).add(getMotion().mul(0.5, 0.5, 0.5)));
+                .spawn(Vector3.atEntityCorner(this)
+                        .add(getDeltaMovement().multiply(0.5, 0.5, 0.5)));
         p.setScaleMultiplier(0.6F);
         randomizeColor(p);
 
@@ -102,7 +102,7 @@ public class EntityIlluminationSpark extends ThrowableEntity {
 
     @OnlyIn(Dist.CLIENT)
     private void randomizeColor(FXFacingParticle p) {
-        switch (rand.nextInt(3)) {
+        switch (random.nextInt(3)) {
             case 0:
                 p.color(VFXColorFunction.constant(ColorsAS.ILLUMINATION_POWDER_1));
                 break;
@@ -118,32 +118,36 @@ public class EntityIlluminationSpark extends ThrowableEntity {
     }
 
     @Override
-    protected void onImpact(RayTraceResult result) {
-        if (world.isRemote()) {
+    protected void onHit(HitResult result) {
+        super.onHit(result);
+        if (level().isClientSide()) {
             return;
         }
-        if (!(result instanceof BlockRayTraceResult) || !(this.func_234616_v_() instanceof PlayerEntity)) {
-            remove();
+        if (!(result instanceof BlockHitResult bhr) || !(getOwner() instanceof Player player)) {
+            discard();
             return;
         }
-        PlayerEntity player = (PlayerEntity) this.func_234616_v_();
-        BlockRayTraceResult brtr = (BlockRayTraceResult) result;
+        BlockPos pos = bhr.getBlockPos();
 
-        BlockItemUseContext bCtx = new BlockItemUseContext(new ItemUseContext(player, Hand.MAIN_HAND, brtr));
-
-        BlockPos pos = bCtx.getPos();
-        if (!BlockUtils.isReplaceable(world, pos)) {
-            pos = pos.offset(bCtx.getFace());
+        UseOnContext ctx = new UseOnContext(player, InteractionHand.MAIN_HAND, bhr);
+        BlockPlaceContext placeContext = new BlockPlaceContext(ctx);
+        if (!BlockUtils.isReplaceable(level(), pos)) {
+            pos = pos.offset(bhr.getDirection());
         }
 
-        if (!ForgeEventFactory.onBlockPlace(player, BlockSnapshot.create(world.getDimensionKey(), world, pos), bCtx.getFace())) {
-            world.setBlockState(pos, BlocksAS.FLARE_LIGHT.getDefaultState());
+        if (!ForgeEventFactory.onBlockPlace(
+                player,
+                BlockSnapshot.create(level().dimension(), level(), pos),
+                bhr.getDirection()
+        )) {
+            level().setBlock(pos, BlocksAS.FLARE_LIGHT.defaultBlockState(), 3);
         }
-        remove();
+
+        discard();
     }
 
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public net.minecraft.network.protocol.Packet<?> getAddEntityPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 }

@@ -13,9 +13,10 @@ import hellfirepvp.astralsorcery.common.constellation.ConstellationRegistry;
 import hellfirepvp.astralsorcery.common.constellation.IWeakConstellation;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.NonNullList;
+
 
 import java.awt.*;
 
@@ -30,13 +31,12 @@ public class ItemAttunedCelestialCrystal extends ItemAttunedCrystalBase {
 
     public ItemAttunedCelestialCrystal() {
         super(new Properties()
-                .rarity(CommonProxy.RARITY_CELESTIAL)
-                .group(CommonProxy.ITEM_GROUP_AS_CRYSTALS));
+                .rarity(CommonProxy.RARITY_CELESTIAL));
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (this.isInGroup(group)) {
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
+        if (this.allowedIn(tab)) {
             for (IWeakConstellation cst : ConstellationRegistry.getWeakConstellations()) {
                 ItemStack stack = new ItemStack(this);
                 setAttunedConstellation(stack, cst);

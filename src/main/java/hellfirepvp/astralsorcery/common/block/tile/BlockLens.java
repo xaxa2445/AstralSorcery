@@ -17,28 +17,27 @@ import hellfirepvp.astralsorcery.common.tile.TileLens;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.state.EnumProperty;
-import net.minecraft.state.StateContainer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
 
 import javax.annotation.Nullable;
 
@@ -51,20 +50,20 @@ import javax.annotation.Nullable;
  */
 public class BlockLens extends BlockStarlightNetwork implements CustomItemBlock {
 
-    private static final VoxelShape LENS_DOWN =  VoxelShapes.create(2.5D / 16D, 0,          2.5D / 16D, 13.5D / 16D, 14.5D / 16D, 13.5D / 16D);
-    private static final VoxelShape LENS_UP =    VoxelShapes.create(2.5D / 16D, 1.5D / 16D, 2.5D / 16D, 13.5D / 16D, 1,           13.5D / 16D);
-    private static final VoxelShape LENS_NORTH = VoxelShapes.create(2.5D / 16D, 2.5D / 16D, 0,          13.5D / 16D, 13.5D / 16D, 14.5D / 16D);
-    private static final VoxelShape LENS_SOUTH = VoxelShapes.create(2.5D / 16D, 2.5D / 16D, 1.5D / 16D, 13.5D / 16D, 13.5D / 16D, 1);
-    private static final VoxelShape LENS_EAST =  VoxelShapes.create(1.5D / 16D, 2.5D / 16D, 2.5D / 16D, 1,           13.5D / 16D, 13.5D / 16D);
-    private static final VoxelShape LENS_WEST =  VoxelShapes.create(0,          2.5D / 16D, 2.5D / 16D, 14.5D / 16D, 13.5D / 16D, 13.5D / 16D);
+    private static final VoxelShape LENS_DOWN =  Shapes.box(2.5D / 16D, 0,          2.5D / 16D, 13.5D / 16D, 14.5D / 16D, 13.5D / 16D);
+    private static final VoxelShape LENS_UP =    Shapes.box(2.5D / 16D, 1.5D / 16D, 2.5D / 16D, 13.5D / 16D, 1,           13.5D / 16D);
+    private static final VoxelShape LENS_NORTH = Shapes.box(2.5D / 16D, 2.5D / 16D, 0,          13.5D / 16D, 13.5D / 16D, 14.5D / 16D);
+    private static final VoxelShape LENS_SOUTH = Shapes.box(2.5D / 16D, 2.5D / 16D, 1.5D / 16D, 13.5D / 16D, 13.5D / 16D, 1);
+    private static final VoxelShape LENS_EAST =  Shapes.box(1.5D / 16D, 2.5D / 16D, 2.5D / 16D, 1,           13.5D / 16D, 13.5D / 16D);
+    private static final VoxelShape LENS_WEST =  Shapes.box(0,          2.5D / 16D, 2.5D / 16D, 14.5D / 16D, 13.5D / 16D, 13.5D / 16D);
 
     public static EnumProperty<Direction> PLACED_AGAINST = EnumProperty.create("against", Direction.class);
 
     public BlockLens() {
-        super(PropertiesGlass.coatedGlass()
-                .harvestTool(ToolType.PICKAXE));
-        setDefaultState(this.getStateContainer().getBaseState().with(PLACED_AGAINST, Direction.DOWN));
+        super(PropertiesGlass.coatedGlass());
+        this.registerDefaultState(this.stateDefinition.any().setValue(PLACED_AGAINST, Direction.DOWN));
     }
+
 
     @Override
     public Class<? extends BlockItem> getItemBlockClass() {
@@ -72,25 +71,25 @@ public class BlockLens extends BlockStarlightNetwork implements CustomItemBlock 
     }
 
     @Override
-    public void onBlockHarvested(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+    public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
         TileLens lens = MiscUtils.getTileAt(world, pos, TileLens.class, true);
-        if (lens != null && !world.isRemote() && !player.isCreative()) {
+        if (lens != null && !world.isClientSide && !player.isCreative()) {
             if (lens.getColorType() != null) {
                 ItemStack drop = lens.getColorType().getStack();
                 ItemUtils.dropItemNaturally(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop);
             }
         }
-        super.onBlockHarvested(world, pos, state, player);
+        super.playerWillDestroy(world, pos, state, player);
     }
 
     @Override
-    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
-        if (!world.isRemote() && player.isSneaking()) {
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!world.isClientSide() && player.isShiftKeyDown()) {
             TileLens lens = MiscUtils.getTileAt(world, pos, TileLens.class, true);
             if (lens != null && lens.getColorType() != null) {
                 ItemStack drop = lens.getColorType().getStack();
-                if (player.getHeldItem(hand).isEmpty()) {
-                    player.setHeldItem(hand, drop);
+                if (player.getItemInHand(hand).isEmpty()) {
+                    player.setItemInHand(hand, drop);
                 } else {
                     if (!player.inventory.addItemStackToInventory(drop)) {
                         ItemUtils.dropItem(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop);
@@ -98,55 +97,49 @@ public class BlockLens extends BlockStarlightNetwork implements CustomItemBlock 
                 }
                 SoundHelper.playSoundAround(SoundsAS.BLOCK_COLOREDLENS_ATTACH, world, pos, 0.8F, 1.5F);
                 lens.setColorType(null);
-                return ActionResultType.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
-        return ActionResultType.PASS;
+        return InteractionResult.PASS;
     }
 
     @Override
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+    protected void fillStateContainer(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(PLACED_AGAINST);
     }
 
     @Nullable
     @Override
-    public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.getDefaultState().with(PLACED_AGAINST, context.getFace().getOpposite());
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return this.defaultBlockState()
+                .setValue(PLACED_AGAINST, context.getClickedFace().getOpposite());
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
-        switch (state.get(PLACED_AGAINST)) {
-            case UP:
-                return LENS_UP;
-            case NORTH:
-                return LENS_NORTH;
-            case SOUTH:
-                return LENS_SOUTH;
-            case WEST:
-                return LENS_WEST;
-            case EAST:
-                return LENS_EAST;
-            default:
-            case DOWN:
-                return LENS_DOWN;
-        }
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return switch (state.getValue(PLACED_AGAINST)) {
+            case UP -> LENS_UP;
+            case NORTH -> LENS_NORTH;
+            case SOUTH -> LENS_SOUTH;
+            case WEST -> LENS_WEST;
+            case EAST -> LENS_EAST;
+            default -> LENS_DOWN;
+        };
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter worldIn, BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new TileLens();
     }
 }

@@ -10,13 +10,11 @@ package hellfirepvp.astralsorcery.common.block.ore;
 
 import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesMisc;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.IWorldReader;
-import net.minecraftforge.common.ToolType;
-
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
@@ -27,13 +25,12 @@ import net.minecraftforge.common.ToolType;
 public class BlockRockCrystalOre extends Block implements CustomItemBlock {
 
     public BlockRockCrystalOre() {
-        super(PropertiesMisc.defaultRock()
-                .harvestLevel(2)
-                .harvestTool(ToolType.PICKAXE));
+        super(PropertiesMisc.defaultRock());
     }
 
     @Override
-    public int getExpDrop(BlockState state, IWorldReader world, BlockPos pos, int fortune, int silktouch) {
-        return fortune * MathHelper.nextInt(RANDOM, 8, 14);
+    public int getExpDrop(BlockState state, LevelReader level, RandomSource random, BlockPos pos, int fortune, int silkTouch) {
+        if (silkTouch != 0) return 0;
+        return fortune * (8 + random.nextInt(7)); // 8–14
     }
 }

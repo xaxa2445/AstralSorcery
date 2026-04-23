@@ -10,14 +10,15 @@ package hellfirepvp.astralsorcery.common.block.tile.altar;
 
 import hellfirepvp.astralsorcery.common.block.tile.BlockAltar;
 import hellfirepvp.astralsorcery.common.util.VoxelUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.IBooleanFunction;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -36,15 +37,20 @@ public class BlockAltarDiscovery extends BlockAltar {
     }
 
     protected VoxelShape createShape() {
-        VoxelShape base = Block.makeCuboidShape(2, 0, 2, 14, 2, 14);
-        VoxelShape pillar = VoxelShapes.create(0.25, 0.125, 0.25, 0.75, 9.5 / 16.0, 0.75);
-        VoxelShape head = VoxelShapes.create(0, 9.5 / 16.0, 0, 1, 15.5 / 16.0, 1);
+        // 🔁 makeCuboidShape → box
+        VoxelShape base = Block.box(2, 0, 2, 14, 2, 14);
 
-        return VoxelUtils.combineAll(IBooleanFunction.OR, base, pillar, head);
+        // 🔁 VoxelShapes.create → Shapes.box
+        VoxelShape pillar = Shapes.box(0.25, 0.125, 0.25, 0.75, 9.5 / 16.0, 0.75);
+        VoxelShape head   = Shapes.box(0, 9.5 / 16.0, 0, 1, 15.5 / 16.0, 1);
+
+        // 🔁 IBooleanFunction → BooleanOp
+        return VoxelUtils.combineAll(BooleanOp.OR, base, pillar, head);
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level,
+                               BlockPos pos, CollisionContext context) {
         return this.shape;
     }
 }

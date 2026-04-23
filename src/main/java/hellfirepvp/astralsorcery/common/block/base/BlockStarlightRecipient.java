@@ -9,7 +9,7 @@
 package hellfirepvp.astralsorcery.common.block.base;
 
 import hellfirepvp.astralsorcery.common.constellation.IWeakConstellation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
 import java.util.Random;
@@ -33,12 +33,13 @@ public interface BlockStarlightRecipient {
      * Note that this is only fired if this block is a block linked to an endpoint of a network
      * and if this block is not a transmission node.
      *
-     * @param world the world this block instance is in
+     * @param level the world this block instance is in
      * @param rand a world-independent random for convenience
      * @param pos the position
      * @param starlightType the constellation type of the starlight received
      * @param amount the amount received
      */
-    public void receiveStarlight(World world, Random rand, BlockPos pos, IWeakConstellation starlightType, double amount);
 
-}
+        void receiveStarlight(Level level, Random rand, BlockPos pos,
+                              IWeakConstellation starlightType, double amount);
+    }

@@ -10,15 +10,13 @@ package hellfirepvp.astralsorcery.common.item.quality;
 
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -35,21 +33,21 @@ public class ItemDazzlingFrame extends Item {
 
     public ItemDazzlingFrame() {
         super(new Item.Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
+                .stacksTo(1)
+                .tab(CommonProxy.ITEM_GROUP_AS)); // ⚠️ asegúrate que tu CreativeTab esté porteado
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         getQuality(stack).ifPresent(quality -> tooltip.add(quality.getDisplayName()));
     }
+
 
     public static boolean setQuality(ItemStack stack, GemQuality quality) {
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemDazzlingGem)) {
             return false;
         }
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
+        CompoundTag tag = NBTHelper.getPersistentData(stack);
         tag.putInt("quality", quality.ordinal());
         return true;
     }
@@ -58,8 +56,8 @@ public class ItemDazzlingFrame extends Item {
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemDazzlingGem)) {
             return Optional.empty();
         }
-        CompoundNBT tag = NBTHelper.getPersistentData(stack);
-        if (!tag.contains("quality", Constants.NBT.TAG_INT)) {
+        CompoundTag tag = NBTHelper.getPersistentData(stack);
+        if (!tag.contains("quality", Tag.TAG_INT)) {
             return Optional.empty();
         }
         int qualityId = tag.getInt("quality");

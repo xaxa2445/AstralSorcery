@@ -16,12 +16,16 @@ import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.crystal.CrystalProperty;
 import hellfirepvp.astralsorcery.common.crystal.CrystalPropertyRegistry;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.block.Block;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+
 
 import javax.annotation.Nullable;
 
@@ -34,37 +38,42 @@ import javax.annotation.Nullable;
  */
 public abstract class ItemBlockCollectorCrystal extends ItemBlockCustom implements CrystalAttributeItem, ConstellationItem {
 
-    public ItemBlockCollectorCrystal(Block block, Properties itemProperties) {
-        super(block, itemProperties
-                .group(CommonProxy.ITEM_GROUP_AS_CRYSTALS)
-                .maxStackSize(1));
+    public ItemBlockCollectorCrystal(Block block, Properties properties) {
+        super(block, properties
+                // ❌ .group() eliminado en 1.20.1
+                .stacksTo(1)); // maxStackSize -> stacksTo
     }
 
-    @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> stacks) {
-        if (isInGroup(group)) {
+
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> stacks) {
+        if (this.allowedIn(tab)) {
             for (IWeakConstellation cst : ConstellationRegistry.getWeakConstellations()) {
                 ItemStack stack = new ItemStack(this);
+
                 setAttunedConstellation(stack, cst);
 
                 CrystalProperty prop = CrystalPropertyRegistry.INSTANCE.getConstellationProperty(cst);
                 CrystalAttributes attr = this.getCreativeTemplateAttributes();
+
                 if (prop != null) {
                     attr = attr.modifyLevel(prop, prop.getMaxTier());
                 }
-                attr.store(stack);
 
+                attr.store(stack);
                 stacks.add(stack);
             }
         }
     }
     @Override
-    public ITextComponent getDisplayName(ItemStack stack) {
+    public Component getName(ItemStack stack) {
         IWeakConstellation cst = this.getAttunedConstellation(stack);
         if (cst != null) {
-            return new TranslationTextComponent(super.getTranslationKey(stack) + ".typed", cst.getConstellationName());
+            return Component.translatable(
+                    this.getDescriptionId(stack) + ".typed",
+                    cst.getConstellationName()
+            );
         }
-        return super.getDisplayName(stack);
+        return super.getName(stack);
     }
 
     public abstract CollectorCrystalType getCollectorType();
@@ -74,7 +83,10 @@ public abstract class ItemBlockCollectorCrystal extends ItemBlockCustom implemen
     @Override
     @Nullable
     public IWeakConstellation getAttunedConstellation(ItemStack stack) {
-        return (IWeakConstellation) IConstellation.readFromNBT(NBTHelper.getPersistentData(stack), "constellation");
+        return (IWeakConstellation) IConstellation.readFromNBT(
+                NBTHelper.getPersistentData(stack),
+                "constellation"
+        );
     }
 
     @Override
@@ -90,7 +102,10 @@ public abstract class ItemBlockCollectorCrystal extends ItemBlockCustom implemen
     @Override
     @Nullable
     public IMinorConstellation getTraitConstellation(ItemStack stack) {
-        return (IMinorConstellation) IConstellation.readFromNBT(NBTHelper.getPersistentData(stack), "trait");
+        return (IMinorConstellation) IConstellation.readFromNBT(
+                NBTHelper.getPersistentData(stack),
+                "trait"
+        );
     }
 
     @Override

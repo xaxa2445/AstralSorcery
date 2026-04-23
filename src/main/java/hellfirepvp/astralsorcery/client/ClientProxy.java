@@ -182,7 +182,7 @@ public class ClientProxy extends CommonProxy {
     private void onClientSetup(FMLClientSetupEvent event) {
         RegistryContainerTypes.initClient();
         RegistryEntities.initClient();
-        RegistryTileEntities.initClient();
+        RegistryTileEntities.initClient(); 
         RegistryKeyBindings.init();
         RegistryBlockRenderTypes.initBlocks();
         RegistryBlockRenderTypes.initFluids();

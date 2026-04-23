@@ -20,21 +20,18 @@ import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
-import net.minecraftforge.fml.LogicalSide;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.BlockHitResult;
 
 import javax.annotation.Nullable;
 
@@ -50,10 +47,7 @@ public abstract class BlockAltar extends BlockStarlightNetwork implements Custom
     private final AltarType type;
 
     public BlockAltar(AltarType type) {
-        super(PropertiesMarble.defaultMarble()
-                .harvestLevel(1)
-                .harvestTool(ToolType.PICKAXE));
-
+        super(PropertiesMarble.defaultMarble());
         this.type = type;
     }
 
@@ -62,17 +56,18 @@ public abstract class BlockAltar extends BlockStarlightNetwork implements Custom
     }
 
     @Override
-    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
-        if (!world.isRemote() && player instanceof ServerPlayerEntity) {
-            TileAltar altar = MiscUtils.getTileAt(world, pos, TileAltar.class, true);
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!level.isClientSide() && player instanceof ServerPlayer) {
+            TileAltar altar = MiscUtils.getTileAt(level, pos, TileAltar.class, true);
             if (altar != null) {
                 CustomContainerProvider<?> provider;
                 switch (altar.getAltarType()) {
                     case DISCOVERY:
                         provider = new ContainerAltarDiscoveryProvider(altar);
 
-                        if (!ResearchHelper.getProgress(player, LogicalSide.SERVER)
+                        if (!ResearchHelper.getProgress(player)
                                 .getTierReached().isThisLaterOrEqual(ProgressionTier.BASIC_CRAFT)) {
+
                             ResearchManager.informCrafted(player, new ItemStack(BlocksAS.ALTAR_DISCOVERY));
                         }
                         break;
@@ -91,46 +86,44 @@ public abstract class BlockAltar extends BlockStarlightNetwork implements Custom
                 }
 
                 if (provider != null) {
-                    provider.openFor((ServerPlayerEntity) player);
+                    provider.openFor((ServerPlayer) player);
                 }
             }
         }
-        return ActionResultType.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
     @Override
-    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (!(newState.getBlock() instanceof BlockAltar)) {
-            TileAltar ta = MiscUtils.getTileAt(worldIn, pos, TileAltar.class, true);
-            if (ta != null && !worldIn.isRemote) {
-                ItemUtils.dropInventory(ta.getInventory(), worldIn, pos);
+    public void onRemove(BlockState state, Level level, BlockPos pos,
+                         BlockState newState, boolean isMoving) {
+
+        if (!state.is(newState.getBlock())) {
+
+            TileAltar altar = MiscUtils.getTileAt(level, pos, TileAltar.class, true);
+
+            if (altar != null && !level.isClientSide) {
+                ItemUtils.dropInventory(altar.getInventory(), level, pos);
             }
-            super.onReplaced(state, worldIn, pos, newState, isMoving);
-        } else {
-            AltarType thisType = ((BlockAltar)    state.getBlock()).type;
-            AltarType thatType = ((BlockAltar) newState.getBlock()).type;
-            if (thisType != thatType) {
-                TileAltar ta = MiscUtils.getTileAt(worldIn, pos, TileAltar.class, true);
-                if (ta != null) {
-                    ta.updateType(thatType, false);
-                }
-            }
+
+            super.onRemove(state, level, pos, newState, isMoving);
         }
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, net.minecraft.world.level.BlockGetter level,
+                                  BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
+    // 🔁 reemplaza TileEntity
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader world) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new TileAltar().updateType(this.type, true);
     }
 }

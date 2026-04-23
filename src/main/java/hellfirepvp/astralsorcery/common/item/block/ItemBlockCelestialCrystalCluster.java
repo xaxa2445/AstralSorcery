@@ -8,25 +8,21 @@
 
 package hellfirepvp.astralsorcery.common.item.block;
 
-import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.block.tile.BlockCelestialCrystalCluster;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeGenItem;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.crystal.CrystalGenerator;
+import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -40,14 +36,13 @@ import java.util.List;
  */
 public class ItemBlockCelestialCrystalCluster extends ItemBlockCustom implements CrystalAttributeGenItem {
 
-    public ItemBlockCelestialCrystalCluster(Block block, Properties itemProperties) {
-        super(block, itemProperties
-                .rarity(CommonProxy.RARITY_CELESTIAL));
+    public ItemBlockCelestialCrystalCluster(Block block, Item.Properties properties) {
+        super(block, properties.rarity(Rarity.RARE));
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean isSelected) {
-        if (!world.isRemote()) {
+    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean isSelected) {
+        if (!level.isClientSide) {
             CrystalAttributes attributes = getAttributes(stack);
 
             if (attributes == null && stack.getItem() instanceof CrystalAttributeGenItem) {
@@ -58,34 +53,34 @@ public class ItemBlockCelestialCrystalCluster extends ItemBlockCustom implements
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-        super.addInformation(stack, worldIn, tooltip, flagIn);
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, level, tooltip, flag);
+
         CrystalAttributes attr = getAttributes(stack);
         if (attr != null) {
             attr.addTooltip(tooltip);
         }
     }
 
-    @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (isInGroup(group)) {
-            for (int stage : BlockCelestialCrystalCluster.STAGE.getAllowedValues()) {
-                ItemStack cluster = new ItemStack(this);
-                this.setDamage(cluster, stage);
-                items.add(cluster);
-            }
-        }
-    }
-
     @Nullable
     @Override
-    protected BlockState getStateForPlacement(BlockItemUseContext context) {
-        BlockState toPlace = super.getStateForPlacement(context);
-        if (toPlace != null) {
-            return toPlace.with(BlockCelestialCrystalCluster.STAGE, this.getDamage(context.getItem()));
+    protected BlockState getPlacementState(BlockPlaceContext context) {
+        BlockState state = super.getPlacementState(context);
+        if (state != null) {
+            return state.setValue(BlockCelestialCrystalCluster.STAGE, this.getDamage(context.getItemInHand()));
         }
         return null;
+    }
+
+    @SubscribeEvent
+    public static void addItems(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            for (int stage : BlockCelestialCrystalCluster.STAGE.getPossibleValues()) {
+                ItemStack stack = new ItemStack(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER);
+                stack.setDamageValue(stage);
+                event.accept(stack);
+            }
+        }
     }
 
     @Override
@@ -112,4 +107,5 @@ public class ItemBlockCelestialCrystalCluster extends ItemBlockCustom implements
             CrystalAttributes.storeNull(stack);
         }
     }
+
 }

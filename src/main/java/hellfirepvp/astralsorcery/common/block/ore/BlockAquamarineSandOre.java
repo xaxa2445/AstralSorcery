@@ -9,10 +9,10 @@
 package hellfirepvp.astralsorcery.common.block.ore;
 
 import hellfirepvp.astralsorcery.common.block.base.template.BlockSandTemplate;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -24,7 +24,8 @@ import net.minecraft.world.IWorldReader;
 public class BlockAquamarineSandOre extends BlockSandTemplate {
 
     @Override
-    public int getExpDrop(BlockState state, IWorldReader world, BlockPos pos, int fortune, int silktouch) {
-        return silktouch == 0 ? fortune * MathHelper.nextInt(RANDOM, 2, 5) : 0;
+    public int getExpDrop(BlockState state, LevelReader level, RandomSource random, BlockPos pos, int fortune, int silkTouch) {
+        if (silkTouch != 0) return 0;
+        return fortune * (2 + random.nextInt(4)); // 2–5
     }
 }

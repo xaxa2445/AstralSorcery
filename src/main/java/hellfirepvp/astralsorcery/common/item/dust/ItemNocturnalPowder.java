@@ -9,14 +9,14 @@
 package hellfirepvp.astralsorcery.common.item.dust;
 
 import hellfirepvp.astralsorcery.common.entity.EntityNocturnalSpark;
-import net.minecraft.block.DispenserBlock;
-import net.minecraft.dispenser.IBlockSource;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.BlockSource;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.DispenserBlock;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -28,25 +28,55 @@ import net.minecraft.world.level.Level;
 public class ItemNocturnalPowder extends ItemUsableDust {
 
     @Override
-    boolean dispense(IBlockSource dispenser) {
-        BlockPos at = dispenser.getBlockPos();
-        Direction face = dispenser.getBlockState().get(DispenserBlock.FACING);
-        EntityNocturnalSpark nocSpark = new EntityNocturnalSpark(at.getX(), at.getY(), at.getZ(), dispenser.getWorld());
-        nocSpark.shoot(face.getXOffset(), face.getYOffset() + 0.1F, face.getZOffset(), 0.7F, 0.9F);
-        return dispenser.getWorld().addEntity(nocSpark);
+    boolean dispense(BlockSource source) {
+        BlockPos pos = source.getPos();
+        Direction face = source.getBlockState().getValue(DispenserBlock.FACING);
+
+        Level level = source.getLevel();
+
+        EntityNocturnalSpark spark = new EntityNocturnalSpark(
+                level,
+                pos.getX() + 0.5,
+                pos.getY() + 0.5,
+                pos.getZ() + 0.5
+        );
+
+        spark.shoot(
+                face.getStepX(),
+                face.getStepY() + 0.1F,
+                face.getStepZ(),
+                0.7F,
+                0.9F
+        );
+
+        level.addFreshEntity(spark);
+        return true;
+    }
+
+
+    @Override
+    boolean rightClickAir(Level level, Player player, ItemStack stack) {
+        EntityNocturnalSpark spark = new EntityNocturnalSpark(level, player);
+        level.addFreshEntity(spark);
+        return true;
     }
 
     @Override
-    boolean rightClickAir(World world, PlayerEntity player, ItemStack dust) {
-        return world.addEntity(new EntityNocturnalSpark(player, world));
-    }
+    boolean rightClickBlock(UseOnContext ctx) {
+        Level level = ctx.getLevel();
+        BlockPos pos = ctx.getClickedPos().relative(ctx.getClickedFace());
 
-    @Override
-    boolean rightClickBlock(ItemUseContext ctx) {
-        BlockPos pos = ctx.getPos().offset(ctx.getFace());
-        EntityNocturnalSpark noc = new EntityNocturnalSpark(ctx.getPlayer(), ctx.getWorld());
-        noc.setPosition(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-        noc.setSpawning();
-        return ctx.getWorld().addEntity(noc);
+        EntityNocturnalSpark spark = new EntityNocturnalSpark(level, ctx.getPlayer());
+
+        spark.setPos(
+                pos.getX() + 0.5,
+                pos.getY() + 0.5,
+                pos.getZ() + 0.5
+        );
+
+        spark.setSpawning(); // 👈 esto depende de tu clase, está bien si existe
+
+        level.addFreshEntity(spark);
+        return true;
     }
 }

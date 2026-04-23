@@ -15,8 +15,9 @@ import hellfirepvp.astralsorcery.common.perk.modifier.DynamicAttributeModifier;
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ import java.util.UUID;
  */
 public class GemAttributeHelper {
 
-    private static final Random rand = new Random();
+    private static final RandomSource rand = RandomSource.create();
 
     //TODO this. at some point.
     private static float chance3Modifiers = 0.4F;
@@ -113,7 +114,7 @@ public class GemAttributeHelper {
             } else {
                 float exp = 1F / gemType.amplifierModifier;
                 float multiplierScale = (float) Math.pow(random.nextFloat(), exp);
-                value = lower + (MathHelper.clamp(multiplierScale, 0F, 1F) * (higher - lower));
+                value = lower + (Mth.clamp(multiplierScale, 0F, 1F) * (higher - lower));
             }
 
             ModifierType mode = isMultiplicative ? ModifierType.STACKING_MULTIPLY : ModifierType.ADDED_MULTIPLY;

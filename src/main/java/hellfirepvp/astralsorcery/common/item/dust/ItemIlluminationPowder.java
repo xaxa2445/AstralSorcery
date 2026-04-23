@@ -11,14 +11,17 @@ package hellfirepvp.astralsorcery.common.item.dust;
 import hellfirepvp.astralsorcery.common.entity.EntityIlluminationSpark;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
-import net.minecraft.block.DispenserBlock;
-import net.minecraft.dispenser.IBlockSource;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.BlockSource;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.DispenserBlock;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.util.BlockSnapshot;
 import net.minecraftforge.event.ForgeEventFactory;
 
@@ -32,39 +35,59 @@ import net.minecraftforge.event.ForgeEventFactory;
 public class ItemIlluminationPowder extends ItemUsableDust {
 
     @Override
-    boolean dispense(IBlockSource dispenser) {
-        BlockPos at = dispenser.getBlockPos();
-        Direction face = dispenser.getBlockState().get(DispenserBlock.FACING);
-        EntityIlluminationSpark nocSpark = new EntityIlluminationSpark(at.getX(), at.getY(), at.getZ(), dispenser.getWorld());
-        nocSpark.shoot(face.getXOffset(), face.getYOffset() + 0.1F, face.getZOffset(), 0.7F, 0.9F);
-        return dispenser.getWorld().addEntity(nocSpark);
+    boolean dispense(BlockSource dispenser) {
+        BlockPos at = dispenser.getPos();
+        Direction face = dispenser.getBlockState().getValue(DispenserBlock.FACING);
+
+        Level level = dispenser.getLevel();
+
+        EntityIlluminationSpark spark = new EntityIlluminationSpark(
+                at.getX(), at.getY(), at.getZ(), level
+        );
+
+        Vec3 dir = Vec3.atLowerCornerOf(face.getNormal());
+
+        spark.shoot(dir.x, dir.y + 0.1F, dir.z, 0.7F, 0.9F);
+
+        level.addFreshEntity(spark);
+        return true;
     }
 
     @Override
-    boolean rightClickAir(World world, PlayerEntity player, ItemStack dust) {
-        return world.addEntity(new EntityIlluminationSpark(player, world));
+    boolean rightClickAir(Level level, Player player, ItemStack stack) {
+        if (!level.isClientSide) {
+            level.addFreshEntity(new EntityIlluminationSpark(player, level));
+        }
+        return true;
     }
 
     @Override
-    boolean rightClickBlock(ItemUseContext ctx) {
-        World world = ctx.getWorld();
-        BlockPos pos = ctx.getPos();
-        PlayerEntity player = ctx.getPlayer();
-        if (player == null) {
+    boolean rightClickBlock(UseOnContext ctx) {
+        Level level = ctx.getLevel();
+        BlockPos pos = ctx.getClickedPos();
+        Player player = ctx.getPlayer();
+
+        if (player == null) return false;
+
+        if (!BlockUtils.isReplaceable(level, pos)) {
+            pos = pos.relative(ctx.getClickedFace());
+        }
+
+        if (!BlockUtils.isReplaceable(level, pos)) {
             return false;
         }
 
-        if (!BlockUtils.isReplaceable(world, pos)) {
-            pos = pos.offset(ctx.getFace());
+        if (player.mayUseItemAt(pos, ctx.getClickedFace(), ctx.getItemInHand())
+                && !ForgeEventFactory.onBlockPlace(
+                player,
+                BlockSnapshot.create(level.dimension(), level, pos),
+                ctx.getClickedFace()
+        )) {
+
+            level.setBlock(pos, BlocksAS.FLARE_LIGHT.defaultBlockState(), 3);
+            return true;
         }
 
-        if (!BlockUtils.isReplaceable(world, pos)) {
-            return false;
-        }
-
-        if (player.canPlayerEdit(pos, ctx.getFace(), ctx.getItem()) && !ForgeEventFactory.onBlockPlace(player, BlockSnapshot.create(world.getDimensionKey(), world, pos), ctx.getFace())) {
-            return world.setBlockState(pos, BlocksAS.FLARE_LIGHT.getDefaultState());
-        }
         return false;
     }
 }

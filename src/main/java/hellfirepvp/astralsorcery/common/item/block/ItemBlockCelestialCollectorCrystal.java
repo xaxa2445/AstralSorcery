@@ -12,7 +12,9 @@ import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.block.tile.crystal.CollectorCrystalType;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
-import net.minecraft.block.Block;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.Block;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -23,9 +25,8 @@ import net.minecraft.block.Block;
  */
 public class ItemBlockCelestialCollectorCrystal extends ItemBlockCollectorCrystal {
 
-    public ItemBlockCelestialCollectorCrystal(Block block, Properties itemProperties) {
-        super(block, itemProperties
-                .rarity(CommonProxy.RARITY_CELESTIAL));
+    public ItemBlockCelestialCollectorCrystal(Block block, Item.Properties properties) {
+        super(block, properties.rarity(Rarity.RARE)); // o EPIC si quieres más brillo
     }
 
     @Override

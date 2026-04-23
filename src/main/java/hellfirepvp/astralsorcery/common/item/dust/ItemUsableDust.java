@@ -9,16 +9,16 @@
 package hellfirepvp.astralsorcery.common.item.dust;
 
 import hellfirepvp.astralsorcery.common.CommonProxy;
-import net.minecraft.dispenser.IBlockSource;
-import net.minecraft.dispenser.IDispenseItemBehavior;
+import net.minecraft.core.BlockSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.core.dispenser.DispenseItemBehavior;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -27,47 +27,51 @@ import net.minecraft.world.level.Level;
  * Created by HellFirePvP
  * Date: 17.08.2019 / 08:44
  */
-public abstract class ItemUsableDust extends Item implements IDispenseItemBehavior {
+public abstract class ItemUsableDust extends Item implements DispenseItemBehavior {
 
     public ItemUsableDust() {
-        super(new Properties().group(CommonProxy.ITEM_GROUP_AS));
+        super(new Properties().arch$tab(CommonProxy.ITEM_GROUP_AS)); // 👈 luego te explico esto
     }
 
-    abstract boolean dispense(IBlockSource dispenser);
+    abstract boolean dispense(BlockSource source);
 
-    abstract boolean rightClickAir(World world, PlayerEntity player, ItemStack dust);
+    abstract boolean rightClickAir(Level level, Player player, ItemStack stack);
 
-    abstract boolean rightClickBlock(ItemUseContext ctx);
+    abstract boolean rightClickBlock(UseOnContext ctx);
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext ctx) {
-        if (!ctx.getWorld().isRemote()) {
+    public InteractionResult useOn(UseOnContext ctx) {
+        Level level = ctx.getLevel();
+
+        if (!level.isClientSide) {
             if (this.rightClickBlock(ctx)) {
-                if (!ctx.getPlayer().isCreative()) {
-                    ctx.getItem().shrink(1);
+                Player player = ctx.getPlayer();
+                if (player != null && !player.getAbilities().instabuild) {
+                    ctx.getItemInHand().shrink(1);
                 }
             }
         }
-        return ActionResultType.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, PlayerEntity player, Hand hand) {
-        ItemStack held = player.getHeldItem(hand);
-        if (!held.isEmpty() && !world.isRemote()) {
-            if (this.rightClickAir(world, player, held)) {
-                if (!player.isCreative()) {
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
+
+        if (!level.isClientSide) {
+            if (this.rightClickAir(level, player, held)) {
+                if (!player.getAbilities().instabuild) {
                     held.shrink(1);
                 }
             }
         }
 
-        return ActionResult.resultSuccess(held);
+        return InteractionResultHolder.sidedSuccess(held, level.isClientSide);
     }
 
     @Override
-    public ItemStack dispense(IBlockSource src, ItemStack stack) {
-        if (this.dispense(src)) {
+    public ItemStack dispense(BlockSource source, ItemStack stack) {
+        if (this.dispense(source)) {
             stack.shrink(1);
         }
         return stack;

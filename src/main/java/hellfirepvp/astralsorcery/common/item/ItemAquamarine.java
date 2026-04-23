@@ -9,7 +9,9 @@
 package hellfirepvp.astralsorcery.common.item;
 
 import hellfirepvp.astralsorcery.common.CommonProxy;
-import net.minecraft.item.Item;
+import hellfirepvp.astralsorcery.common.registry.IHasRegistryName;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -18,10 +20,23 @@ import net.minecraft.item.Item;
  * Created by HellFirePvP
  * Date: 21.07.2019 / 11:28
  */
-public class ItemAquamarine extends Item {
+public class ItemAquamarine extends Item implements IHasRegistryName {
+
+    private ResourceLocation registryName;
 
     public ItemAquamarine() {
-        super(new Properties()
-            .group(CommonProxy.ITEM_GROUP_AS));
+        // En 1.20.1 no asignamos el grupo aquí.
+        // Se hace mediante el evento BuildCreativeModeTabContentsEvent.
+        super(new Item.Properties());
+    }
+
+    @Override
+    public void setRegistryName(ResourceLocation name) {
+        this.registryName = name;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName() {
+        return this.registryName;
     }
 }

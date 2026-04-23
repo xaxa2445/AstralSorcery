@@ -16,13 +16,15 @@ import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+
+import java.util.Random;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -32,6 +34,8 @@ import net.minecraft.world.level.Level;
  * Date: 21.09.2019 / 19:35
  */
 public class ItemColoredLensRegeneration extends ItemColoredLens {
+
+    private static final Random random = new Random();
 
     private static final ColorTypeRegeneration COLOR_TYPE_REGENERATION = new ColorTypeRegeneration();
 
@@ -51,11 +55,11 @@ public class ItemColoredLensRegeneration extends ItemColoredLens {
         }
 
         @Override
-        public void entityInBeam(World world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor) {
-            if (world.isRemote() || !(entity instanceof LivingEntity) || !entity.isAlive()) {
+        public void entityInBeam(Level world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor) {
+            if (world.isClientSide() || !(entity instanceof LivingEntity) || !entity.isAlive()) {
                 return;
             }
-            if (entity instanceof PlayerEntity && !GeneralConfig.CONFIG.doColoredLensesAffectPlayers.get()) {
+            if (entity instanceof Player && !GeneralConfig.CONFIG.doColoredLensesAffectPlayers.get()) {
                 return;
             }
             LivingEntity le = (LivingEntity) entity;
@@ -63,7 +67,7 @@ public class ItemColoredLensRegeneration extends ItemColoredLens {
                 if (random.nextInt(8) != 0) {
                     return;
                 }
-                if (le.isEntityUndead()) {
+                if (le.isInvertedHealAndHarm()) {
                     DamageUtil.shotgunAttack(le, e -> {
                         DamageUtil.attackEntityFrom(e, CommonProxy.DAMAGE_SOURCE_STELLAR, 0.5F);
                     });
@@ -74,6 +78,6 @@ public class ItemColoredLensRegeneration extends ItemColoredLens {
         }
 
         @Override
-        public void blockInBeam(World world, BlockPos pos, BlockState state, PartialEffectExecutor executor) {}
+        public void blockInBeam(Level world, BlockPos pos, BlockState state, PartialEffectExecutor executor) {}
     }
 }

@@ -8,9 +8,9 @@
 
 package hellfirepvp.astralsorcery.common.block.properties;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.material.MapColor;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -22,9 +22,10 @@ import net.minecraft.block.material.Material;
 public class PropertiesGlass {
 
     public static Block.Properties coatedGlass() {
-        return Block.Properties.create(Material.GLASS)
-                .hardnessAndResistance(1F, 5F)
-                .sound(SoundType.GLASS);
+        return Block.Properties.of()
+                .mapColor(MapColor.NONE)
+                .strength(1.0F, 5.0F)
+                .sound(SoundType.GLASS)
+                .noOcclusion(); // 🔥 importante para bloques tipo vidrio
     }
-
 }

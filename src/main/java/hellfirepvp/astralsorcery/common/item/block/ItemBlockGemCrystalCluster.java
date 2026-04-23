@@ -10,13 +10,13 @@ package hellfirepvp.astralsorcery.common.item.block;
 
 import hellfirepvp.astralsorcery.common.block.tile.BlockGemCrystalCluster;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.item.CreativeModeTab;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -34,46 +34,53 @@ public class ItemBlockGemCrystalCluster extends ItemBlockCustom {
         super(block, itemProperties);
     }
 
-    @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (isInGroup(group)) {
-            for (BlockGemCrystalCluster.GrowthStageType stage : BlockGemCrystalCluster.STAGE.getAllowedValues()) {
-                ItemStack cluster = new ItemStack(this);
-                this.setDamage(cluster, stage.ordinal());
-                items.add(cluster);
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
+        if (this.allowedIn(tab)) {
+            for (BlockGemCrystalCluster.GrowthStageType stage : BlockGemCrystalCluster.STAGE.getPossibleValues()) {
+                ItemStack stack = new ItemStack(this);
+                setStage(stack, stage);
+                items.add(stack);
             }
         }
     }
 
     @Nullable
     @Override
-    protected BlockState getStateForPlacement(BlockItemUseContext context) {
+    protected BlockState getStateForPlacement(BlockPlaceContext context) {
         BlockState toPlace = super.getStateForPlacement(context);
         if (toPlace != null) {
-            return toPlace.with(BlockGemCrystalCluster.STAGE, this.getGrowthStage(context.getItem()));
+            return toPlace.setValue(
+                    BlockGemCrystalCluster.STAGE,
+                    this.getGrowthStage(context.getItemInHand())
+            );
         }
         return null;
     }
 
-    @Nonnull
+    private void setStage(ItemStack stack, BlockGemCrystalCluster.GrowthStageType stage) {
+        stack.getOrCreateTag().putInt("stage", stage.ordinal());
+    }
+
+
     private BlockGemCrystalCluster.GrowthStageType getGrowthStage(ItemStack stack) {
-        if (stack.isEmpty() || !(stack.getItem() instanceof ItemBlockGemCrystalCluster)) {
+        if (stack.isEmpty()) {
             return BlockGemCrystalCluster.GrowthStageType.STAGE_0;
         }
-        return MiscUtils.getEnumEntry(BlockGemCrystalCluster.GrowthStageType.class, this.getDamage(stack));
+        int id = stack.getOrCreateTag().getInt("stage");
+        return MiscUtils.getEnumEntry(BlockGemCrystalCluster.GrowthStageType.class, id);
     }
 
     @Override
-    public String getTranslationKey(ItemStack stack) {
+    public Component getName(ItemStack stack) {
         BlockGemCrystalCluster.GrowthStageType stage = this.getGrowthStage(stack);
-        switch (stage) {
-            case STAGE_2_SKY:
-                return super.getTranslationKey(stack) + ".sky";
-            case STAGE_2_DAY:
-                return super.getTranslationKey(stack) + ".day";
-            case STAGE_2_NIGHT:
-                return super.getTranslationKey(stack) + ".night";
-        }
-        return super.getTranslationKey(stack);
+
+        String suffix = switch (stage) {
+            case STAGE_2_SKY -> ".sky";
+            case STAGE_2_DAY -> ".day";
+            case STAGE_2_NIGHT -> ".night";
+            default -> "";
+        };
+
+        return Component.translatable(this.getDescriptionId(stack) + suffix);
     }
 }

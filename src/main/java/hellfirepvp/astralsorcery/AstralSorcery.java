@@ -10,10 +10,15 @@ package hellfirepvp.astralsorcery;
 
 import hellfirepvp.astralsorcery.client.ClientProxy;
 import hellfirepvp.astralsorcery.common.CommonProxy;
+import hellfirepvp.astralsorcery.common.registry.RegistryItems;
+import hellfirepvp.astralsorcery.common.registry.internal.PrimerEventHandler;
 import net.minecraft.resources.ResourceLocation; // CORRECCIÓN: Nuevo paquete en 1.20.1
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.*;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.data.loading.DatagenModLoader; // Actualizado para 1.20.1
 import org.apache.logging.log4j.LogManager;
@@ -40,18 +45,37 @@ public class AstralSorcery {
 
     public AstralSorcery() {
         instance = this;
-        // Obtenemos el contenedor del mod de forma segura
+
         modContainer = ModList.get().getModContainerById(MODID)
-                .orElseThrow(() -> new IllegalStateException("Falla crítica: No se encontró el contenedor de Astral Sorcery"));
+                .orElseThrow(() -> new IllegalStateException("No mod container"));
 
-        // Inicialización del Proxy (Sides)
-        this.proxy = DistExecutor.unsafeRunForDist(() -> ClientProxy::new, () -> CommonProxy::new);
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        this.proxy.initialize();
-        // Registro de buses de eventos
-        this.proxy.attachLifecycle(FMLJavaModLoadingContext.get().getModEventBus());
-        this.proxy.attachEventHandlers(MinecraftForge.EVENT_BUS);
+        // 🔹 Mantienes proxy SOLO para cosas internas (como registryPrimer)
+        this.proxy = new CommonProxy();
+
+        proxy.initialize();
+
+        // 🔥 TU SISTEMA DE REGISTRO (esto es lo importante)
+        new PrimerEventHandler(proxy.getRegistryPrimer())
+                .attachEventHandlers(modEventBus);
+
+        // 🔥 CLIENT STUFF (sin proxy)
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+            modEventBus.addListener(RegistryItems::registerColors);
+            modEventBus.addListener(this::clientSetup);
+        });
+
+        // 🔹 Forge bus (si lo usas)
+        MinecraftForge.EVENT_BUS.register(this);
     }
+
+    private void clientSetup(final FMLClientSetupEvent event) {
+        event.enqueueWork(() -> {
+            RegistryItems.registerItemProperties();
+        });
+    }
+
 
     public static AstralSorcery getInstance() {
         return instance;

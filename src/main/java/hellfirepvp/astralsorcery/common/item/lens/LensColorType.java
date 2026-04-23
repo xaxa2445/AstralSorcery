@@ -10,19 +10,18 @@ package hellfirepvp.astralsorcery.common.item.lens;
 
 import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
-
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
@@ -82,9 +81,9 @@ public abstract class LensColorType {
         return BY_NAME.get(name);
     }
 
-    public abstract void entityInBeam(World world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor);
+    public abstract void entityInBeam(Level world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor);
 
-    public abstract void blockInBeam(World world, BlockPos pos, BlockState state, PartialEffectExecutor executor);
+    public abstract void blockInBeam(Level world, BlockPos pos, BlockState state, PartialEffectExecutor executor);
 
     public static enum TargetType {
 

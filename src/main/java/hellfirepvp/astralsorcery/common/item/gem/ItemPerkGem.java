@@ -15,10 +15,10 @@ import hellfirepvp.astralsorcery.common.perk.DynamicModifierHelper;
 import hellfirepvp.astralsorcery.common.perk.modifier.DynamicAttributeModifier;
 import hellfirepvp.astralsorcery.common.perk.node.socket.GemSocketItem;
 import hellfirepvp.astralsorcery.common.perk.node.socket.GemSocketPerk;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -38,14 +38,14 @@ public abstract class ItemPerkGem extends Item implements GemSocketItem {
 
     public ItemPerkGem(GemType type) {
         super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
+                .stacksTo(1) // <- antes maxStackSize
+                .tab(CommonProxy.ITEM_GROUP_AS)); // <- antes group
         this.type = type;
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, World world, Entity entity, int itemSlot, boolean isSelected) {
-        if (world.isRemote()) {
+    public void inventoryTick(ItemStack stack, Level world, Entity entity, int itemSlot, boolean isSelected) {
+        if (world.isClientSide()) {
             return;
         }
 
@@ -63,12 +63,23 @@ public abstract class ItemPerkGem extends Item implements GemSocketItem {
     }
 
     @Override
-    public <T extends AbstractPerk & GemSocketPerk> boolean canBeInserted(ItemStack stack, T perk, PlayerEntity player, PlayerProgress progress, LogicalSide side) {
+    public <T extends AbstractPerk & GemSocketPerk> boolean canBeInserted(
+            ItemStack stack,
+            T perk,
+            Player player,
+            PlayerProgress progress,
+            LogicalSide side
+    ) {
         return !this.getModifiers(stack, perk, player, side).isEmpty();
     }
 
     @Override
-    public <T extends AbstractPerk & GemSocketPerk> List<DynamicAttributeModifier> getModifiers(ItemStack stack, T perk, PlayerEntity player, LogicalSide side) {
+    public <T extends AbstractPerk & GemSocketPerk> List<DynamicAttributeModifier> getModifiers(
+            ItemStack stack,
+            T perk,
+            Player player,
+            LogicalSide side
+    ) {
         return DynamicModifierHelper.getStaticModifiers(stack);
     }
 }

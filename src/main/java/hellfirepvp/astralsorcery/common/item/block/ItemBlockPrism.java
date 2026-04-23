@@ -12,15 +12,13 @@ import hellfirepvp.astralsorcery.common.crystal.CalculationContext;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeItem;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
-import net.minecraft.block.Block;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.network.chat.Component;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.level.block.Block;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -39,27 +37,33 @@ public class ItemBlockPrism extends ItemBlockCustom implements CrystalAttributeI
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-        super.addInformation(stack, worldIn, tooltip, flagIn);
+    public void appendHoverText(ItemStack stack,
+                                @Nullable Level level,
+                                List<Component> tooltip,
+                                TooltipFlag flag) {
+
+        super.appendHoverText(stack, level, tooltip, flag);
+
         CrystalAttributes attr = getAttributes(stack);
         if (attr != null) {
-            attr.addTooltip(tooltip, CalculationContext.Builder.newBuilder()
-                    .addUsage(CrystalPropertiesAS.Usages.USE_LENS_EFFECT)
-                    .addUsage(CrystalPropertiesAS.Usages.USE_LENS_TRANSFER)
-                    .build());
+            attr.addTooltip(
+                    tooltip,
+                    CalculationContext.Builder.newBuilder()
+                            .addUsage(CrystalPropertiesAS.Usages.USE_LENS_EFFECT)
+                            .addUsage(CrystalPropertiesAS.Usages.USE_LENS_TRANSFER)
+                            .build()
+            );
         }
     }
 
-    @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (isInGroup(group)) {
+    // 🔥 Creative tab (temporal)
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
+        if (this.allowedIn(tab)) {
             ItemStack prism = new ItemStack(this);
             this.setAttributes(prism, CrystalPropertiesAS.LENS_PRISM_CREATIVE_ATTRIBUTES);
             items.add(prism);
         }
     }
-
     @Nullable
     @Override
     public CrystalAttributes getAttributes(ItemStack stack) {

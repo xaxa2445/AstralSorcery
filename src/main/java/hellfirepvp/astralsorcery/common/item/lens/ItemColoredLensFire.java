@@ -22,21 +22,22 @@ import hellfirepvp.astralsorcery.common.util.RecipeHelper;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.util.Tuple;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.network.PacketDistributor;
+import java.util.Random;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -46,6 +47,8 @@ import net.minecraftforge.common.util.Constants;
  * Date: 21.09.2019 / 17:51
  */
 public class ItemColoredLensFire extends ItemColoredLens {
+
+    private static final Random random = new Random();
 
     private static final ColorTypeFire COLOR_TYPE_FIRE = new ColorTypeFire();
 
@@ -77,14 +80,17 @@ public class ItemColoredLensFire extends ItemColoredLens {
         }
 
         @Override
-        public void entityInBeam(World world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor) {
-            if (world.isRemote()) {
+        public void entityInBeam(Level world, Vector3 origin, Vector3 target, Entity entity, PartialEffectExecutor executor) {
+            if (world.isClientSide()) {
                 return;
             }
             if (entity instanceof ItemEntity) {
                 ItemStack current = ((ItemEntity) entity).getItem();
 
-                ItemStack result = RecipeHelper.findSmeltingResult(entity.getEntityWorld(), current).map(Tuple::getA).orElse(ItemStack.EMPTY);
+                ItemStack result = RecipeHelper
+                        .findSmeltingResult(world, current)
+                        .map(Tuple::getA)
+                        .orElse(ItemStack.EMPTY);
                 if (result.isEmpty()) {
                     return;
                 }
@@ -95,31 +101,39 @@ public class ItemColoredLensFire extends ItemColoredLens {
                         continue;
                     }
                     Vector3 entityPos = Vector3.atEntityCorner(entity);
-                    ItemUtils.dropItemNaturally(entity.getEntityWorld(), entityPos.getX(), entityPos.getY(), entityPos.getZ(), ItemUtils.copyStackWithSize(result, result.getCount()));
+                    ItemUtils.dropItemNaturally(
+                            world,
+                            entityPos.getX(),
+                            entityPos.getY(),
+                            entityPos.getZ(),
+                            ItemUtils.copyStackWithSize(result, result.getCount())
+                    );
                     if (current.getCount() > 1) {
                         current.shrink(1);
                         ((ItemEntity) entity).setItem(current);
                     } else {
-                        entity.remove();
+                        entity.discard();
                     }
                     return;
                 }
-            } else if (entity instanceof LivingEntity) {
-                if (entity instanceof PlayerEntity) {
+            } else if (entity instanceof LivingEntity living) {
+                if (living instanceof Player) {
                     if (!GeneralConfig.CONFIG.doColoredLensesAffectPlayers.get() ||
                             entity.getServer() == null ||
-                            !entity.getServer().isPVPEnabled()) {
+                            !entity.getServer().isPvpAllowed()) {
                         return;
                     }
                 }
-                entity.attackEntityFrom(DamageSource.ON_FIRE, 0.5F);
-                entity.setFire(5);
+                DamageSource source = world.damageSources().onFire();
+                living.hurt(source, 0.5F);
+                living.setSecondsOnFire(5);
             }
         }
 
         @Override
-        public void blockInBeam(World world, BlockPos pos, BlockState state, PartialEffectExecutor executor) {
-            if (!(world instanceof ServerWorld)) {
+        public void blockInBeam(Level level, BlockPos pos, BlockState state, PartialEffectExecutor executor) {
+
+            if (!(level instanceof ServerLevel serverLevel)) {
                 return;
             }
 
@@ -127,26 +141,46 @@ public class ItemColoredLensFire extends ItemColoredLens {
             if (blockStack.isEmpty()) {
                 return;
             }
-            ItemStack result = RecipeHelper.findSmeltingResult(world, blockStack).map(Tuple::getA).orElse(ItemStack.EMPTY);
+
+            ItemStack result = RecipeHelper
+                    .findSmeltingResult(level, blockStack)
+                    .map(Tuple::getA)
+                    .orElse(ItemStack.EMPTY);
+
             if (result.isEmpty()) {
                 return;
             }
 
+            // 📡 networking actualizado
             PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.MELT_BLOCK)
                     .addData(buf -> ByteBufUtils.writeVector(buf, new Vector3(pos)));
-            PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, pos, 16));
+
+            PacketChannel.CHANNEL.send(
+                    PacketDistributor.NEAR.with(() ->
+                            PacketChannel.pointFromPos(level, pos, 16)
+                    ),
+                    ev
+            );
 
             while (executor.canExecute()) {
                 executor.markExecution();
+
                 if (random.nextInt(6) != 0) {
                     continue;
                 }
 
                 BlockState resState = ItemUtils.createBlockState(result);
+
                 if (resState != null) {
-                    world.setBlockState(pos, resState, Constants.BlockFlags.DEFAULT);
-                } else if (world.setBlockState(pos, Blocks.AIR.getDefaultState(), Constants.BlockFlags.DEFAULT)) {
-                    ItemUtils.dropItemNaturally(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, result);
+                    level.setBlock(pos, resState, 3);
+                } else if (level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3)) {
+                    ItemUtils.dropItemNaturally(
+                            level,
+                            pos.getX() + 0.5,
+                            pos.getY() + 0.5,
+                            pos.getZ() + 0.5,
+                            result
+                    );
                 }
                 return;
             }

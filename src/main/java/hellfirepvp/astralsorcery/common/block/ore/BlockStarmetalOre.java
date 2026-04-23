@@ -10,8 +10,7 @@ package hellfirepvp.astralsorcery.common.block.ore;
 
 import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesMisc;
-import net.minecraft.block.Block;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.block.Block;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -23,9 +22,7 @@ import net.minecraftforge.common.ToolType;
 public class BlockStarmetalOre extends Block implements CustomItemBlock {
 
     public BlockStarmetalOre() {
-        super(PropertiesMisc.defaultRock()
-                .harvestLevel(2)
-                .harvestTool(ToolType.PICKAXE));
+        super(PropertiesMisc.defaultRock());
     }
 
 }

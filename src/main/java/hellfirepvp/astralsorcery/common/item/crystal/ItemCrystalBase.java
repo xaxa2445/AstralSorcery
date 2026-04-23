@@ -14,16 +14,14 @@ import hellfirepvp.astralsorcery.common.crystal.CrystalGenerator;
 import hellfirepvp.astralsorcery.common.entity.item.EntityCrystal;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -39,12 +37,12 @@ import java.util.List;
 public abstract class ItemCrystalBase extends Item implements CrystalAttributeGenItem {
 
     public ItemCrystalBase(Properties prop) {
-        super(prop.maxDamage(0));
+        super(prop.durability(0)); // maxDamage -> durability
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean isSelected) {
-        if (!world.isRemote()) {
+    public void inventoryTick(ItemStack stack, Level world, Entity entity, int slot, boolean isSelected) {
+        if (!world.isClientSide()) {
             CrystalAttributes attributes = getAttributes(stack);
 
             if (attributes == null && stack.getItem() instanceof CrystalAttributeGenItem) {
@@ -55,13 +53,11 @@ public abstract class ItemCrystalBase extends Item implements CrystalAttributeGe
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World world, List<ITextComponent> toolTip, ITooltipFlag flag) {
-        this.addCrystalPropertyToolTip(stack, toolTip);
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
+        this.addCrystalPropertyToolTip(stack, tooltip);
     }
 
-    @OnlyIn(Dist.CLIENT)
-    protected CrystalAttributes.TooltipResult addCrystalPropertyToolTip(ItemStack stack, List<ITextComponent> tooltip) {
+    protected CrystalAttributes.TooltipResult addCrystalPropertyToolTip(ItemStack stack, List<Component> tooltip) {
         CrystalAttributes attr = getAttributes(stack);
         if (attr != null) {
             return attr.addTooltip(tooltip);
@@ -91,13 +87,27 @@ public abstract class ItemCrystalBase extends Item implements CrystalAttributeGe
 
     @Nullable
     @Override
-    public Entity createEntity(World world, Entity location, ItemStack itemstack) {
-        EntityCrystal res = new EntityCrystal(EntityTypesAS.ITEM_CRYSTAL, world, location.getPosX(), location.getPosY(), location.getPosZ(), itemstack);
-        res.read(location.writeWithoutTypeId(new CompoundNBT()));
-        res.applyColor(this.getItemEntityColor(itemstack));
-        if (location instanceof ItemEntity) {
-            res.setReplacedEntity((ItemEntity) location);
+    public Entity createEntity(Level level, Entity original, ItemStack stack) {
+        EntityCrystal res = new EntityCrystal(
+                EntityTypesAS.ITEM_CRYSTAL,
+                level,
+                original.getX(),
+                original.getY(),
+                original.getZ(),
+                stack
+        );
+
+        // copiar NBT (cambió método)
+        CompoundTag tag = new CompoundTag();
+        original.save(tag);
+        res.load(tag);
+
+        res.applyColor(this.getItemEntityColor(stack));
+
+        if (original instanceof ItemEntity itemEntity) {
+            res.setReplacedEntity(itemEntity);
         }
+
         return res;
     }
 

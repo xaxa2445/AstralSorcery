@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.item.tool;
 
-import net.minecraft.item.IItemTier;
-import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.world.item.Tier;
+import net.minecraft.world.item.crafting.Ingredient;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -18,7 +18,7 @@ import net.minecraft.item.crafting.Ingredient;
  * Created by HellFirePvP
  * Date: 17.08.2019 / 16:13
  */
-public class CrystalToolTier implements IItemTier {
+public class CrystalToolTier implements Tier {
 
     private static final CrystalToolTier INSTANCE = new CrystalToolTier();
 
@@ -29,32 +29,32 @@ public class CrystalToolTier implements IItemTier {
     }
 
     @Override
-    public int getMaxUses() {
+    public int getUses() {
         return 16192;
     }
 
     @Override
-    public float getEfficiency() {
+    public float getSpeed() {
         return 4.5F;
     }
 
     @Override
-    public float getAttackDamage() {
+    public float getAttackDamageBonus() {
         return 3.5F;
     }
 
     @Override
-    public int getHarvestLevel() {
+    public int getLevel() {
         return 3;
     }
 
     @Override
-    public int getEnchantability() {
+    public int getEnchantmentValue() {
         return 24;
     }
 
     @Override
-    public Ingredient getRepairMaterial() {
+    public Ingredient getRepairIngredient() {
         return Ingredient.EMPTY;
     }
 }

@@ -11,7 +11,7 @@ package hellfirepvp.astralsorcery.common.item.crystal;
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 import java.awt.*;
 
@@ -26,7 +26,8 @@ public class ItemCelestialCrystal extends ItemCrystalBase {
 
     public ItemCelestialCrystal() {
         super(new Properties()
-                .group(CommonProxy.ITEM_GROUP_AS)
+                // En 1.20.1 esto normalmente se maneja en el registro
+                // .tab(CommonProxy.ITEM_GROUP_AS)
                 .rarity(CommonProxy.RARITY_CELESTIAL));
     }
 

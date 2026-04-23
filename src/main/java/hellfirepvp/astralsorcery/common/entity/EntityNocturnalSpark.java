@@ -20,27 +20,31 @@ import hellfirepvp.astralsorcery.common.util.block.BlockDiscoverer;
 import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
-import net.minecraft.block.AirBlock;
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
-import net.minecraft.entity.projectile.ThrowableEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.entity.SpawnPlacements;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraft.util.RandomSource;
 
+import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.List;
 
@@ -51,42 +55,47 @@ import java.util.List;
  * Created by HellFirePvP
  * Date: 17.08.2019 / 08:59
  */
-public class EntityNocturnalSpark extends ThrowableEntity {
+public class EntityNocturnalSpark extends ThrowableItemProjectile {
 
-    private static final AxisAlignedBB NO_DUPE_BOX = new AxisAlignedBB(0, 0, 0, 1, 1, 1).grow(15);
+    private static final RandomSource rand = RandomSource.create();
 
-    private static final DataParameter<Boolean> SPAWNING = EntityDataManager.createKey(EntityNocturnalSpark.class, DataSerializers.BOOLEAN);
+    private static final AABB NO_DUPE_BOX = new AABB(0, 0, 0, 1, 1, 1).inflate(15);
+
+    private static final EntityDataAccessor<Boolean> SPAWNING =
+            SynchedEntityData.defineId(EntityNocturnalSpark.class, EntityDataSerializers.BOOLEAN);
     private int ticksSpawning = 0;
 
-    public EntityNocturnalSpark(World world) {
-        super(EntityTypesAS.NOCTURNAL_SPARK, world);
+    public EntityNocturnalSpark(EntityType<? extends EntityNocturnalSpark> type, Level level) {
+        super(type, level);
     }
 
-    public EntityNocturnalSpark(double x, double y, double z, World world) {
-        super(EntityTypesAS.NOCTURNAL_SPARK, x, y, z, world);
+    public EntityNocturnalSpark(Level level) {
+        this(EntityTypesAS.NOCTURNAL_SPARK, level);
     }
 
-    public EntityNocturnalSpark(LivingEntity thrower, World world) {
-        super(EntityTypesAS.NOCTURNAL_SPARK, thrower, world);
-        this.func_234612_a_(thrower, thrower.rotationPitch, thrower.rotationYaw, 0F, 0.7F, 0.9F);
+    public EntityNocturnalSpark(double x, double y, double z, Level level) {
+        this(EntityTypesAS.NOCTURNAL_SPARK, level);
+        this.setPos(x, y, z);
     }
 
-    public static EntityType.IFactory<EntityNocturnalSpark> factory() {
-        return (type, world) -> new EntityNocturnalSpark(world);
+    public EntityNocturnalSpark(LivingEntity thrower, Level level) {
+        this(EntityTypesAS.NOCTURNAL_SPARK, level);
+        this.setOwner(thrower);
+        this.shootFromRotation(thrower, thrower.getXRot(), thrower.getYRot(), 0F, 0.7F, 0.9F);
     }
 
     @Override
-    protected void registerData() {
-        this.dataManager.register(SPAWNING, false);
+    protected void defineSynchedData() {
+        this.entityData.define(SPAWNING, false);
     }
 
     public void setSpawning() {
-        this.setMotion(Vector3d.ZERO);
-        this.dataManager.set(SPAWNING, true);
+        this.setDeltaMovement(Vec3.ZERO);
+        this.entityData.set(SPAWNING, true);
     }
 
     public boolean isSpawning() {
-        return this.dataManager.get(SPAWNING);
+        return this.entityData.get(SPAWNING);
     }
 
     @Override
@@ -97,7 +106,7 @@ public class EntityNocturnalSpark extends ThrowableEntity {
             return;
         }
 
-        if (!world.isRemote()) {
+        if (!level().isClientSide()) {
             removeLights();
             if (isSpawning()) {
                 ticksSpawning++;
@@ -105,7 +114,7 @@ public class EntityNocturnalSpark extends ThrowableEntity {
                 removeDuplicates();
 
                 if (ticksSpawning > 200) {
-                    remove();
+                    discard();
                 }
             }
         } else {
@@ -114,14 +123,18 @@ public class EntityNocturnalSpark extends ThrowableEntity {
     }
 
     private void removeLights() {
-        if (this.getEntityWorld() instanceof ServerWorld) {
-            ServerWorld sWorld = (ServerWorld) this.getEntityWorld();
-            if (this.ticksExisted % 5 == 0) {
+        if (level() instanceof ServerLevel sWorld) {
+            if (this.tickCount % 5 == 0) {
                 List<BlockPos> lightPositions = BlockDiscoverer.searchForBlocksAround(
-                        sWorld, this.getPosition(), 8,
-                        (world, pos, state) -> !(state.getBlock() instanceof AirBlock) && state.getBlockHardness(world, pos) != -1 && state.getLightValue(world, pos) > 3);
+                        sWorld, this.blockPosition(), 8,
+                        (world, pos, state) ->
+                                !(state.getBlock() instanceof AirBlock) &&
+                                        state.getDestroySpeed(world, pos) != -1 &&
+                                        state.getLightEmission(world, pos) > 3
+                );
+
                 for (BlockPos light : lightPositions) {
-                    if (!BlockUtils.breakBlockWithoutPlayer(sWorld, light, sWorld.getBlockState(light), ItemStack.EMPTY, true, true)) {
+                    if (!BlockUtils.breakBlockWithoutPlayer(sWorld, light, sWorld.getBlockState(light), null, true, true)) {
                         sWorld.removeBlock(light, false);
                     }
                 }
@@ -130,15 +143,13 @@ public class EntityNocturnalSpark extends ThrowableEntity {
     }
 
     private void removeDuplicates() {
-        List<EntityNocturnalSpark> sparks = world.getEntitiesWithinAABB(EntityNocturnalSpark.class, NO_DUPE_BOX.offset(getPosition()));
+        List<EntityNocturnalSpark> sparks =
+                level().getEntitiesOfClass(EntityNocturnalSpark.class, NO_DUPE_BOX.move(position()));
+
         for (EntityNocturnalSpark spark : sparks) {
-            if (this.equals(spark)) {
-                continue;
-            }
-            if (!spark.isAlive() || !spark.isSpawning()) {
-                continue;
-            }
-            spark.remove();
+            if (this == spark) continue;
+            if (!spark.isAlive() || !spark.isSpawning()) continue;
+            spark.discard();
         }
     }
 
@@ -196,16 +207,23 @@ public class EntityNocturnalSpark extends ThrowableEntity {
     }
 
     private void spawnCycle() {
-        if (rand.nextInt(12) == 0 && world instanceof ServerWorld) {
-            BlockPos pos = getPosition();
-            pos.add(rand.nextInt(2) - rand.nextInt(2), 1, rand.nextInt(2) - rand.nextInt(2));
-            pos = BlockUtils.firstSolidDown(world, pos).up();
+        if (rand.nextInt(12) == 0 && level() instanceof ServerLevel sWorld) {
+            BlockPos pos = this.blockPosition();
+            pos.offset(rand.nextInt(2) - rand.nextInt(2), 1, rand.nextInt(2) - rand.nextInt(2));
+            pos = BlockUtils.firstSolidDown(level(), pos).above();
 
-            if (pos.distanceSq(this.getPosition()) >= 16) {
+            if (pos.distSqr(this.getPosition()) >= 16) {
                 return;
             }
-            EntityUtils.performWorldSpawningAt((ServerWorld) world, pos, EntityClassification.MONSTER, SpawnReason.SPAWNER, true,
-                    EntityUtils.SpawnConditionFlags.IGNORE_SPAWN_CONDITIONS | EntityUtils.SpawnConditionFlags.IGNORE_ENTITY_COLLISION);
+            EntityUtils.performWorldSpawningAt(
+                    sWorld,
+                    pos,
+                    MobCategory.MONSTER,
+                    MobSpawnType.SPAWNER,
+                    true,
+                    EntityUtils.SpawnConditionFlags.IGNORE_SPAWN_CONDITIONS |
+                            EntityUtils.SpawnConditionFlags.IGNORE_ENTITY_COLLISION
+            );
         }
     }
 
@@ -227,17 +245,17 @@ public class EntityNocturnalSpark extends ThrowableEntity {
     }
 
     @Override
-    protected void onImpact(RayTraceResult result) {
-        if (RayTraceResult.Type.ENTITY.equals(result.getType())) {
+    protected void onHit(HitResult result) {
+        if (result.getType() == HitResult.Type.ENTITY) {
             return;
         }
-        Vector3d hit = result.getHitVec();
+        Vec3 hit = result.getLocation();
         this.setSpawning();
-        this.setPosition(hit.x, hit.y, hit.z);
+        this.setPos(hit.x, hit.y, hit.z);
     }
 
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public Packet<?> getAddEntityPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 }

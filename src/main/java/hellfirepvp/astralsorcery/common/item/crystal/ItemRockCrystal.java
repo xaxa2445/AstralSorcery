@@ -21,8 +21,7 @@ import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 public class ItemRockCrystal extends ItemCrystalBase {
 
     public ItemRockCrystal() {
-        super(new Properties()
-                .group(CommonProxy.ITEM_GROUP_AS));
+        super(new Properties());
     }
 
     @Override

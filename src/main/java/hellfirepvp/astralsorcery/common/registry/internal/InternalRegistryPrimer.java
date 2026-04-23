@@ -42,26 +42,4 @@ public class InternalRegistryPrimer {
         return (List<T>) (List<?>) primed.getOrDefault(type, Collections.emptyList());
     }
 
-    @Nullable
-    @SuppressWarnings("unchecked")
-    public <V> V getCached(IForgeRegistry<V> registry, ResourceLocation key) {
-        // Buscamos en todas nuestras listas internas (Constelaciones, Perks, etc.)
-        for (List<Object> entryList : primed.values()) {
-            Object found = MiscUtils.iterativeSearch(entryList, entry -> {
-                if (entry instanceof IConstellation) {
-                    return ((IConstellation) entry).getRegistryName().equals(key);
-                }
-                if (entry instanceof AbstractPerk) {
-                    return ((AbstractPerk) entry).getRegistryName().equals(key);
-                }
-                return false;
-            });
-
-            if (found != null) {
-                return (V) found;
-            }
-        }
-        return null;
-    }
-
 }

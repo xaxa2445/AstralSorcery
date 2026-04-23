@@ -25,6 +25,7 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.registry.Transmis
 import hellfirepvp.astralsorcery.common.structure.types.StructureType;
 import hellfirepvp.observerlib.api.ObserverProvider;
 import hellfirepvp.observerlib.api.structure.MatchableStructure;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.material.Fluid;
@@ -55,36 +56,81 @@ public class PrimerEventHandler {
     }
 
     public void attachEventHandlers(IEventBus eventBus) {
-        eventBus.addGenericListener(Item.class, this::registerItems);
-        eventBus.addGenericListener(Block.class, this::registerBlocks);
-        eventBus.addGenericListener(Fluid.class, this::registerFluids);
-        eventBus.addGenericListener(TileEntityType.class, this::registerTiles);
-        eventBus.addGenericListener(EntityType.class, this::registerEntities);
-        eventBus.addGenericListener(Feature.class, this::registerFeatures);
-        eventBus.addGenericListener(Placement.class, this::registerPlacements);
-        eventBus.addGenericListener(Effect.class, this::registerEffects);
-        eventBus.addGenericListener(Enchantment.class, this::registerEnchantments);
-        eventBus.addGenericListener(SoundEvent.class, this::registerSounds);
-        eventBus.addGenericListener(GlobalLootModifierSerializer.class, this::registerGlobalLootModifierSerializers);
-        eventBus.addGenericListener(IConstellation.class, this::registerConstellations);
-        eventBus.addGenericListener(DataSerializerEntry.class, this::registerDataSerializers);
-        eventBus.addGenericListener(IRecipeSerializer.class, this::registerRecipeSerializers);
-        eventBus.addGenericListener(MatchableStructure.class, this::registerStructures);
-        eventBus.addGenericListener(StructureType.class, this::registerStructureTypes);
-        eventBus.addGenericListener(ObserverProvider.class, this::registerStructureProviders);
-        eventBus.addGenericListener(ConstellationEffectProvider.class, this::registerConstellationEffects);
-        eventBus.addGenericListener(MantleEffect.class, this::registerMantleEffects);
-        eventBus.addGenericListener(EngravingEffect.class, this::registerEngravingEffects);
-        eventBus.addGenericListener(PerkAttributeType.class, this::registerPerkAttributeTypes);
-        eventBus.addGenericListener(PerkConverter.class, this::registerPerkConverters);
-        eventBus.addGenericListener(PerkAttributeModifier.class, this::registerPerkCustomModifiers);
-        eventBus.addGenericListener(PerkAttributeReader.class, this::registerPerkAttributeReaders);
-        eventBus.addGenericListener(ContainerType.class, this::registerContainerTypes);
-        eventBus.addGenericListener(CrystalProperty.class, this::registerCrystalProperties);
-        eventBus.addGenericListener(PropertyUsage.class, this::registerCrystalUsages);
-        eventBus.addGenericListener(AltarRecipeEffect.class, this::registerAltarRecipeEffects);
-        eventBus.addGenericListener(Structure.class, this::registerStructureTemplates);
+        eventBus.addListener(this::onRegister);
     }
+
+    private void onRegister(RegisterEvent event) {
+        // ITEMS
+        event.register(ForgeRegistries.Keys.ITEMS, helper -> {
+            RegistryItems.registerItems();
+            RegistryItems.registerItemBlocks();
+            RegistryItems.registerFluidContainerItems();
+            RegistryItems.registerDispenseBehaviors();
+
+            fillRegistry(helper, Item.class);
+
+            registerRemainingData();
+        });
+
+        // BLOCKS
+        event.register(ForgeRegistries.Keys.BLOCKS, helper -> {
+            RegistryFluids.registerFluids();
+            RegistryBlocks.registerBlocks();
+            RegistryBlocks.registerFluidBlocks();
+
+            fillRegistry(helper, Block.class);
+        });
+
+        // FLUIDS
+        event.register(ForgeRegistries.Keys.FLUIDS, helper -> {
+            fillRegistry(helper, Fluid.class);
+        });
+
+        // BLOCK ENTITIES
+        event.register(ForgeRegistries.Keys.BLOCK_ENTITY_TYPES, helper -> {
+            RegistryTileEntities.registerTiles();
+            fillRegistry(helper, BlockEntityType.class);
+        });
+
+        // ENTITIES
+        event.register(ForgeRegistries.Keys.ENTITY_TYPES, helper -> {
+            RegistryEntities.init();
+            fillRegistry(helper, EntityType.class);
+        });
+
+        // EFFECTS
+        event.register(ForgeRegistries.Keys.MOB_EFFECTS, helper -> {
+            RegistryEffects.init();
+            fillRegistry(helper, MobEffect.class);
+        });
+
+        // ENCHANTMENTS
+        event.register(ForgeRegistries.Keys.ENCHANTMENTS, helper -> {
+            RegistryEnchantments.init();
+            fillRegistry(helper, Enchantment.class);
+        });
+
+        // SOUNDS
+        event.register(ForgeRegistries.Keys.SOUND_EVENTS, helper -> {
+            RegistrySounds.init();
+            fillRegistry(helper, SoundEvent.class);
+        });
+
+        // MENUS
+        event.register(ForgeRegistries.Keys.MENU_TYPES, helper -> {
+            RegistryContainerTypes.init();
+            fillRegistry(helper, MenuType.class);
+        });
+
+        // RECIPE SERIALIZERS
+        event.register(ForgeRegistries.Keys.RECIPE_SERIALIZERS, helper -> {
+            fillRegistry(helper, RecipeSerializer.class);
+        });
+
+
+
+    }
+
 
     //This exists because you can't sort registries in any fashion or make one load after another in forge.
     //So. thanks. this is the result i guess.
@@ -113,153 +159,33 @@ public class PrimerEventHandler {
         RegistryPerkAttributeReaders.init();
     }
 
-    private void registerItems(RegistryEvent.Register<Item> event) {
-        RegistryItems.registerItems();
-        RegistryItems.registerItemBlocks();
-        RegistryItems.registerFluidContainerItems();
-        RegistryItems.registerDispenseBehaviors();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
 
-        //Item registration happens after block registration. Register misc stuff here.
-        registerRemainingData();
+    private <T> void fillRegistry(RegisterEvent.RegisterHelper<T> helper, Class<T> clazz) {
+        registry.getEntries(clazz).forEach(e -> {
+            ResourceLocation id = extractId(e);
+            helper.register(id, (T) e);
+        });
     }
 
-    private void registerBlocks(RegistryEvent.Register<Block> event) {
-        RegistryFluids.registerFluids();
-        RegistryBlocks.registerBlocks();
-        RegistryBlocks.registerFluidBlocks();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+    private ResourceLocation extractId(Object obj) {
 
-    private void registerFluids(RegistryEvent.Register<Fluid> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+        if (obj instanceof Item item) {
+            return ForgeRegistries.ITEMS.getKey(item);
+        }
 
-    private void registerTiles(RegistryEvent.Register<TileEntityType<?>> event) {
-        RegistryTileEntities.registerTiles();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+        if (obj instanceof Block block) {
+            return ForgeRegistries.BLOCKS.getKey(block);
+        }
 
-    private void registerEntities(RegistryEvent.Register<EntityType<?>> event) {
-        RegistryEntities.init();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+        if (obj instanceof SoundEvent sound) {
+            return ForgeRegistries.SOUND_EVENTS.getKey(sound);
+        }
 
-    /*private void registerPlacements(RegistryEvent.Register<Placement<?>> event) {
-        RegistryWorldGeneration.registerPlacements();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
+        if (obj instanceof IConstellation c) {
+            return c.getRegistryName();
+        }
 
-    private void registerFeatures(RegistryEvent.Register<Feature<?>> event) {
-        RegistryWorldGeneration.registerFeatures();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }*/
-
-    private void registerEffects(RegistryEvent.Register<Effect> event) {
-        RegistryEffects.init();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerEnchantments(RegistryEvent.Register<Enchantment> event) {
-        RegistryEnchantments.init();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerGlobalLootModifierSerializers(RegistryEvent.Register<GlobalLootModifierSerializer<?>> event) {
-        RegistryLoot.init();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerConstellations(RegistryEvent.Register<IConstellation> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerConstellationEffects(RegistryEvent.Register<ConstellationEffectProvider> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerMantleEffects(RegistryEvent.Register<MantleEffect> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerEngravingEffects(RegistryEvent.Register<EngravingEffect> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerPerkAttributeTypes(RegistryEvent.Register<PerkAttributeType> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerPerkConverters(RegistryEvent.Register<PerkConverter> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerPerkCustomModifiers(RegistryEvent.Register<PerkAttributeModifier> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerPerkAttributeReaders(RegistryEvent.Register<PerkAttributeReader> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerContainerTypes(RegistryEvent.Register<ContainerType<?>> event) {
-        RegistryContainerTypes.init();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerCrystalProperties(RegistryEvent.Register<CrystalProperty> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerCrystalUsages(RegistryEvent.Register<PropertyUsage> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerAltarRecipeEffects(RegistryEvent.Register<AltarRecipeEffect> event) {
-        RegistryRecipeTypes.initAltarEffects();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerDataSerializers(RegistryEvent.Register<DataSerializerEntry> event) {
-        RegistryDataSerializers.registerSerializers();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerRecipeSerializers(RegistryEvent.Register<IRecipeSerializer<?>> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerStructures(RegistryEvent.Register<MatchableStructure> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerStructureProviders(RegistryEvent.Register<ObserverProvider> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerStructureTypes(RegistryEvent.Register<StructureType> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerStructureTemplates(RegistryEvent.Register<Structure<?>> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerFeatures(RegistryEvent.Register<Feature<?>> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerPlacements(RegistryEvent.Register<Placement<?>> event) {
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private void registerSounds(RegistryEvent.Register<SoundEvent> event) {
-        RegistrySounds.init();
-        fillRegistry(event.getRegistry().getRegistrySuperType(), event.getRegistry());
-    }
-
-    private <T extends IForgeRegistryEntry<T>> void fillRegistry(Class<T> registrySuperType, IForgeRegistry<T> forgeRegistry) {
-        registry.getEntries(registrySuperType).forEach(e -> forgeRegistry.register((T) e));
+        throw new RuntimeException("No registry name for: " + obj.getClass());
     }
 
 }

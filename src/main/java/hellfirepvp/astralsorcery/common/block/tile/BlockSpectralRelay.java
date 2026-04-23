@@ -15,25 +15,31 @@ import hellfirepvp.astralsorcery.common.tile.TileSpectralRelay;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.*;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import javax.annotation.Nullable;
+
+import static hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction.rand;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -44,89 +50,108 @@ import javax.annotation.Nullable;
  */
 public class BlockSpectralRelay extends BlockStarlightNetwork implements CustomItemBlock {
 
-    private static final VoxelShape RELAY = Block.makeCuboidShape(2, 0, 2, 14, 2, 14);
+    private static final VoxelShape RELAY = Block.box(2, 0, 2, 14, 2, 14);
 
     public BlockSpectralRelay() {
         super(PropertiesGlass.coatedGlass()
-                .setLightLevel(state -> 4));
+                .lightLevel(state -> 4));
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader world, BlockPos pos, ISelectionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         return RELAY;
     }
 
     @Override
-    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
-        if (!world.isRemote()) {
-            ItemStack held = player.getHeldItem(hand);
-            TileSpectralRelay tar = MiscUtils.getTileAt(world, pos, TileSpectralRelay.class, true);
+    public InteractionResult use(BlockState state, Level level, BlockPos pos,
+                                 Player player, InteractionHand hand, BlockHitResult hit) {
+
+        if (!level.isClientSide) {
+            ItemStack held = player.getItemInHand(hand);
+            TileSpectralRelay tar = MiscUtils.getTileAt(level, pos, TileSpectralRelay.class, true);
+
             if (tar != null) {
                 TileInventory inv = tar.getInventory();
+
                 if (!held.isEmpty()) {
+
                     if (!inv.getStackInSlot(0).isEmpty()) {
                         ItemStack stack = inv.getStackInSlot(0);
-                        player.inventory.placeItemBackInInventory(world, stack);
+                        player.getInventory().placeItemBackInInventory(stack);
                         inv.setStackInSlot(0, ItemStack.EMPTY);
                         tar.markForUpdate();
-                        TileSpectralRelay.cascadeRelayProximityUpdates(world, pos);
+                        TileSpectralRelay.cascadeRelayProximityUpdates(level, pos);
                     }
 
-                    if (!world.isAirBlock(pos.up())) {
-                        return ActionResultType.PASS;
+                    if (!level.isEmptyBlock(pos.above())) {
+                        return InteractionResult.PASS;
                     }
 
                     inv.setStackInSlot(0, ItemUtils.copyStackWithSize(held, 1));
-                    world.playSound(null, pos.getX(), pos.getY(), pos.getZ(), SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F, ((world.rand.nextFloat() - world.rand.nextFloat()) * 0.7F + 1.0F) * 2.0F);
-                    if (!player.isCreative()) {
+
+                    RandomSource rand = level.getRandom();
+                    level.playSound(null, pos,
+                            SoundEvents.ITEM_PICKUP,
+                            SoundSource.PLAYERS,
+                            0.2F,
+                            ((rand.nextFloat() - rand.nextFloat()) * 0.7F + 1.0F) * 2.0F
+                    );
+
+                    if (!player.getAbilities().instabuild) {
                         held.shrink(1);
                     }
+
                     tar.updateAltarLinkState();
-                    TileSpectralRelay.cascadeRelayProximityUpdates(world, pos);
+                    TileSpectralRelay.cascadeRelayProximityUpdates(level, pos);
                     tar.markForUpdate();
+
                 } else {
                     if (!inv.getStackInSlot(0).isEmpty()) {
                         ItemStack stack = inv.getStackInSlot(0);
-                        player.inventory.placeItemBackInInventory(world, stack);
+                        player.getInventory().placeItemBackInInventory(stack);
                         inv.setStackInSlot(0, ItemStack.EMPTY);
-                        TileSpectralRelay.cascadeRelayProximityUpdates(world, pos);
+                        TileSpectralRelay.cascadeRelayProximityUpdates(level, pos);
                         tar.markForUpdate();
                     }
                 }
             }
         }
-        return ActionResultType.SUCCESS;
+
+        return InteractionResult.SUCCESS;
     }
 
     @Override
-    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
-        super.onReplaced(state, worldIn, pos, newState, isMoving);
-        if (!worldIn.isRemote()) {
-            TileSpectralRelay.cascadeRelayProximityUpdates(worldIn, pos);
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        super.onRemove(state, level, pos, newState, isMoving);
+
+        if (!level.isClientSide) {
+            TileSpectralRelay.cascadeRelayProximityUpdates(level, pos);
         }
     }
 
     @Override
-    public BlockState updatePostPlacement(BlockState state, Direction placedAgainst, BlockState facingState, IWorld world, BlockPos pos, BlockPos facingPos) {
-        if (!this.isValidPosition(state, world, pos)) {
-            return Blocks.AIR.getDefaultState();
+    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
+                                  Level level, BlockPos pos, BlockPos neighborPos) {
+
+        if (!canSurvive(state, level, pos)) {
+            return Blocks.AIR.defaultBlockState();
         }
         return state;
     }
 
     @Override
-    public boolean isValidPosition(BlockState state, IWorldReader world, BlockPos pos) {
-        return hasSolidSideOnTop(world, pos.down());
+    public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
+        return level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP);
     }
 
     @Override
-    public boolean hasComparatorInputOverride(BlockState p_149740_1_) {
+    public boolean hasAnalogOutputSignal(BlockState state) {
         return true;
     }
 
     @Override
-    public int getComparatorInputOverride(BlockState state, World world, BlockPos pos) {
-        TileSpectralRelay tsr = MiscUtils.getTileAt(world, pos, TileSpectralRelay.class, false);
+    public int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+        TileSpectralRelay tsr = MiscUtils.getTileAt(level, pos, TileSpectralRelay.class, false);
         if (tsr != null) {
             return tsr.getInventory().getStackInSlot(0).isEmpty() ? 0 : 15;
         }
@@ -134,18 +159,18 @@ public class BlockSpectralRelay extends BlockStarlightNetwork implements CustomI
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter level, BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState p_149645_1_) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TileSpectralRelay();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new TileSpectralRelay(pos, state);
     }
 }

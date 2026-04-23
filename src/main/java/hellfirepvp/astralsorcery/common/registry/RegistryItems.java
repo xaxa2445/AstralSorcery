@@ -35,19 +35,21 @@ import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
 import hellfirepvp.astralsorcery.common.util.dispenser.FluidContainerDispenseBehavior;
-import net.minecraft.block.Block;
-import net.minecraft.block.DispenserBlock;
+import net.minecraft.client.renderer.item.ItemProperties; // ItemModelsProperties -> ItemProperties
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.cauldron.CauldronInteraction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemModelsProperties;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.ColorHandlerEvent;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent; // ColorHandlerEvent.Item -> RegisterColorHandlersEvent.Item
 
 import java.util.List;
+import java.util.Locale;
 
 import static hellfirepvp.astralsorcery.common.lib.ItemsAS.*;
 
@@ -65,65 +67,67 @@ public class RegistryItems {
     private RegistryItems() {}
 
     public static void registerItems() {
-        AQUAMARINE = registerItem(new ItemAquamarine());
-        RESONATING_GEM = registerItem(new ItemResonatingGem());
-        GLASS_LENS = registerItem(new ItemGlassLens());
-        PARCHMENT = registerItem(new ItemParchment());
-        STARMETAL_INGOT = registerItem(new ItemStarmetalIngot());
-        STARDUST = registerItem(new ItemStardust());
+        AQUAMARINE = registerItem("aquamarine", new ItemAquamarine());
+        RESONATING_GEM = registerItem("resonating_gem", new ItemResonatingGem());
+        GLASS_LENS = registerItem("glass_lens",new ItemGlassLens());
+        PARCHMENT = registerItem("parchment", new ItemParchment());
+        STARMETAL_INGOT = registerItem("starmetal_ingot", new ItemStarmetalIngot());
+        STARDUST = registerItem("stardust", new ItemStardust());
 
-        PERK_GEM_SKY = registerItem(new ItemPerkGemSky());
-        PERK_GEM_DAY = registerItem(new ItemPerkGemDay());
-        PERK_GEM_NIGHT = registerItem(new ItemPerkGemNight());
-        CRYSTAL_AXE = registerItem(new ItemCrystalAxe());
-        CRYSTAL_PICKAXE = registerItem(new ItemCrystalPickaxe());
-        CRYSTAL_SHOVEL = registerItem(new ItemCrystalShovel());
-        CRYSTAL_SWORD = registerItem(new ItemCrystalSword());
-        INFUSED_CRYSTAL_AXE = registerItem(new ItemInfusedCrystalAxe());
-        INFUSED_CRYSTAL_PICKAXE = registerItem(new ItemInfusedCrystalPickaxe());
-        INFUSED_CRYSTAL_SHOVEL = registerItem(new ItemInfusedCrystalShovel());
-        INFUSED_CRYSTAL_SWORD = registerItem(new ItemInfusedCrystalSword());
+        PERK_GEM_SKY = registerItem("perk_gem_sky", new ItemPerkGemSky());
+        PERK_GEM_DAY = registerItem("perk_gem_day", new ItemPerkGemDay());
+        PERK_GEM_NIGHT = registerItem("perk_gem_night", new ItemPerkGemNight());
 
-        TOME = registerItem(new ItemTome());
-        CONSTELLATION_PAPER = registerItem(new ItemConstellationPaper());
-        ENCHANTMENT_AMULET = registerItem(new ItemEnchantmentAmulet());
-        KNOWLEDGE_SHARE = registerItem(new ItemKnowledgeShare());
-        WAND = registerItem(new ItemWand());
-        CHISEL = registerItem(new ItemChisel());
-        RESONATOR = registerItem(new ItemResonator());
-        LINKING_TOOL = registerItem(new ItemLinkingTool());
-        ILLUMINATION_WAND = registerItem(new ItemIlluminationWand());
-        ARCHITECT_WAND = registerItem(new ItemArchitectWand());
-        EXCHANGE_WAND = registerItem(new ItemExchangeWand());
-        GRAPPLE_WAND = registerItem(new ItemGrappleWand());
-        BLINK_WAND = registerItem(new ItemBlinkWand());
-        HAND_TELESCOPE = registerItem(new ItemHandTelescope());
-        INFUSED_GLASS = registerItem(new ItemInfusedGlass());
+        CRYSTAL_AXE = registerItem("crystal_axe", new ItemCrystalAxe());
+        CRYSTAL_PICKAXE = registerItem("crystal_pickaxe", new ItemCrystalPickaxe());
+        CRYSTAL_SHOVEL = registerItem("crystal_shovel", new ItemCrystalShovel());
+        CRYSTAL_SWORD = registerItem("crystal_sword", new ItemCrystalSword());
 
-        MANTLE = registerItem(new ItemMantle());
+        INFUSED_CRYSTAL_AXE = registerItem("infused_crystal_axe", new ItemInfusedCrystalAxe());
+        INFUSED_CRYSTAL_PICKAXE = registerItem("infused_crystal_pickaxe",new ItemInfusedCrystalPickaxe());
+        INFUSED_CRYSTAL_SHOVEL = registerItem("infused_crystal_shovel", new ItemInfusedCrystalShovel());
+        INFUSED_CRYSTAL_SWORD = registerItem("infused_crystal_sword", new ItemInfusedCrystalSword());
 
-        PERK_SEAL = registerItem(new ItemPerkSeal());
-        NOCTURNAL_POWDER = registerItem(new ItemNocturnalPowder());
-        ILLUMINATION_POWDER = registerItem(new ItemIlluminationPowder());
-        SHIFTING_STAR = registerItem(new ItemShiftingStar());
-        SHIFTING_STAR_AEVITAS = registerItem(new ItemShiftingStarAevitas());
-        SHIFTING_STAR_ARMARA = registerItem(new ItemShiftingStarArmara());
-        SHIFTING_STAR_DISCIDIA = registerItem(new ItemShiftingStarDiscidia());
-        SHIFTING_STAR_EVORSIO = registerItem(new ItemShiftingStarEvorsio());
-        SHIFTING_STAR_VICIO = registerItem(new ItemShiftingStarVicio());
+        TOME = registerItem("tome", new ItemTome());
+        CONSTELLATION_PAPER = registerItem("constellation_paper", new ItemConstellationPaper());
+        ENCHANTMENT_AMULET = registerItem("enchantment_amulet",new ItemEnchantmentAmulet());
+        KNOWLEDGE_SHARE = registerItem("knowledge_share", new ItemKnowledgeShare());
+        WAND = registerItem("wand", new ItemWand());
+        CHISEL = registerItem("chisel", new ItemChisel());
+        RESONATOR = registerItem("resonator", new ItemResonator());
+        LINKING_TOOL = registerItem("linking_tool", new ItemLinkingTool());
+        ILLUMINATION_WAND = registerItem("illumination_wand", new ItemIlluminationWand());
+        ARCHITECT_WAND = registerItem("architect_wand", new ItemArchitectWand());
+        EXCHANGE_WAND = registerItem("exchange_wand", new ItemExchangeWand());
+        GRAPPLE_WAND = registerItem("grapple_wand", new ItemGrappleWand());
+        BLINK_WAND = registerItem("blink_wand", new ItemBlinkWand());
+        HAND_TELESCOPE = registerItem("hand_telescope", new ItemHandTelescope());
+        INFUSED_GLASS = registerItem("infused_glass", new ItemInfusedGlass());
 
-        COLORED_LENS_FIRE = registerItem(new ItemColoredLensFire());
-        COLORED_LENS_BREAK = registerItem(new ItemColoredLensBreak());
-        COLORED_LENS_GROWTH = registerItem(new ItemColoredLensGrowth());
-        COLORED_LENS_DAMAGE = registerItem(new ItemColoredLensDamage());
-        COLORED_LENS_REGENERATION = registerItem(new ItemColoredLensRegeneration());
-        COLORED_LENS_PUSH = registerItem(new ItemColoredLensPush());
-        COLORED_LENS_SPECTRAL = registerItem(new ItemColoredLensSpectral());
+        MANTLE = registerItem("mantle", new ItemMantle());
 
-        ROCK_CRYSTAL = registerItem(new ItemRockCrystal());
-        ATTUNED_ROCK_CRYSTAL = registerItem(new ItemAttunedRockCrystal());
-        CELESTIAL_CRYSTAL = registerItem(new ItemCelestialCrystal());
-        ATTUNED_CELESTIAL_CRYSTAL = registerItem(new ItemAttunedCelestialCrystal());
+        PERK_SEAL = registerItem("perk_seal", new ItemPerkSeal());
+        NOCTURNAL_POWDER = registerItem("nocturnal_powder", new ItemNocturnalPowder());
+        ILLUMINATION_POWDER = registerItem("illumination_powder", new ItemIlluminationPowder());
+        SHIFTING_STAR = registerItem("shifting_star", new ItemShiftingStar());
+        SHIFTING_STAR_AEVITAS = registerItem("shifting_star_aevitas", new ItemShiftingStarAevitas());
+        SHIFTING_STAR_ARMARA = registerItem("shifting_star_armara", new ItemShiftingStarArmara());
+        SHIFTING_STAR_DISCIDIA = registerItem("shifting_star_discidia", new ItemShiftingStarDiscidia());
+        SHIFTING_STAR_EVORSIO = registerItem("shifting_star_evorsio", new ItemShiftingStarEvorsio());
+        SHIFTING_STAR_VICIO = registerItem("shifting_star_vicio", new ItemShiftingStarVicio());
+
+        COLORED_LENS_FIRE = registerItem("colored_lens_fire", new ItemColoredLensFire());
+        COLORED_LENS_BREAK = registerItem("colored_lens_break", new ItemColoredLensBreak());
+        COLORED_LENS_GROWTH = registerItem("colored_lens_growth", new ItemColoredLensGrowth());
+        COLORED_LENS_DAMAGE = registerItem("colored_lens_damage", new ItemColoredLensDamage());
+        COLORED_LENS_REGENERATION = registerItem("colored_lens_regeneration", new ItemColoredLensRegeneration());
+        COLORED_LENS_PUSH = registerItem("colored_lens_push", new ItemColoredLensPush());
+        COLORED_LENS_SPECTRAL = registerItem("colored_lens_spectral", new ItemColoredLensSpectral());
+
+        ROCK_CRYSTAL = registerItem("rock_crystal", new ItemRockCrystal());
+        ATTUNED_ROCK_CRYSTAL = registerItem("attuned_rock_crystal", new ItemAttunedRockCrystal());
+        CELESTIAL_CRYSTAL = registerItem("celestial_crystal", new ItemCelestialCrystal());
+        ATTUNED_CELESTIAL_CRYSTAL = registerItem("attuned_celestial_crystal", new ItemAttunedCelestialCrystal());
     }
 
     public static void registerItemBlocks() {
@@ -131,77 +135,125 @@ public class RegistryItems {
     }
 
     public static void registerFluidContainerItems() {
-        RegistryFluids.FLUID_HOLDER_ITEMS.forEach(RegistryItems::registerItem);
+        RegistryFluids.FLUID_HOLDER_ITEMS.forEach(item ->
+                registerItem(getName(item), item)
+        );
     }
 
     @OnlyIn(Dist.CLIENT)
-    public static void registerColors(ColorHandlerEvent.Item itemColorEvent) {
-        colorItems.forEach(item -> itemColorEvent.getItemColors().register(item::getColor, (Item) item));
+    public static void registerColors(net.minecraftforge.client.event.RegisterColorHandlersEvent.Item event) {
+        colorItems.forEach(item ->
+                event.register(item::getColor, item)
+        );
     }
 
     public static void registerDispenseBehaviors() {
-        DispenserBlock.registerDispenseBehavior(BUCKET_LIQUID_STARLIGHT, FluidContainerDispenseBehavior.getInstance());
+        DispenserBlock.registerBehavior(
+                BUCKET_LIQUID_STARLIGHT,
+                FluidContainerDispenseBehavior.getInstance()
+        );
     }
 
     public static void registerItemProperties() {
-        ItemModelsProperties.registerProperty(INFUSED_GLASS, new ResourceLocation("engraved"), (stack, world, entity) -> {
-            return ItemInfusedGlass.getEngraving(stack) != null ? 1 : 0;
-        });
-        ItemModelsProperties.registerProperty(KNOWLEDGE_SHARE, new ResourceLocation("written"), (stack, world, entity) -> {
-            return ItemKnowledgeShare.isCreative(stack) || ItemKnowledgeShare.getKnowledge(stack) != null ? 1 : 0;
-        });
-        ItemModelsProperties.registerProperty(RESONATOR, new ResourceLocation("upgrade"), (stack, world, entity) -> {
-            if (!(entity instanceof PlayerEntity)) {
-                return ItemResonator.ResonatorUpgrade.STARLIGHT.ordinal() / (float) ItemResonator.ResonatorUpgrade.values().length;
-            }
-            ItemResonator.ResonatorUpgrade current = ItemResonator.getCurrentUpgrade((PlayerEntity) entity, stack);
-            return current.ordinal() / (float) ItemResonator.ResonatorUpgrade.values().length;
-        });
-        ItemModelsProperties.registerProperty(Item.getItemFromBlock(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER), new ResourceLocation("stage"), (stack, world, entity) -> {
-            return ((float) stack.getDamage()) / BlockCelestialCrystalCluster.STAGE.getAllowedValues().size();
-        });
-        ItemModelsProperties.registerProperty(Item.getItemFromBlock(BlocksAS.GEM_CRYSTAL_CLUSTER), new ResourceLocation("stage"), (stack, world, entity) -> {
-            return ((float) stack.getDamage()) / BlockGemCrystalCluster.STAGE.getAllowedValues().size();
-        });
+
+        ItemProperties.register(INFUSED_GLASS, new ResourceLocation("engraved"),
+                (stack, level, entity, seed) ->
+                        ItemInfusedGlass.getEngraving(stack) != null ? 1F : 0F
+        );
+
+        ItemProperties.register(KNOWLEDGE_SHARE, new ResourceLocation("written"),
+                (stack, level, entity, seed) ->
+                        ItemKnowledgeShare.isCreative(stack) || ItemKnowledgeShare.getKnowledge(stack) != null ? 1F : 0F
+        );
+
+        ItemProperties.register(RESONATOR, new ResourceLocation("upgrade"),
+                (stack, level, entity, seed) -> {
+
+                    if (!(entity instanceof Player player)) {
+                        return ItemResonator.ResonatorUpgrade.STARLIGHT.ordinal() /
+                                (float) ItemResonator.ResonatorUpgrade.values().length;
+                    }
+
+                    ItemResonator.ResonatorUpgrade current =
+                            ItemResonator.getCurrentUpgrade(player, stack);
+
+                    return current.ordinal() /
+                            (float) ItemResonator.ResonatorUpgrade.values().length;
+                }
+        );
+
+        // 🔥 CAMBIO IMPORTANTE: ya no uses Item.getItemFromBlock
+        ItemProperties.register(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.asItem(),
+                new ResourceLocation("stage"),
+                (stack, level, entity, seed) ->
+                        (float) stack.getDamageValue() /
+                                BlockCelestialCrystalCluster.STAGE.getPossibleValues().size()
+        );
+
+        ItemProperties.register(BlocksAS.GEM_CRYSTAL_CLUSTER.asItem(),
+                new ResourceLocation("stage"),
+                (stack, level, entity, seed) ->
+                        (float) stack.getDamageValue() /
+                                BlockGemCrystalCluster.STAGE.getPossibleValues().size()
+        );
     }
 
     private static void registerItemBlock(CustomItemBlock block) {
         BlockItem itemBlock = block.createItemBlock(buildItemBlockProperties((Block) block));
-        itemBlock.setRegistryName(itemBlock.getBlock().getRegistryName());
-        AstralSorcery.getProxy().getRegistryPrimer().register(itemBlock);
+
+        AstralSorcery.getProxy()
+                .getRegistryPrimer()
+                .register(Item.class,
+                        new RegistryAccess.RegistryEntry<>(block.getRegistryName(), itemBlock));
     }
 
     private static <T extends Item> T registerItem(T item) {
+
         ResourceLocation name = NameUtil.fromClass(item, "Item");
-        item.setRegistryName(name);
-        AstralSorcery.getProxy().getRegistryPrimer().register(item);
-        if (item instanceof ItemDynamicColor) {
-            colorItems.add((ItemDynamicColor) item);
+
+        if (item instanceof IHasRegistryName hasName) {
+            hasName.setRegistryName(name);
+        } else {
+            throw new RuntimeException("Item sin registry name: " + item);
         }
+
+        AstralSorcery.getProxy().getRegistryPrimer().register(Item.class, item);
+
+        if (item instanceof ItemDynamicColor color) {
+            colorItems.add(color);
+        }
+
         return item;
     }
 
     private static Item.Properties buildItemBlockProperties(Block block) {
         Item.Properties props = new Item.Properties();
-        props.group(CommonProxy.ITEM_GROUP_AS);
-        if (block instanceof CustomItemBlockProperties) {
-            ItemGroup group = ((CustomItemBlockProperties) block).getItemGroup();
-            if (group != null) {
-                props.group(group);
-            }
-            if (!((CustomItemBlockProperties) block).canItemBeRepaired()) {
-                props.setNoRepair();
+
+        // ⚠️ Creative tab ahora es diferente (puedes ignorarlo por ahora)
+
+        if (block instanceof CustomItemBlockProperties custom) {
+
+            if (!custom.canItemBeRepaired()) {
+                props = props.stacksTo(1);
             }
 
-            props.rarity(((CustomItemBlockProperties) block).getItemRarity());
-            props.maxStackSize(((CustomItemBlockProperties) block).getItemMaxStackSize());
-            props.defaultMaxDamage(((CustomItemBlockProperties) block).getItemMaxDamage());
-            props.containerItem(((CustomItemBlockProperties) block).getContainerItem());
-            props.setISTER(((CustomItemBlockProperties) block).getItemTEISR());
+            props = props.rarity(custom.getItemRarity());
+            props = props.stacksTo(custom.getItemMaxStackSize());
 
-            ((CustomItemBlockProperties) block).getItemToolLevels().forEach(props::addToolType);
+            if (custom.getItemMaxDamage() > 0) {
+                props = props.durability(custom.getItemMaxDamage());
+            }
+
+            if (custom.getContainerItem() != null) {
+                props = props.craftRemainder(custom.getContainerItem());
+            }
         }
+
         return props;
+    }
+
+    private static String getName(Item item) {
+        return item.getClass().getSimpleName().toLowerCase(Locale.ROOT);
     }
 
 }

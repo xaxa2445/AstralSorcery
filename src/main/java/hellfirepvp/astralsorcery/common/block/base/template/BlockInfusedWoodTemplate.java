@@ -10,11 +10,11 @@ package hellfirepvp.astralsorcery.common.block.base.template;
 
 import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesWood;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.Direction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockReader;
+import net.minecraft.world.level.block.Block;
 
 /**
  * This class is part of the Astral Sorcery Mod

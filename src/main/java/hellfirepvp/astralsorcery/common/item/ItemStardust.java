@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.item;
 
-import hellfirepvp.astralsorcery.common.CommonProxy;
-import net.minecraft.item.Item;
+import net.minecraft.world.item.Item;
+
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -21,7 +21,6 @@ import net.minecraft.item.Item;
 public class ItemStardust extends Item {
 
     public ItemStardust() {
-        super(new Properties()
-                .group(CommonProxy.ITEM_GROUP_AS));
+        super(new Item.Properties());
     }
 }

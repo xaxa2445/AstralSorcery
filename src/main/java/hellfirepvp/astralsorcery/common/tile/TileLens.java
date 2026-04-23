@@ -24,17 +24,18 @@ import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.RaytraceAssist;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,8 +60,8 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
     //So we can tell the client to render beams eventhough the actual connection doesn't exist.
     private List<BlockPos> occupiedConnections = new LinkedList<>();
 
-    protected TileLens(TileEntityType<?> tileEntityTypeIn) {
-        super(tileEntityTypeIn);
+    protected TileLens(BlockEntityType<?> type) {
+        super(type);
     }
 
     public TileLens() {
@@ -72,7 +73,7 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
         super.tick();
 
         if (colorType != null) {
-            if (world.isRemote()) {
+            if (level.isClientSide()) {
                 playColorEffects();
             }
             doColorEffects();
@@ -96,8 +97,8 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
     }
 
     private void doColorEffects() {
-        World world = this.getWorld();
-        if (!world.isRemote() && !this.occupiedConnections.isEmpty()) {
+        if (level == null) return;
+        if (!level.isClientSide() && !this.occupiedConnections.isEmpty()) {
             this.occupiedConnections.clear();
             markForUpdate();
             preventNetworkSync();
@@ -122,17 +123,17 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
             Vector3 to = new Vector3(linkedTo).add(0.5, 0.5, 0.5);
             RaytraceAssist rta = new RaytraceAssist(thisVec, to).includeEndPoint();
             if (colorType.getType().doBlockInteraction()) {
-                if (!rta.isClear(world) && rta.positionHit() != null) {
+                if (!rta.isClear(level) && rta.positionHit() != null) {
                     BlockPos posHit = rta.positionHit();
 
-                    BlockState stateHit = world.getBlockState(posHit);
-                    colorType.blockInBeam(world, posHit, stateHit, exec);
+                    BlockState stateHit = level.getBlockState(posHit);
+                    colorType.blockInBeam(level, posHit, stateHit, exec);
 
-                    if (!world.isRemote()) {
+                    if (!level.isClientSide()) {
                         this.occupiedConnections.add(posHit);
                     }
                 } else {
-                    if (!world.isRemote()) {
+                    if (!level.isClientSide()) {
                         this.occupiedConnections.add(linkedTo);
                     }
                 }
@@ -141,9 +142,9 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
                 exec.reset();
 
                 rta.setCollectEntities(0.5);
-                rta.isClear(world);
-                List<Entity> found = rta.collectedEntities(world);
-                found.forEach(e -> colorType.entityInBeam(world, thisVec, to, e, exec));
+                rta.isClear(level);
+                List<Entity> found = rta.collectedEntities(level);
+                found.forEach(e -> colorType.entityInBeam(level, thisVec, to, e, exec));
             }
         }
     }
@@ -187,11 +188,11 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
     }
 
     public Direction getPlacedAgainst() {
-        BlockState state = world.getBlockState(getPos());
+        BlockState state = level.getBlockState(getBlockPos());
         if (!(state.getBlock() instanceof BlockLens)) {
             return Direction.DOWN;
         }
-        return state.get(BlockLens.PLACED_AGAINST);
+        return state.getValue(BlockLens.PLACED_AGAINST);
     }
 
     @Override
@@ -211,7 +212,7 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.attributes = CrystalAttributes.getCrystalAttributes(compound);
@@ -220,18 +221,18 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
         } else {
             this.colorType = null;
         }
-        this.occupiedConnections = NBTHelper.readList(compound, "occupiedConnections", Constants.NBT.TAG_COMPOUND,
-                nbt -> NBTHelper.readBlockPosFromNBT((CompoundNBT) nbt));
+        this.occupiedConnections = NBTHelper.readList(compound, "occupiedConnections", Tag.TAG_COMPOUND,
+                nbt -> NBTHelper.readBlockPosFromNBT((CompoundTag) nbt));
     }
 
     @Override
-    public void readNetNBT(CompoundNBT compound) {
+    public void readNetNBT(CompoundTag compound) {
         super.readNetNBT(compound);
         this.accumulatedStarlight = compound.getFloat("accumulatedStarlight");
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         if (this.attributes != null) {
@@ -241,11 +242,11 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
             compound.putString("colorType", this.colorType.getName().toString());
         }
         NBTHelper.writeList(compound, "occupiedConnections", this.occupiedConnections,
-                pos -> NBTHelper.writeBlockPosToNBT(pos, new CompoundNBT()));
+                pos -> NBTHelper.writeBlockPosToNBT(pos, new CompoundTag()));
     }
 
     @Override
-    public void writeNetNBT(CompoundNBT compound) {
+    public void writeNetNBT(CompoundTag compound) {
         super.writeNetNBT(compound);
         compound.putFloat("accumulatedStarlight", this.accumulatedStarlight);
     }
