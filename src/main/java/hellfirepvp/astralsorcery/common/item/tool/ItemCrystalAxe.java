@@ -11,21 +11,26 @@ package hellfirepvp.astralsorcery.common.item.tool;
 import com.google.common.collect.Sets;
 import hellfirepvp.astralsorcery.common.item.base.TypeEnchantableItem;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.material.Material;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.WoodType;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.tags.BlockTags;
+
+import net.minecraftforge.common.ToolActions;
+
+import java.util.Set;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -37,12 +42,27 @@ import net.minecraftforge.common.ToolType;
 public class ItemCrystalAxe extends ItemCrystalTierItem implements TypeEnchantableItem {
 
     public ItemCrystalAxe() {
-        super(ToolType.AXE, new Properties(), Sets.newHashSet(Material.WOOD, Material.PLANTS, Material.TALL_PLANTS, Material.BAMBOO, Material.LEAVES));
+        super(ToolActions.AXE_DIG, new Item.Properties(),
+                Sets.newHashSet(
+                        Blocks.OAK_LOG,
+                        Blocks.SPRUCE_LOG,
+                        Blocks.BIRCH_LOG,
+                        Blocks.JUNGLE_LOG,
+                        Blocks.ACACIA_LOG,
+                        Blocks.DARK_OAK_LOG,
+                        Blocks.MANGROVE_LOG,
+                        Blocks.CHERRY_LOG
+                ));
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> stacks) {
-        if (this.isInGroup(group)) {
+    protected boolean isCorrectTool(BlockState state) {
+        return state.is(BlockTags.MINEABLE_WITH_AXE);
+    }
+
+    @Override
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> stacks) {
+        if (this.allowedIn(tab)) {
             ItemStack stack = new ItemStack(this);
             CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
             stacks.add(stack);
@@ -50,15 +70,11 @@ public class ItemCrystalAxe extends ItemCrystalTierItem implements TypeEnchantab
     }
 
     @Override
-    public boolean canEnchantItem(ItemStack stack, EnchantmentType type) {
-        return type == EnchantmentType.BREAKABLE || type == EnchantmentType.DIGGER;
+    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
+        return enchantment.category == EnchantmentCategory.DIGGER
+                || enchantment.category == EnchantmentCategory.BREAKABLE;
     }
 
-    @Override
-    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
-        EnchantmentType type = enchantment.type;
-        return type == EnchantmentType.DIGGER || type == EnchantmentType.BREAKABLE;
-    }
 
     @Override
     double getAttackDamage() {
@@ -72,29 +88,41 @@ public class ItemCrystalAxe extends ItemCrystalTierItem implements TypeEnchantab
 
     @Override
     protected boolean isToolEfficientAgainst(BlockState state) {
-        return state.getMaterial() == Material.LEAVES;
+        return state.is(BlockTags.LEAVES);
     }
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
-        World world = context.getWorld();
-        BlockPos blockpos = context.getPos();
-        BlockState blockstate = world.getBlockState(blockpos);
-        BlockState block = blockstate.getToolModifiedState(world, blockpos, context.getPlayer(), context.getItem(), ToolType.AXE);
-        if (block != null) {
-            PlayerEntity playerentity = context.getPlayer();
-            world.playSound(playerentity, blockpos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 1.0F, 1.0F);
-            if (!world.isRemote()) {
-                world.setBlockState(blockpos, block, 11);
-                if (playerentity != null) {
-                    context.getItem().damageItem(1, playerentity, (stack) ->
-                            stack.sendBreakAnimation(context.getHand()));
+    public InteractionResult useOn(UseOnContext context) {
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+        Player player = context.getPlayer();
+        ItemStack stack = context.getItemInHand();
+
+        BlockState state = level.getBlockState(pos);
+
+        // 🔥 reemplazo de getToolModifiedState
+        BlockState modified = state.getToolModifiedState(context, ToolActions.AXE_STRIP, false);
+
+        if (modified != null) {
+            level.playSound(player, pos, SoundEvents.AXE_STRIP, SoundSource.BLOCKS, 1.0F, 1.0F);
+
+            if (!level.isClientSide) {
+                level.setBlock(pos, modified, 11);
+
+                if (player != null) {
+                    stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(context.getHand()));
                 }
             }
 
-            return ActionResultType.func_233537_a_(world.isRemote());
-        } else {
-            return ActionResultType.PASS;
+            return InteractionResult.sidedSuccess(level.isClientSide);
         }
+
+        return InteractionResult.PASS;
+    }
+
+    @Override
+    public boolean canEnchantItem(ItemStack stack, EnchantmentCategory category) {
+        return category == EnchantmentCategory.DIGGER
+                || category == EnchantmentCategory.BREAKABLE;
     }
 }

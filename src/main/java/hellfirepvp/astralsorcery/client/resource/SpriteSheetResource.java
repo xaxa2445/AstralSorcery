@@ -12,6 +12,7 @@ import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.effect.EntityComplexFX;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
 import net.minecraft.client.renderer.RenderStateShard;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth; // MathHelper ahora es Mth (Math) en 1.20.1
 
 /**
@@ -109,6 +110,10 @@ public class SpriteSheetResource extends AbstractRenderableTexture {
         float perc = agePart / fx.getMaxAge();
         long timer = Mth.floor(this.getFrameCount() * perc);
         return (timer % frameCount / columns) * vPart;
+    }
+
+    public ResourceLocation getTextureLocation() {
+        return this.resource.getKey();
     }
 
     // --- Getters requeridos por SpriteQuery ---

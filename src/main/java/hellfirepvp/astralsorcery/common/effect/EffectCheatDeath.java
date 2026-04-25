@@ -12,14 +12,15 @@ import hellfirepvp.astralsorcery.client.resource.AssetLoader;
 import hellfirepvp.astralsorcery.client.resource.query.SpriteQuery;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EffectsAS;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.EffectType;
-import net.minecraft.potion.Effects;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +35,7 @@ import java.util.List;
 public class EffectCheatDeath extends EffectCustomTexture {
 
     public EffectCheatDeath() {
-        super(EffectType.BENEFICIAL, ColorsAS.EFFECT_CHEAT_DEATH);
+        super(MobEffectCategory.BENEFICIAL, ColorsAS.EFFECT_CHEAT_DEATH);
     }
 
     @Override
@@ -49,23 +50,40 @@ public class EffectCheatDeath extends EffectCustomTexture {
     }
 
     private void onDeath(LivingDeathEvent event) {
-        LivingEntity le = event.getEntityLiving();
-        if (!le.getEntityWorld().isRemote() && le.isPotionActive(EffectsAS.EFFECT_CHEAT_DEATH)) {
+        LivingEntity le = event.getEntity();
+
+        if (!le.level().isClientSide && le.hasEffect(EffectsAS.EFFECT_CHEAT_DEATH)) {
             event.setCanceled(true);
 
-            int level = le.removeActivePotionEffect(EffectsAS.EFFECT_CHEAT_DEATH).getAmplifier();
+            MobEffectInstance inst = le.getEffect(EffectsAS.EFFECT_CHEAT_DEATH);
+            if (inst == null) return;
+
+            int level = inst.getAmplifier();
+            le.removeEffect(EffectsAS.EFFECT_CHEAT_DEATH);
+
+            // Curación
             le.setHealth(Math.min(le.getMaxHealth(), 4 + level * 2));
-            le.addPotionEffect(new EffectInstance(Effects.REGENERATION, 200, 2, false, false, true));
-            le.addPotionEffect(new EffectInstance(Effects.FIRE_RESISTANCE, 500, 1, false, false, true));
-            List<LivingEntity> others = le.getEntityWorld().getEntitiesWithinAABB(LivingEntity.class,
-                    le.getBoundingBox().grow(3), (e) -> e.isAlive() && e != le);
-            for (LivingEntity lb : others) {
-                lb.setFire(10);
-                lb.applyKnockback(2F, lb.getPosX() - le.getPosX(), lb.getPosZ() - le.getPosZ());
+
+            // Buffs
+            le.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 2, false, false, true));
+            le.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 500, 1, false, false, true));
+
+            // Knockback + fuego a entidades cercanas
+            List<LivingEntity> others = le.level().getEntitiesOfClass(
+                    LivingEntity.class,
+                    le.getBoundingBox().inflate(3),
+                    e -> e.isAlive() && e != le
+            );
+
+            for (LivingEntity target : others) {
+                target.setSecondsOnFire(10);
+                target.knockback(2F,
+                        target.getX() - le.getX(),
+                        target.getZ() - le.getZ()
+                );
             }
-            //TODO particles
-            //PktParticleEvent ev = new PktParticleEvent(PktParticleEvent.ParticleEventType.PHOENIX_PROC, new Vector3(le.getPosX(), le.getPosY(), le.getPosZ()));
-            //PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(le.world, le.getPosition(), 32));
+
+            // TODO partículas (lo dejamos igual que el original)
         }
     }
 

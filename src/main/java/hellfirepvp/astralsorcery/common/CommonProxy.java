@@ -66,33 +66,31 @@ import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
 import hellfirepvp.observerlib.common.event.BlockChangeNotifier;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import hellfirepvp.observerlib.common.util.tick.TickManager;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.IArmorMaterial;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Rarity;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.ChatFormatting;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraft.world.storage.FolderName;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.storage.LevelResource;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.FakePlayer;
 import net.minecraftforge.common.util.FakePlayerFactory;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.common.util.LogicalSidedProvider;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
-import net.minecraftforge.fml.event.server.FMLServerStartedEvent;
-import net.minecraftforge.fml.event.server.FMLServerStartingEvent;
-import net.minecraftforge.fml.event.server.FMLServerStoppedEvent;
-import net.minecraftforge.fml.event.server.FMLServerStoppingEvent;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.io.File;
 import java.util.List;
@@ -119,29 +117,26 @@ public class CommonProxy {
     public static DamageSource DAMAGE_SOURCE_REFLECT = DamageSourceUtil.newType("thorns")
             .setDamageBypassesArmor().setDamageIsAbsolute();
 
-    public static final ItemGroup ITEM_GROUP_AS = new ItemGroup(AstralSorcery.MODID) {
-        @Override
-        public ItemStack createIcon() {
-            return new ItemStack(TOME);
-        }
-    };
-    public static final ItemGroup ITEM_GROUP_AS_PAPERS = new ItemGroup(AstralSorcery.MODID + ".papers") {
-        @Override
-        public ItemStack createIcon() {
-            return new ItemStack(CONSTELLATION_PAPER);
-        }
-    };
-    public static final ItemGroup ITEM_GROUP_AS_CRYSTALS = new ItemGroup(AstralSorcery.MODID + ".crystals") {
-        @Override
-        public ItemStack createIcon() {
-            return new ItemStack(ROCK_CRYSTAL);
-        }
-    };
-    public static final Rarity RARITY_CELESTIAL = Rarity.create("AS_CELESTIAL", TextFormatting.BLUE);
-    public static final Rarity RARITY_ARTIFACT = Rarity.create("AS_ARTIFACT", TextFormatting.GOLD);
-    public static final Rarity RARITY_VESTIGE = Rarity.create("AS_VESTIGE", TextFormatting.RED);
+    // Creative Tabs
+    public static final CreativeModeTab ITEM_GROUP_AS = CreativeModeTab.builder()
+            .title(Component.literal("Astral Sorcery"))
+            .icon(() -> new ItemStack(TOME))
+            .build();
 
-    public static final IArmorMaterial ARMOR_MATERIAL_IMBUED_LEATHER = new ArmorMaterialImbuedLeather();
+    public static final CreativeModeTab ITEM_GROUP_AS_PAPERS = CreativeModeTab.builder()
+            .title(Component.literal("Astral Sorcery Papers"))
+            .icon(() -> new ItemStack(CONSTELLATION_PAPER))
+            .build();
+
+    public static final CreativeModeTab ITEM_GROUP_AS_CRYSTALS = CreativeModeTab.builder()
+            .title(Component.literal("Astral Sorcery Crystals"))
+            .icon(() -> new ItemStack(ROCK_CRYSTAL))
+            .build();
+    public static final Rarity RARITY_CELESTIAL = Rarity.create("AS_CELESTIAL", ChatFormatting.BLUE);
+    public static final Rarity RARITY_ARTIFACT = Rarity.create("AS_ARTIFACT", ChatFormatting.GOLD);
+    public static final Rarity RARITY_VESTIGE = Rarity.create("AS_VESTIGE", ChatFormatting.RED);
+
+    public static final ArmorMaterial ARMOR_MATERIAL_IMBUED_LEATHER = new ArmorMaterialImbuedLeather();
 
     private InternalRegistryPrimer registryPrimer;
     private PrimerEventHandler registryEventHandler;
@@ -304,21 +299,17 @@ public class CommonProxy {
 
     // Utils
 
-    public FakePlayer getASFakePlayerServer(ServerWorld world) {
+    public FakePlayer getASFakePlayerServer(ServerLevel world) {
         return FakePlayerFactory.get(world, new GameProfile(FAKEPLAYER_UUID, "AS-FakePlayer"));
     }
 
     public File getASServerDataDirectory() {
-        MinecraftServer server = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-        if (server == null) {
-            return null;
-        }
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return null;
 
-        File asDataDir = server.func_240776_a_(new FolderName(AstralSorcery.MODID)).toFile();
-        if (!asDataDir.exists()) {
-            asDataDir.mkdirs();
-        }
-        return asDataDir;
+        File dir = server.getWorldPath(LevelResource.ROOT).resolve(AstralSorcery.MODID).toFile();
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
     }
 
     public void scheduleClientside(Runnable r, int tickDelay) {}
@@ -337,12 +328,12 @@ public class CommonProxy {
 
     // GUI stuff
 
-    public void openGuiClient(GuiType type, CompoundNBT data) {
+    public void openGuiClient(GuiType type, CompoundTag data) {
         //No-Op
     }
 
-    public void openGui(PlayerEntity player, GuiType type, Object... data) {
-        if (player instanceof ServerPlayerEntity && !(player instanceof FakePlayer)) {
+    public void openGui(Player player, GuiType type, Object... data) {
+        if (player instanceof ServerPlayer && !(player instanceof FakePlayer)) {
             PktOpenGui pkt = new PktOpenGui(type, type.serializeArguments(data));
             PacketChannel.CHANNEL.sendToPlayer(player, pkt);
         }
@@ -376,18 +367,18 @@ public class CommonProxy {
         event.addListener(PerkTreeLoader.INSTANCE);
     }
 
-    private void onServerStarted(FMLServerStartedEvent event) {
+    private void onServerStarted(ServerStartedEvent event) {
         this.serverLifecycleListeners.forEach(ServerLifecycleListener::onServerStart);
     }
 
-    private void onServerStarting(FMLServerStartingEvent event) {
+    private void onServerStarting(ServerStartingEvent event) {
 
     }
 
-    private void onServerStopping(FMLServerStoppingEvent event) {
+    private void onServerStopping(ServerStoppingEvent event) {
         this.serverLifecycleListeners.forEach(ServerLifecycleListener::onServerStop);
     }
 
-    private void onServerStop(FMLServerStoppedEvent event) {
+    private void onServerStop(ServerStoppedEvent event) {
     }
 }

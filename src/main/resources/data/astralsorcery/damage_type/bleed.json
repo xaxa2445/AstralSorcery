@@ -1,0 +1,8 @@
+{
+  "message_id": "bleed",
+  "scaling": "never",
+  "exhaustion": 0.1,
+  "effects": {
+    "bypasses_armor": true
+  }
+}

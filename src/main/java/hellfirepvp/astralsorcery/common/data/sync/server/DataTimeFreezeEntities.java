@@ -12,12 +12,12 @@ import hellfirepvp.astralsorcery.common.data.sync.base.AbstractData;
 import hellfirepvp.astralsorcery.common.data.sync.base.AbstractDataProvider;
 import hellfirepvp.astralsorcery.common.data.sync.base.ClientDataReader;
 import hellfirepvp.astralsorcery.common.data.sync.client.ClientTimeFreezeEntities;
-import net.minecraft.entity.Entity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.IntNBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 
 import java.util.*;
@@ -31,37 +31,37 @@ import java.util.*;
  */
 public class DataTimeFreezeEntities extends AbstractData {
 
-    private final Map<RegistryKey<World>, Set<Integer>> serverActiveEntityFreeze = new HashMap<>();
+    private final Map<ResourceKey<Level>, Set<Integer>> serverActiveEntityFreeze = new HashMap<>();
 
-    private final Set<RegistryKey<World>> serverSyncTypes = new HashSet<>();
+    private final Set<ResourceKey<Level>> serverSyncTypes = new HashSet<>();
 
     private DataTimeFreezeEntities(ResourceLocation key) {
         super(key);
     }
 
     public void freezeEntity(Entity e) {
-        RegistryKey<World> dim = e.getEntityWorld().getDimensionKey();
-        if (this.serverActiveEntityFreeze.computeIfAbsent(dim, dimType -> new HashSet<>()).add(e.getEntityId())) {
+        ResourceKey<Level> dim = e.level().dimension();
+        if (this.serverActiveEntityFreeze.computeIfAbsent(dim, dimType -> new HashSet<>()).add(e.getId())) {
             this.serverSyncTypes.add(dim);
             this.markDirty();
         }
     }
 
     public void unfreezeEntity(Entity e) {
-        RegistryKey<World> dim = e.getEntityWorld().getDimensionKey();
-        if (this.serverActiveEntityFreeze.getOrDefault(dim, Collections.emptySet()).remove(e.getEntityId())) {
+        ResourceKey<Level> dim = e.level().dimension();
+        if (this.serverActiveEntityFreeze.getOrDefault(dim, Collections.emptySet()).remove(e.getId())) {
             this.serverSyncTypes.add(dim);
             this.markDirty();
         }
     }
 
     public boolean isFrozen(Entity e) {
-        RegistryKey<World> dim = e.getEntityWorld().getDimensionKey();
-        return this.serverActiveEntityFreeze.getOrDefault(dim, Collections.emptySet()).contains(e.getEntityId());
+        ResourceKey<Level> dim = e.level().dimension();
+        return this.serverActiveEntityFreeze.getOrDefault(dim, Collections.emptySet()).contains(e.getId());
     }
 
     @Override
-    public void clear(RegistryKey<World> dimType) {
+    public void clear(ResourceKey<Level> dimType) {
         this.serverActiveEntityFreeze.remove(dimType);
     }
 
@@ -72,13 +72,13 @@ public class DataTimeFreezeEntities extends AbstractData {
     }
 
     @Override
-    public void writeAllDataToPacket(CompoundNBT compound) {
+    public void writeAllDataToPacket(CompoundTag compound) {
         this.writeEntityInformation(compound, this.serverActiveEntityFreeze);
     }
 
     @Override
-    public void writeDiffDataToPacket(CompoundNBT compound) {
-        Map<RegistryKey<World>, Set<Integer>> entities = new HashMap<>();
+    public void writeDiffDataToPacket(CompoundTag compound) {
+        Map<ResourceKey<Level>, Set<Integer>> entities = new HashMap<>();
         this.serverSyncTypes.forEach(type -> {
             entities.put(type, this.serverActiveEntityFreeze.getOrDefault(type, new HashSet<>()));
         });
@@ -86,12 +86,12 @@ public class DataTimeFreezeEntities extends AbstractData {
         this.serverSyncTypes.clear();
     }
 
-    private void writeEntityInformation(CompoundNBT out, Map<RegistryKey<World>, Set<Integer>> entities) {
-        CompoundNBT dimTag = new CompoundNBT();
+    private void writeEntityInformation(CompoundTag out, Map<ResourceKey<Level>, Set<Integer>> entities) {
+        CompoundTag dimTag = new CompoundTag();
         entities.forEach((dim, entityIds) -> {
-            ListNBT nbtEntities = new ListNBT();
-            entityIds.forEach(id -> nbtEntities.add(IntNBT.valueOf(id)));
-            dimTag.put(dim.getLocation().toString(), nbtEntities);
+            ListTag nbtEntities = new ListTag();
+            entityIds.forEach(id -> nbtEntities.add(IntTag.valueOf(id)));
+            dimTag.put(dim.location().toString(), nbtEntities);
         });
         out.put("dimTypes", dimTag);
     }

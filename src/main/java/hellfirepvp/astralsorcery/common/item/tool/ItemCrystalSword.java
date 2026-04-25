@@ -17,23 +17,21 @@ import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.crystal.CrystalCalculations;
 import hellfirepvp.astralsorcery.common.item.base.TypeEnchantableItem;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.WebBlock;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
-import net.minecraft.entity.ai.attributes.Attribute;
-import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.Attributes;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.SwordItem;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.world.level.block.WebBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -48,18 +46,25 @@ import java.util.List;
 public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem, TypeEnchantableItem {
 
     public ItemCrystalSword() {
-        super(CrystalToolTier.getInstance(),
+        super(
+                CrystalToolTier.getInstance(),
                 0,
                 0F,
                 new Properties()
+                        .durability(CrystalToolTier.getInstance().getUses())
                         .setNoRepair()
-                        .maxDamage(CrystalToolTier.getInstance().getMaxUses())
-                        .group(CommonProxy.ITEM_GROUP_AS));
+        );
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> stacks) {
-        if (this.isInGroup(group)) {
+    public boolean canEnchantItem(ItemStack stack, EnchantmentCategory category) {
+        return category == EnchantmentCategory.WEAPON
+                || category == EnchantmentCategory.BREAKABLE;
+    }
+
+    @Override
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> stacks) {
+        if (this.allowedIn(tab)) {
             ItemStack stack = new ItemStack(this);
             CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
             stacks.add(stack);
@@ -67,8 +72,9 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World world, List<ITextComponent> tooltip, ITooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level,
+                                List<Component> tooltip, TooltipFlag flag) {
+
         CrystalAttributes attr = getAttributes(stack);
         if (attr != null) {
             attr.addTooltip(tooltip, CalculationContext.Builder.newBuilder()
@@ -76,8 +82,10 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
                     .addUsage(CrystalPropertiesAS.Usages.USE_TOOL_EFFECTIVENESS)
                     .build());
         }
-        super.addInformation(stack, world, tooltip, flag);
+
+        super.appendHoverText(stack, level, tooltip, flag);
     }
+
 
     @Override
     public int getMaxDamage(ItemStack stack) {
@@ -90,13 +98,26 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
 
     @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
-        EnchantmentType type = enchantment.type;
-        return type == EnchantmentType.WEAPON || type == EnchantmentType.BREAKABLE;
+        return enchantment.category == EnchantmentCategory.WEAPON
+                || enchantment.category == EnchantmentCategory.BREAKABLE;
     }
 
     @Override
-    public boolean canHarvestBlock(ItemStack stack, BlockState state) {
-        return state.getBlock() instanceof WebBlock;
+    public boolean canEnchant(ItemStack stack, Enchantment enchantment) {
+        return enchantment.category == EnchantmentCategory.WEAPON
+                || enchantment.category == EnchantmentCategory.BREAKABLE;
+    }
+
+    @Override
+    public float getDestroySpeed(ItemStack stack, BlockState state) {
+        if (state.getBlock() instanceof WebBlock) {
+            return 15.0F;
+        }
+        return 1.0F;
+    }
+
+    private double getAttackSpeed() {
+        return -2.4;
     }
 
     @Override
@@ -111,10 +132,6 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
         } else {
             return this.getAttackDamage();
         }
-    }
-
-    private double getAttackSpeed() {
-        return -2.4;
     }
 
     @Nullable
@@ -138,27 +155,36 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
     }
 
     @Override
-    public boolean getIsRepairable(ItemStack toRepair, ItemStack repair) {
+    public boolean isValidRepairItem(ItemStack stack, ItemStack repair) {
         return false;
     }
 
     @Override
-    public boolean canEnchantItem(ItemStack stack, EnchantmentType type) {
-        return type == EnchantmentType.BREAKABLE || type == EnchantmentType.WEAPON;
+    public int getEnchantmentValue(ItemStack stack) {
+        return CrystalToolTier.getInstance().getEnchantmentValue();
     }
 
     @Override
-    public int getItemEnchantability(ItemStack stack) {
-        return CrystalToolTier.getInstance().getEnchantability();
-    }
+    public Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(EquipmentSlot slot) {
+        Multimap<Attribute, AttributeModifier> map = HashMultimap.create();
 
-    @Override
-    public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlotType slot, ItemStack stack) {
-        Multimap<Attribute, AttributeModifier> multimap = HashMultimap.create();
-        if (slot == EquipmentSlotType.MAINHAND) {
-            multimap.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(ATTACK_DAMAGE_MODIFIER, "Tool modifier", this.getAttackDamage(stack), AttributeModifier.Operation.ADDITION));
-            multimap.put(Attributes.ATTACK_SPEED, new AttributeModifier(ATTACK_SPEED_MODIFIER, "Tool modifier", this.getAttackSpeed(), AttributeModifier.Operation.ADDITION));
+        if (slot == EquipmentSlot.MAINHAND) {
+
+            double damage = CrystalToolTier.getInstance().getAttackDamageBonus();
+
+            map.put(Attributes.ATTACK_DAMAGE,
+                    new AttributeModifier(BASE_ATTACK_DAMAGE_UUID,
+                            "Tool modifier",
+                            damage,
+                            AttributeModifier.Operation.ADDITION));
+
+            map.put(Attributes.ATTACK_SPEED,
+                    new AttributeModifier(BASE_ATTACK_SPEED_UUID,
+                            "Tool modifier",
+                            this.getAttackSpeed(),
+                            AttributeModifier.Operation.ADDITION));
         }
-        return multimap;
+
+        return map;
     }
 }

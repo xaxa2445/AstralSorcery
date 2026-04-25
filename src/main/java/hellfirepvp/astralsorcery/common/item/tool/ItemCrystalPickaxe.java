@@ -11,13 +11,15 @@ package hellfirepvp.astralsorcery.common.item.tool;
 import com.google.common.collect.Sets;
 import hellfirepvp.astralsorcery.common.item.base.TypeEnchantableItem;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
-import net.minecraft.block.material.Material;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.core.NonNullList;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.item.Tiers;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -29,12 +31,23 @@ import net.minecraftforge.common.ToolType;
 public class ItemCrystalPickaxe extends ItemCrystalTierItem implements TypeEnchantableItem {
 
     public ItemCrystalPickaxe() {
-        super(ToolType.PICKAXE, new Properties(), Sets.newHashSet(Material.ROCK, Material.IRON, Material.ANVIL));
+        super(Tiers.DIAMOND, 1, -2.8F, new Properties());
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> stacks) {
-        if (this.isInGroup(group)) {
+    public boolean canEnchantItem(ItemStack stack, EnchantmentCategory category) {
+        return category == EnchantmentCategory.DIGGER
+                || category == EnchantmentCategory.BREAKABLE;
+    }
+
+    @Override
+    protected boolean isCorrectTool(BlockState state) {
+        return state.is(BlockTags.MINEABLE_WITH_PICKAXE);
+    }
+
+    @Override
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> stacks) {
+        if (this.allowedIn(tab)) {
             ItemStack stack = new ItemStack(this);
             CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
             stacks.add(stack);
@@ -42,14 +55,9 @@ public class ItemCrystalPickaxe extends ItemCrystalTierItem implements TypeEncha
     }
 
     @Override
-    public boolean canEnchantItem(ItemStack stack, EnchantmentType type) {
-        return type == EnchantmentType.BREAKABLE || type == EnchantmentType.DIGGER;
-    }
-
-    @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
-        EnchantmentType type = enchantment.type;
-        return type == EnchantmentType.DIGGER || type == EnchantmentType.BREAKABLE;
+        return enchantment.category == EnchantmentCategory.DIGGER
+                || enchantment.category == EnchantmentCategory.BREAKABLE;
     }
 
     @Override

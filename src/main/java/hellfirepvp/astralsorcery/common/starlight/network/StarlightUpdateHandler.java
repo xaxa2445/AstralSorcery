@@ -11,7 +11,7 @@ package hellfirepvp.astralsorcery.common.starlight.network;
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
 
@@ -27,7 +27,7 @@ import java.util.*;
 public class StarlightUpdateHandler implements ITickHandler {
 
     private static final StarlightUpdateHandler instance = new StarlightUpdateHandler();
-    private static final Map<RegistryKey<World>, List<IPrismTransmissionNode>> updateRequired = new HashMap<>();
+    private static final Map<ResourceKey<Level>, List<IPrismTransmissionNode>> updateRequired = new HashMap<>();
     private static final Object accessLock = new Object();
 
     private StarlightUpdateHandler() {}
@@ -38,8 +38,8 @@ public class StarlightUpdateHandler implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        World world = (World) context[0];
-        if (world.isRemote()) {
+        Level world = (Level) context[0];
+        if (world.isClientSide()) {
             return;
         }
 
@@ -51,25 +51,25 @@ public class StarlightUpdateHandler implements ITickHandler {
         }
     }
 
-    private List<IPrismTransmissionNode> getNodes(World world) {
-        return updateRequired.computeIfAbsent(world.getDimensionKey(), k -> new LinkedList<>());
+    private List<IPrismTransmissionNode> getNodes(Level world) {
+        return updateRequired.computeIfAbsent(world.dimension(), k -> new LinkedList<>());
     }
 
-    public void removeNode(World world, IPrismTransmissionNode node) {
+    public void removeNode(Level world, IPrismTransmissionNode node) {
         synchronized (accessLock) {
             getNodes(world).remove(node);
         }
     }
 
-    public void addNode(World world, IPrismTransmissionNode node) {
+    public void addNode(Level world, IPrismTransmissionNode node) {
         synchronized (accessLock) {
             getNodes(world).add(node);
         }
     }
 
-    public void informWorldLoad(World world) {
+    public void informWorldLoad(Level world) {
         synchronized (accessLock) {
-            updateRequired.remove(world.getDimensionKey());
+            updateRequired.remove(world.dimension());
         }
     }
 
@@ -81,7 +81,7 @@ public class StarlightUpdateHandler implements ITickHandler {
 
     @Override
     public EnumSet<TickEvent.Type> getHandledTypes() {
-        return EnumSet.of(TickEvent.Type.WORLD);
+        return EnumSet.of(TickEvent.Type.LEVEL);
     }
 
     @Override

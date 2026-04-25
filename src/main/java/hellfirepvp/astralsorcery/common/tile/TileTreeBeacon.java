@@ -34,22 +34,22 @@ import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.tags.BlockTags;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.event.world.SaplingGrowTreeEvent;
+import net.minecraftforge.event.level.SaplingGrowTreeEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -71,7 +71,6 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
 
     private final Map<BlockPos, Integer> treeComponents = new HashMap<>();
     private UUID playerUUID = null;
-
     private float starlight = 0F;
 
     public TileTreeBeacon() {
@@ -82,7 +81,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     public void tick() {
         super.tick();
 
-        if (this.getWorld().isRemote()) {
+        if (level.isClientSide) {
             playEffects();
         } else {
             doHarvestCycle();
@@ -92,7 +91,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     private void doHarvestCycle() {
         boolean changed = this.starlight > 0 || !this.treeComponents.isEmpty();
 
-        int cycles = Math.max(1, MathHelper.ceil(this.starlight * 0.8F));
+        int cycles = Math.max(1, Mth.ceil(this.starlight * 0.8F));
         this.starlight = 0;
         for (int i = 0; i < cycles; i++) {
             float filled = this.treeComponents.size() / Config.CONFIG.maxCount.get().floatValue();
@@ -102,7 +101,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
 
             BlockPos pos = MiscUtils.getWeightedRandomEntry(this.treeComponents.keySet(), rand, this.treeComponents::get);
             if (pos != null) {
-                TileTreeBeaconComponent component = MiscUtils.getTileAt(this.getWorld(), pos, TileTreeBeaconComponent.class, false);
+                TileTreeBeaconComponent component = MiscUtils.getTileAt(level, pos, TileTreeBeaconComponent.class, false);
                 if (component != null && harvestTree(component)) {
 
                     int breakChance = Config.CONFIG.breakChance.get();
@@ -115,10 +114,10 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
                     PktPlayEffect effect = new PktPlayEffect(PktPlayEffect.Type.BLOCK_HARVEST_DRAW)
                             .addData(buf -> {
                                 ByteBufUtils.writeVector(buf, new Vector3(pos).add(0.5, 0.5, 0.5));
-                                ByteBufUtils.writeVector(buf, new Vector3(this.getPos()).add(0.5, 0.5, 0.5));
+                                ByteBufUtils.writeVector(buf, new Vector3(this.getBlockPos()).add(0.5, 0.5, 0.5));
                                 buf.writeInt(this.getColor(LogicalSide.SERVER).getRGB());
                             });
-                    PacketChannel.CHANNEL.sendToAllAround(effect, PacketChannel.pointFromPos(this.getWorld(), this.getPos(), 32));
+                    PacketChannel.CHANNEL.sendToAllAround(effect, PacketChannel.pointFromPos(level, this.getBlockPos(), 32));
                 }
             }
         }
@@ -132,14 +131,13 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         if (rand.nextFloat() > Config.CONFIG.dropChance.get()) {
             return true;
         }
-        World world = this.getWorld();
-        if (!(world instanceof ServerWorld)) {
+        if (!(level instanceof ServerLevel serverLevel)) {
             return false;
         }
-        if (!MiscUtils.canEntityTickAt(world, harvest.getPos())) {
+        if (!MiscUtils.canEntityTickAt(level, harvest.getBlockPos())) {
             return false;
         }
-        List<ItemStack> drops = BlockUtils.getDrops((ServerWorld) world, harvest.getPos(), harvest.getFakedState(), 2, rand, ItemStack.EMPTY);
+        List<ItemStack> drops = BlockUtils.getDrops((ServerLevel) level, harvest.getBlockPos(), harvest.getFakedState(), 2, rand, ItemStack.EMPTY);
         drops.forEach(drop -> {
             if (drop.isEmpty()) {
                 return;
@@ -147,8 +145,8 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
             Vector3 offset = new Vector3(0.5, 0.5, 0.5);
             MiscUtils.applyRandomOffset(offset, rand, 2F);
             offset.setY(Math.abs(offset.getY()));
-            Vector3 at = new Vector3(this.getPos()).add(offset);
-            ItemUtils.dropItemNaturally(world, at.getX(), at.getY(), at.getZ(), drop);
+            Vector3 at = new Vector3(this.getBlockPos()).add(offset);
+            ItemUtils.dropItemNaturally(level, at.getX(), at.getY(), at.getZ(), drop);
         });
         return false;
     }
@@ -164,11 +162,11 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     private void captureTree(Supplier<List<BlockPos>> treeGenerator) {
         List<BlockPos> tree = treeGenerator.get();
         tree.stream()
-                .sorted(Comparator.comparing(pos -> pos.distanceSq(this.getPos())))
+                .sorted(Comparator.comparing(pos -> pos.distSqr(this.getBlockPos())))
                 .filter(pos -> !this.addComponent(pos))
                 .forEach(pos -> {
                     //Update blocks that didn't get a client notification
-                    world.markAndNotifyBlock(pos, world.getChunkAt(pos), Blocks.AIR.getDefaultState(), world.getBlockState(pos), Constants.BlockFlags.DEFAULT_AND_RERENDER, 512);
+                    level.markAndNotifyBlock(pos, level.getChunkAt(pos), Blocks.AIR.defaultBlockState(), level.getBlockState(pos), 3, 512);
                 });
     }
 
@@ -177,19 +175,19 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
             return false;
         }
 
-        World world = this.getWorld();
+        Level world = this.getLevel();
         BlockState state = world.getBlockState(pos);
-        if (!state.isAir(world, pos)) {
-            if (this.getWorld().setBlockState(pos, BlocksAS.TREE_BEACON_COMPONENT.getDefaultState(), Constants.BlockFlags.DEFAULT)) {
+        if (!state.isAir()) {
+            if (level.setBlock(pos, BlocksAS.TREE_BEACON_COMPONENT.defaultBlockState(), 3)) {
                 TileTreeBeaconComponent tfs = MiscUtils.getTileAt(world, pos, TileTreeBeaconComponent.class, true);
                 if (tfs == null) {
-                    this.getWorld().setBlockState(pos, state, Constants.BlockFlags.DEFAULT);
+                    this.getLevel().setBlock(pos, state, 3);
                     return false;
                 }
 
-                boolean isLog = state.getBlock().isIn(BlockTags.LOGS);
+                boolean isLog = state.is(BlockTags.LOGS);
                 tfs.setFakedState(state);
-                tfs.setTreeBeaconPos(this.getPos());
+                tfs.setTreeBeaconPos(this.getBlockPos());
                 tfs.setOverlayColor(this.getColor(LogicalSide.SERVER));
                 return this.treeComponents.put(pos, isLog ? Config.CONFIG.logWeight.get() : Config.CONFIG.leafWeight.get()) == null;
             }
@@ -203,8 +201,8 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         VFXColorFunction<?> colorFn = VFXColorFunction.constant(color);
 
         float radius = Config.CONFIG.range.get().floatValue();
-        Vector3 thisPos = new Vector3(this.getPos()).add(0.5, 0.5, 0.5);
-        int amt = MathHelper.floor( radius * Math.PI / 8);
+        Vector3 thisPos = new Vector3(this.getBlockPos()).add(0.5, 0.5, 0.5);
+        int amt = Mth.floor( radius * Math.PI / 8);
         for (int i = 0; i < amt; i++) {
             Vector3 at = MiscUtils.getRandomCirclePosition(thisPos, Vector3.RotAxis.Y_AXIS, radius);
             MiscUtils.applyRandomOffset(at, rand, 0.35F);
@@ -220,7 +218,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
             Vector3 offset = new Vector3(0.5, 0.5, 0.5);
             MiscUtils.applyRandomCircularOffset(offset, rand, radius);
             offset.setY(offset.getY() * 0.75F);
-            Vector3 at = new Vector3(this.getPos()).add(offset);
+            Vector3 at = new Vector3(this.getBlockPos()).add(offset);
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(at)
                     .color(colorFn)
@@ -230,7 +228,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         }
 
         if (rand.nextInt(20) == 0) {
-            float alphaDaytime = DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+            float alphaDaytime = DayTimeHelper.getCurrentDaytimeDistribution(getLevel());
             alphaDaytime *= 0.8F;
 
             Vector3 at = new Vector3(this).add(0.5, 0.05, 0.5);
@@ -312,13 +310,13 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     @Nonnull
     @Override
     public BlockPos getEffectOriginPosition() {
-        return this.getPos();
+        return this.getBlockPos();
     }
 
     @Nonnull
     @Override
-    public RegistryKey<World> getDimension() {
-        return this.getWorld().getDimensionKey();
+    public ResourceKey<Level> getDimension() {
+        return this.getLevel().dimension();
     }
 
     @Override
@@ -328,10 +326,10 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
 
     @Override
     public void validate() {
-        super.validate();
+        super.isvalidate();
 
         TreeWatcher.WATCHERS.computeIfAbsent(this.getDimension(), type -> new HashSet<>())
-                .add(this.getPos());
+                .add(this.getBlockPos());
     }
 
     @Override
@@ -339,7 +337,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         super.remove();
 
         TreeWatcher.WATCHERS.computeIfAbsent(this.getDimension(), type -> new HashSet<>())
-                .remove(this.getPos());
+                .remove(this.getBlockPos());
     }
 
     @Override
@@ -347,7 +345,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         super.onBreak();
 
         this.treeComponents.keySet().forEach(pos -> {
-            TileTreeBeaconComponent component = MiscUtils.getTileAt(this.getWorld(), pos, TileTreeBeaconComponent.class, true);
+            TileTreeBeaconComponent component = MiscUtils.getTileAt(this.getLevel(), pos, TileTreeBeaconComponent.class, true);
             if (component != null) {
                 component.revert();
             }
@@ -356,13 +354,13 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.treeComponents.clear();
-        ListNBT componentList = compound.getList("components", Constants.NBT.TAG_COMPOUND);
+        ListTag componentList = compound.getList("components", Tag.TAG_COMPOUND);
         for (int i = 0; i < componentList.size(); i++) {
-            CompoundNBT tag = componentList.getCompound(i);
+            CompoundTag tag = componentList.getCompound(i);
             this.treeComponents.put(NBTHelper.readBlockPosFromNBT(tag), tag.getInt("weight"));
         }
 
@@ -372,12 +370,12 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
-        ListNBT componentList = new ListNBT();
+        ListTag componentList = new ListTag();
         MapStream.forEach(this.treeComponents, (pos, weight) -> {
-            CompoundNBT tag = new CompoundNBT();
+            CompoundTag tag = new CompoundTag();
             NBTHelper.writeBlockPosToNBT(pos, tag);
             tag.putInt("weight", weight);
             componentList.add(tag);
@@ -387,7 +385,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         compound.putFloat("starlight", this.starlight);
 
         if (this.playerUUID != null) {
-            compound.putUniqueId("playerUUID", this.playerUUID);
+            compound.putUUID("playerUUID", this.playerUUID);
         }
     }
 
@@ -444,28 +442,28 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
 
     public static class TreeWatcher {
 
-        private static final Map<RegistryKey<World>, Set<BlockPos>> WATCHERS = new HashMap<>();
+        private static final Map<ResourceKey<Level>, Set<BlockPos>> WATCHERS = new HashMap<>();
 
         public static void clearServerCache() {
             WATCHERS.clear();
         }
 
         public static void onGrow(SaplingGrowTreeEvent event) {
-            if (event.getWorld().isRemote() || !(event.getWorld() instanceof ServerWorld)) {
+            if (event.getLevel().isClientSide() || !(event.getLevel() instanceof ServerLevel)) {
                 return;
             }
 
-            ServerWorld world = (ServerWorld) event.getWorld();
+            ServerLevel world = (ServerLevel) event.getLevel();
             BlockPos treePos = event.getPos();
             TreeType type = TreeType.isTree(world, treePos);
             if (type == null) {
                 return;
             }
             double rangeSq = Config.CONFIG.range.get() * Config.CONFIG.range.get();
-            BlockPos closestBeacon = WATCHERS.getOrDefault(world.getDimensionKey(), Collections.emptySet())
+            BlockPos closestBeacon = WATCHERS.getOrDefault(world.dimension(), Collections.emptySet())
                     .stream()
-                    .filter(pos -> pos.distanceSq(treePos) < rangeSq)
-                    .min(Comparator.comparing(pos -> pos.distanceSq(treePos)))
+                    .filter(pos -> pos.distSqr(treePos) < rangeSq)
+                    .min(Comparator.comparing(pos -> pos.distSqr(treePos)))
                     .orElse(null);
             if (closestBeacon == null) {
                 return;
@@ -477,7 +475,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
 
             event.setResult(Event.Result.DENY);
 
-            Supplier<List<BlockPos>> generator = type.getTreeGenerator(world, treePos, event.getRand());
+            Supplier<List<BlockPos>> generator = type.getTreeGenerator(world, treePos, event.getRandomSource());
             ttb.captureTree(generator);
         }
     }

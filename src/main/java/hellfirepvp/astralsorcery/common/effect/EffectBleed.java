@@ -12,15 +12,15 @@ import hellfirepvp.astralsorcery.client.resource.AssetLoader;
 import hellfirepvp.astralsorcery.client.resource.query.SpriteQuery;
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
+import hellfirepvp.astralsorcery.common.util.DamageHelper;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.EffectType;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
-
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.server.ServerStartedEvent;
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
@@ -31,24 +31,31 @@ import net.minecraftforge.fml.LogicalSidedProvider;
 public class EffectBleed extends EffectCustomTexture {
 
     public EffectBleed() {
-        super(EffectType.HARMFUL, ColorsAS.EFFECT_BLEED);
+        super(MobEffectCategory.HARMFUL, ColorsAS.EFFECT_BLEED);
     }
 
     @Override
-    public boolean isReady(int duration, int amplifier) {
+    public boolean isDurationEffectTick(int duration, int amplifier) {
         return duration % 20 == 0;
     }
 
     @Override
-    public void performEffect(LivingEntity entity, int amplifier) {
-        if (entity instanceof PlayerEntity &&
-                !entity.getEntityWorld().isRemote() &&
-                entity.getEntityWorld() instanceof ServerWorld &&
-                !((MinecraftServer) LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER)).isPVPEnabled()) {
-            return;
+    public void applyEffectTick(LivingEntity entity, int amplifier) {
+
+        if (entity instanceof Player player) {
+            if (player.getServer() != null && !player.getServer().isPvpAllowed()) {
+                return;
+            }
         }
-        DamageUtil.shotgunAttack(entity, e -> DamageUtil.attackEntityFrom(e, CommonProxy.DAMAGE_SOURCE_BLEED, 0.5F * (amplifier + 1)));
+
+        DamageUtil.shotgunAttack(entity,
+                e -> e.hurt(
+                        DamageHelper.source(e.level(), ASDamageTypes.BLEED),
+                        0.5F * (amplifier + 1)
+                )
+        );
     }
+
 
     @Override
     public SpriteQuery getSpriteQuery() {

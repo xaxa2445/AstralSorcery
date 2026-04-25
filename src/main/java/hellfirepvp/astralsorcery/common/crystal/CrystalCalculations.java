@@ -12,8 +12,8 @@ import hellfirepvp.astralsorcery.common.crystal.source.Ritual;
 import hellfirepvp.astralsorcery.common.starlight.transmission.base.crystal.IndependentCrystalSource;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.tile.network.StarlightReceiverRitualPedestal;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.Mth;
 
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Properties.PROPERTY_SIZE;
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Sources.*;
@@ -100,7 +100,7 @@ public class CrystalCalculations {
         CalculationContext ctx = CalculationContext.Builder.newBuilder()
                 .addUsage(USE_LENS_TRANSFER)
                 .build();
-        return MathHelper.clamp((float) calculate(1F, attributes, ctx), 0F, 1F);
+        return Mth.clamp((float) calculate(1F, attributes, ctx), 0F, 1F);
     }
 
     // Range: 1.0 - 1.6
@@ -108,7 +108,7 @@ public class CrystalCalculations {
         CalculationContext ctx = CalculationContext.Builder.newBuilder()
                 .addUsage(USE_LENS_EFFECT)
                 .build();
-        return MathHelper.clamp((float) calculate(1F, attributes, ctx), 0F, 1F);
+        return Mth.clamp((float) calculate(1F, attributes, ctx), 0F, 1F);
     }
 
     // Range: 1.0 - 11.56 (Multiplier)

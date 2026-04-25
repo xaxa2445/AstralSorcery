@@ -127,6 +127,7 @@ dependencies {
     implementation fg.deobf(files("libs/Botania-1.20.1-450-FORGE.jar"))
     implementation fg.deobf(files("libs/Patchouli-1.20.1-85-FORGE.jar"))
     implementation fg.deobf(files("libs/curios-forge-5.14.1+1.20.1.jar"))
+    implementation fg.deobf(files("libs/CraftTweaker-forge-1.20.1-14.0.60.jar"))
 
     // Specify the version of Minecraft to use.
     // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.

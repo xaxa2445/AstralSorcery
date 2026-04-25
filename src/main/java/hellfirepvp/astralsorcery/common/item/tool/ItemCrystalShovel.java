@@ -12,21 +12,21 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import hellfirepvp.astralsorcery.common.item.base.TypeEnchantableItem;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.CampfireBlock;
-import net.minecraft.block.material.Material;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.util.*;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CampfireBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.Map;
 
@@ -39,32 +39,41 @@ import java.util.Map;
  */
 public class ItemCrystalShovel extends ItemCrystalTierItem implements TypeEnchantableItem {
 
-    private static final Map<Block, BlockState> BLOCK_PAVE_MAP = new ImmutableMap.Builder<Block, BlockState>()
-            .put(Blocks.GRASS_BLOCK, Blocks.GRASS_PATH.getDefaultState())
-            .build();
+    private static final Map<Block, BlockState> BLOCK_PAVE_MAP =
+            ImmutableMap.<Block, BlockState>builder()
+                    .put(Blocks.GRASS_BLOCK, Blocks.DIRT_PATH.defaultBlockState())
+                    .build();
+
+    @Override
+    public boolean canEnchantItem(ItemStack stack, EnchantmentCategory category) {
+        return category == EnchantmentCategory.DIGGER
+                || category == EnchantmentCategory.BREAKABLE;
+    }
 
     public ItemCrystalShovel() {
-        super(ToolType.SHOVEL, new Properties(), Sets.newHashSet(Material.SNOW, Material.SNOW_BLOCK));
+        super(new Properties());
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> stacks) {
-        if (this.isInGroup(group)) {
+    protected boolean isCorrectTool(BlockState state) {
+        return state.is(BlockTags.MINEABLE_WITH_SHOVEL);
+    }
+
+    @Override
+    public void fillItemCategory(net.minecraft.world.item.CreativeModeTab tab,
+                                 net.minecraft.core.NonNullList<ItemStack> items) {
+
+        if (this.allowedIn(tab)) {
             ItemStack stack = new ItemStack(this);
             CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
-            stacks.add(stack);
+            items.add(stack);
         }
     }
 
     @Override
-    public boolean canEnchantItem(ItemStack stack, EnchantmentType type) {
-        return type == EnchantmentType.BREAKABLE || type == EnchantmentType.DIGGER;
-    }
-
-    @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
-        EnchantmentType type = enchantment.type;
-        return type == EnchantmentType.DIGGER || type == EnchantmentType.BREAKABLE;
+        return enchantment.category == EnchantmentCategory.DIGGER
+                || enchantment.category == EnchantmentCategory.BREAKABLE;
     }
 
     @Override
@@ -78,42 +87,50 @@ public class ItemCrystalShovel extends ItemCrystalTierItem implements TypeEnchan
     }
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
-        World world = context.getWorld();
-        BlockPos pos = context.getPos();
-        BlockState state = world.getBlockState(pos);
-        if (context.getFace() == Direction.DOWN) {
-            return ActionResultType.PASS;
-        } else {
-            PlayerEntity playerentity = context.getPlayer();
-            BlockState modifiedState = state.getToolModifiedState(world, pos, playerentity, context.getItem(), ToolType.SHOVEL);
-            BlockState targetState = null;
-            if (modifiedState != null && world.isAirBlock(pos.up())) {
-                world.playSound(playerentity, pos, SoundEvents.ITEM_SHOVEL_FLATTEN, SoundCategory.BLOCKS, 1.0F, 1.0F);
-                targetState = modifiedState;
-            } else if (state.getBlock() instanceof CampfireBlock && state.get(CampfireBlock.LIT)) {
-                if (!world.isRemote()) {
-                    world.playEvent(null, 1009, pos, 0);
-                }
+    public InteractionResult useOn(UseOnContext context) {
+        Level level = context.getLevel();
+        BlockPos pos = context.getClickedPos();
+        BlockState state = level.getBlockState(pos);
+        Player player = context.getPlayer();
 
-                CampfireBlock.extinguish(world, pos, state);
-                targetState = state.with(CampfireBlock.LIT, false);
-            }
-
-            if (targetState != null) {
-                if (!world.isRemote()) {
-                    world.setBlockState(pos, targetState, 11);
-                    if (playerentity != null) {
-                        context.getItem().damageItem(1, playerentity, (player) -> {
-                            player.sendBreakAnimation(context.getHand());
-                        });
-                    }
-                }
-
-                return ActionResultType.func_233537_a_(world.isRemote());
-            } else {
-                return ActionResultType.PASS;
-            }
+        if (context.getClickedFace().getAxis().isVertical()) {
+            return InteractionResult.PASS;
         }
+
+        BlockState modified = state.getToolModifiedState(context, net.minecraftforge.common.ToolActions.SHOVEL_FLATTEN, false);
+
+        BlockState resultState = null;
+
+        // PATH CREATION
+        if (modified != null && level.isEmptyBlock(pos.above())) {
+            level.playSound(player, pos, SoundEvents.SHOVEL_FLATTEN, SoundSource.BLOCKS, 1.0F, 1.0F);
+            resultState = modified;
+        }
+
+        // CAMPFIRE EXTINGUISH
+        else if (state.getBlock() instanceof CampfireBlock && state.getValue(CampfireBlock.LIT)) {
+            if (!level.isClientSide) {
+                level.levelEvent(null, 1009, pos, 0);
+            }
+
+            CampfireBlock.dowse(context.getPlayer(), level, pos, state);
+            resultState = state.setValue(CampfireBlock.LIT, false);
+        }
+
+        if (resultState != null) {
+            if (!level.isClientSide) {
+                level.setBlock(pos, resultState, 11);
+
+                ItemStack stack = context.getItemInHand();
+                if (player != null) {
+                    stack.hurtAndBreak(1, player, p ->
+                            p.broadcastBreakEvent(context.getHand()));
+                }
+            }
+
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+
+        return InteractionResult.PASS;
     }
 }

@@ -27,30 +27,25 @@ import hellfirepvp.astralsorcery.common.perk.source.provider.equipment.Equipment
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.astralsorcery.common.util.object.CacheReference;
-import net.minecraft.client.renderer.entity.model.BipedModel;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.EntityModel;
+import net.minecraft.core.NonNullList;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ArmorItem;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
 
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -62,28 +57,30 @@ import java.util.UUID;
 public class ItemMantle extends ArmorItem implements ItemDynamicColor, ConstellationBaseItem, EquipmentAttributeModifierProvider, AlignmentChargeConsumer {
 
     private static final UUID MODIFIER_ID = UUID.fromString("aae54b9d-e1c8-4e74-8ac6-efa06093bd1a");
-    private static final CacheReference<DynamicAttributeModifier> MINING_SIZE_MODIFIER =
-            new CacheReference<>(() -> new DynamicAttributeModifier(MODIFIER_ID, PerkAttributeTypesAS.ATTR_TYPE_MINING_SIZE, ModifierType.ADDITION, 2F));
 
-    private static Object modelArmor = null;
+    private static final CacheReference<DynamicAttributeModifier> MINING_SIZE_MODIFIER =
+            new CacheReference<>(() -> new DynamicAttributeModifier(
+                    MODIFIER_ID,
+                    PerkAttributeTypesAS.ATTR_TYPE_MINING_SIZE,
+                    ModifierType.ADDITION,
+                    2F
+            ));
+
+    private static HumanoidModel<?> modelArmor = null;
 
     public ItemMantle() {
         super(CommonProxy.ARMOR_MATERIAL_IMBUED_LEATHER,
-                EquipmentSlotType.CHEST,
-                new Properties()
-                    .maxStackSize(1)
-                    .group(CommonProxy.ITEM_GROUP_AS)
-        );
+                ArmorItem.Type.CHESTPLATE,
+                new Item.Properties().stacksTo(1));
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (this.isInGroup(group)) {
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
+        if (this.allowedIn(tab)) {
             items.add(new ItemStack(this));
-            for (IConstellation cst : RegistriesAS.REGISTRY_CONSTELLATIONS.getValues()) {
-                if (!(cst instanceof IWeakConstellation)) {
-                    continue;
-                }
+
+            for (IConstellation cst : RegistriesAS.REGISTRY_CONSTELLATIONS) {
+                if (!(cst instanceof IWeakConstellation)) continue;
 
                 ItemStack stack = new ItemStack(this);
                 this.setConstellation(stack, cst);
@@ -94,31 +91,30 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
 
     @Override
     public boolean canElytraFly(ItemStack stack, LivingEntity entity) {
-        if (!(entity instanceof PlayerEntity)) {
-            return false;
-        }
-        return MantleEffectVicio.isUsableElytra(stack, (PlayerEntity) entity);
+        if (!(entity instanceof Player player)) return false;
+        return MantleEffectVicio.isUsableElytra(stack, player);
     }
 
     @Override
     public boolean elytraFlightTick(ItemStack stack, LivingEntity entity, int flightTicks) {
-        if (!(entity instanceof PlayerEntity)) {
+        if (!(entity instanceof Player player)) {
             return false;
         }
-        return MantleEffectVicio.isUsableElytra(stack, (PlayerEntity) entity);
+        return MantleEffectVicio.isUsableElytra(stack, player);
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
+    public void appendHoverText(ItemStack stack, @Nullable Level world,
+                                List<Component> tooltip, TooltipFlag flag) {
+
         IConstellation cst = this.getConstellation(stack);
         if (cst instanceof IWeakConstellation) {
-            tooltip.add(cst.getConstellationName().mergeStyle(TextFormatting.BLUE));
+            tooltip.add(cst.getConstellationName().copy().withStyle(ChatFormatting.BLUE));
         }
     }
 
     @Override
-    public Collection<PerkAttributeModifier> getModifiers(ItemStack stack, PlayerEntity player, LogicalSide side, boolean ignoreRequirements) {
+    public Collection<PerkAttributeModifier> getModifiers(ItemStack stack, Player player, LogicalSide side, boolean ignoreRequirements) {
         if (ItemMantle.getEffect(stack, ConstellationsAS.evorsio) == null) {
             return Collections.emptyList();
         }
@@ -139,9 +135,11 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
     }
 
     @Override
-    @Nullable
     @OnlyIn(Dist.CLIENT)
-    public <A extends BipedModel<?>> A getArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlotType armorSlot, A _default) {
+    public <A extends EntityModel<?>> A getArmorModel(LivingEntity entity,
+                                                      ItemStack stack,
+                                                      EquipmentSlot slot,
+                                                      A defaultModel) {
         if (modelArmor == null) {
             modelArmor = new ModelArmorMantle();
         }
@@ -149,9 +147,8 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
     }
 
     @Override
-    @Nullable
     @OnlyIn(Dist.CLIENT)
-    public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlotType slot, String type) {
+    public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
         return AstralSorcery.key("textures/model/armor/mantle.png").toString();
     }
 
@@ -165,7 +162,7 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
         if (entity == null) {
             return null;
         }
-        ItemStack stack = entity.getItemStackFromSlot(EquipmentSlotType.CHEST);
+        ItemStack stack = entity.getItemBySlot(EquipmentSlot.CHEST);
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemMantle)) {
             return null;
         }
@@ -214,7 +211,7 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
     }
 
     @Override
-    public float getAlignmentChargeCost(PlayerEntity player, ItemStack stack) {
+    public float getAlignmentChargeCost(Player player, ItemStack stack) {
         return 0;
     }
 }

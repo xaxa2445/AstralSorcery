@@ -16,14 +16,12 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
 import hellfirepvp.astralsorcery.common.network.base.ASPacket;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.util.Util;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 
@@ -77,18 +75,17 @@ public class PktProgressionUpdate extends ASPacket<PktProgressionUpdate> {
     public Handler<PktProgressionUpdate> handler() {
         return new Handler<PktProgressionUpdate>() {
             @Override
-            @OnlyIn(Dist.CLIENT)
             public void handleClient(PktProgressionUpdate packet, NetworkEvent.Context context) {
                 context.enqueueWork(() -> {
                     if (packet.tier != null) {
-                        Minecraft.getInstance().player.sendMessage(
-                                new TranslationTextComponent("astralsorcery.progress.gain.progress.chat")
-                                        .mergeStyle(TextFormatting.BLUE), Util.DUMMY_UUID);
+                        Minecraft.getInstance().player.sendSystemMessage(
+                                Component.translatable("astralsorcery.progress.gain.progress.chat")
+                                        .withStyle(ChatFormatting.BLUE));
                     }
                     if (packet.prog != null) {
-                        Minecraft.getInstance().player.sendMessage(
-                                new TranslationTextComponent("astralsorcery.progress.gain.research.chat", packet.prog.getName())
-                                        .mergeStyle(TextFormatting.AQUA), Util.DUMMY_UUID);
+                        Minecraft.getInstance().player.sendSystemMessage(
+                                Component.translatable("astralsorcery.progress.gain.research.chat", packet.prog.getName())
+                                        .withStyle(ChatFormatting.AQUA));
                     }
                     packet.refreshJournal();
                 });
@@ -99,14 +96,14 @@ public class PktProgressionUpdate extends ASPacket<PktProgressionUpdate> {
         };
     }
 
-    @OnlyIn(Dist.CLIENT)
     private void refreshJournal() {
-        Screen open = Minecraft.getInstance().currentScreen;
-        if (open != null) {
-            if (open instanceof ScreenJournal && !(open instanceof ScreenJournalPerkTree)) {
-                Minecraft.getInstance().displayGuiScreen(null);
-            }
+        Minecraft mc = Minecraft.getInstance();
+        Screen open = mc.screen; // currentScreen -> screen
+
+        if (open instanceof ScreenJournal && !(open instanceof ScreenJournalPerkTree)) {
+            mc.setScreen(null); // displayGuiScreen -> setScreen
         }
+
         ScreenJournalProgression.resetJournal();
     }
 }

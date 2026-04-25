@@ -13,13 +13,14 @@ import hellfirepvp.astralsorcery.client.resource.query.SpriteQuery;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MobEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.potion.EffectType;
-import net.minecraft.util.DamageSource;
-import net.minecraft.world.GameRules;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameRules;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -37,7 +38,7 @@ import java.util.List;
 public class EffectDropModifier extends EffectCustomTexture {
 
     public EffectDropModifier() {
-        super(EffectType.BENEFICIAL, ColorsAS.EFFECT_DROP_MODIFIER);
+        super(MobEffectCategory.BENEFICIAL, ColorsAS.EFFECT_DROP_MODIFIER);
     }
 
     @Override
@@ -52,33 +53,50 @@ public class EffectDropModifier extends EffectCustomTexture {
     }
 
     private void onDrops(LivingDropsEvent event) {
-        LivingEntity le = event.getEntityLiving();
-        if (le.getEntityWorld().isRemote() ||
-                !(le instanceof MobEntity) ||
-                !(le.getEntityWorld() instanceof ServerWorld) ||
-                !le.getEntityWorld().getGameRules().getBoolean(GameRules.DO_MOB_LOOT)) {
+        LivingEntity le = event.getEntity();
+
+        if (le.level().isClientSide()
+                || !(le instanceof Mob)
+                || !(le.level() instanceof ServerLevel serverLevel)
+                || !serverLevel.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
             return;
         }
 
-        if (le.isPotionActive(EffectsAS.EFFECT_DROP_MODIFIER)) {
+        if (le.hasEffect(EffectsAS.EFFECT_DROP_MODIFIER)) {
             DamageSource src = event.getSource();
 
-            int amplifier = le.removeActivePotionEffect(EffectsAS.EFFECT_DROP_MODIFIER).getAmplifier();
+            int amplifier = le.removeEffect(EffectsAS.EFFECT_DROP_MODIFIER).getAmplifier();
+
             if (amplifier == 0) {
-                event.getDrops().clear(); //Special case to void all items
+                event.getDrops().clear();
             } else {
                 for (int i = 0; i < amplifier; i++) {
-                    List<ItemStack> loot = EntityUtils.generateLoot(le, rand, src, event.isRecentlyHit() ? le.getAttackingEntity() : null);
+
+                    List<ItemStack> loot = EntityUtils.generateLoot(
+                            le,
+                            rand,
+                            src,
+                            event.isRecentlyHit() ? le.getLastHurtByMob() : null
+                    );
+
                     for (ItemStack stack : loot) {
-                        if (stack.isEmpty()) {
-                            continue;
-                        }
-                        event.getDrops().add(le.entityDropItem(stack));
+                        if (stack.isEmpty()) continue;
+
+                        event.getDrops().add(
+                                new ItemEntity(
+                                        le.level(),
+                                        le.getX(),
+                                        le.getY(),
+                                        le.getZ(),
+                                        stack
+                                )
+                        );
                     }
                 }
             }
         }
     }
+
 
     @Override
     public SpriteQuery getSpriteQuery() {

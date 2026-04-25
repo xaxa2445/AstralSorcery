@@ -26,7 +26,7 @@ import net.minecraft.world.level.block.Block;
 public class ItemBlockCelestialCollectorCrystal extends ItemBlockCollectorCrystal {
 
     public ItemBlockCelestialCollectorCrystal(Block block, Item.Properties properties) {
-        super(block, properties.rarity(Rarity.RARE)); // o EPIC si quieres más brillo
+        super(block, properties.rarity(CommonProxy.RARITY_CELESTIAL)); // o EPIC si quieres más brillo
     }
 
     @Override

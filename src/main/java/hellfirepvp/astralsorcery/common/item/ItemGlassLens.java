@@ -9,7 +9,7 @@
 package hellfirepvp.astralsorcery.common.item;
 
 import hellfirepvp.astralsorcery.common.CommonProxy;
-import net.minecraft.item.Item;
+import net.minecraft.world.item.Item;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -22,6 +22,6 @@ public class ItemGlassLens extends Item {
 
     public ItemGlassLens() {
         super(new Properties()
-                .group(CommonProxy.ITEM_GROUP_AS));
+                .tab(CommonProxy.ITEM_GROUP_AS)); // group -> tab
     }
 }

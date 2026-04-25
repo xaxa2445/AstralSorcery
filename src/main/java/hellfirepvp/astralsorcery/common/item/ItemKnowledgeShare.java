@@ -17,21 +17,23 @@ import hellfirepvp.astralsorcery.common.network.PacketChannel;
 import hellfirepvp.astralsorcery.common.network.play.server.PktProgressionUpdate;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.ChatFormatting;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.*;
-import net.minecraft.util.text.*;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
+
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -48,69 +50,67 @@ public class ItemKnowledgeShare extends Item {
 
     public ItemKnowledgeShare() {
         super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
+                .stacksTo(1)
+                .tab(CommonProxy.ITEM_GROUP_AS));
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (this.isInGroup(group)) {
-            items.add(new ItemStack(this));
-
-            ItemStack creative = new ItemStack(this);
-            setCreative(creative);
-            items.add(creative);
-        }
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World world, List<ITextComponent> tooltip, ITooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, net.minecraft.world.item.TooltipFlag flag) {
         if (isCreative(stack)) {
-            tooltip.add(new TranslationTextComponent("astralsorcery.misc.knowledge.inscribed.creative").mergeStyle(TextFormatting.LIGHT_PURPLE));
+            tooltip.add(Component.translatable("astralsorcery.misc.knowledge.inscribed.creative")
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
             return;
         }
+
         if (getKnowledge(stack) == null) {
-            tooltip.add(new TranslationTextComponent("astralsorcery.misc.knowledge.missing").mergeStyle(TextFormatting.GRAY));
+            tooltip.add(Component.translatable("astralsorcery.misc.knowledge.missing")
+                    .withStyle(ChatFormatting.GRAY));
         } else {
-            IFormattableTextComponent name = getKnowledgeOwnerName(stack);
+            Component name = getKnowledgeOwnerName(stack);
             if (name != null) {
-                tooltip.add(new TranslationTextComponent("astralsorcery.misc.knowledge.inscribed", name).mergeStyle(TextFormatting.BLUE));
+                tooltip.add(Component.translatable("astralsorcery.misc.knowledge.inscribed", name)
+                        .withStyle(ChatFormatting.BLUE));
             }
         }
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, PlayerEntity player, Hand hand) {
-        ItemStack held = player.getHeldItem(hand);
-        if (held.isEmpty() || world.isRemote() || !(held.getItem() instanceof ItemKnowledgeShare)) {
-            return ActionResult.resultSuccess(held);
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
+
+        if (held.isEmpty() || level.isClientSide) {
+            return InteractionResultHolder.success(held);
         }
-        if (!isCreative(held) && (player.isSneaking() || getKnowledge(held) == null)) {
+
+        if (!isCreative(held) && (player.isShiftKeyDown() || getKnowledge(held) == null)) {
             tryInscribeKnowledge(held, player);
         } else {
             tryGiveKnowledge(held, player);
         }
-        return ActionResult.resultSuccess(held);
+
+        return InteractionResultHolder.success(held);
     }
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
+    public InteractionResult useOn(UseOnContext context) {
         ItemStack stack = context.getItem();
-        PlayerEntity player = context.getPlayer();
-        if (stack.isEmpty() || player == null || context.getWorld().isRemote() || !(stack.getItem() instanceof ItemKnowledgeShare)) {
-            return ActionResultType.SUCCESS;
+        Player player = context.getPlayer();
+
+        if (stack.isEmpty() || player == null || context.getLevel().isClientSide) {
+            return InteractionResult.SUCCESS;
         }
-        if (!isCreative(stack) && (player.isSneaking() || getKnowledge(stack) == null)) {
+
+        if (!isCreative(stack) && (player.isShiftKeyDown() || getKnowledge(stack) == null)) {
             tryInscribeKnowledge(stack, player);
         } else {
             tryGiveKnowledge(stack, player);
         }
-        return ActionResultType.SUCCESS;
+
+        return InteractionResult.SUCCESS;
     }
 
-    private void tryGiveKnowledge(ItemStack stack, PlayerEntity player) {
-        if (player instanceof ServerPlayerEntity && MiscUtils.isPlayerFakeMP((ServerPlayerEntity) player)) {
+    private void tryGiveKnowledge(ItemStack stack, Player player) {
+        if (player instanceof ServerPlayer serverPlayer && MiscUtils.isPlayerFakeMP(serverPlayer)) {
             return;
         }
 
@@ -118,54 +118,60 @@ public class ItemKnowledgeShare extends Item {
             ResearchManager.forceMaximizeAll(player);
             return;
         }
-        if (canInscribeKnowledge(stack, player)) return; //Means it's either empty or the player that has incsribed the knowledge is trying to use it.
+
+        if (canInscribeKnowledge(stack, player)) return;
+
         PlayerProgress progress = getKnowledge(stack);
         if (progress == null) return;
+
         ProgressionTier prev = progress.getTierReached();
-        if (ResearchHelper.mergeApplyPlayerprogress(progress, player) && progress.getTierReached().isThisLater(prev)) {
+
+        if (ResearchHelper.mergeApplyPlayerprogress(progress, player)
+                && progress.getTierReached().isThisLater(prev)) {
+
             PktProgressionUpdate pkt = new PktProgressionUpdate(progress.getTierReached());
             PacketChannel.CHANNEL.sendToPlayer(player, pkt);
         }
     }
 
-    private void tryInscribeKnowledge(ItemStack stack, PlayerEntity player) {
+    private void tryInscribeKnowledge(ItemStack stack, Player player) {
         if (canInscribeKnowledge(stack, player)) {
             setKnowledge(stack, player, ResearchHelper.getProgress(player, LogicalSide.SERVER));
         }
     }
 
     @Nullable
-    public static PlayerEntity getKnowledgeOwner(ItemStack stack, MinecraftServer server) {
+    public static Player getKnowledgeOwner(ItemStack stack, MinecraftServer server) {
         if (isCreative(stack)) return null;
 
-        CompoundNBT compound = NBTHelper.getPersistentData(stack);
+        CompoundTag compound = NBTHelper.getPersistentData(stack);
         UUID owner = NBTHelper.getUUID(compound, "knowledgeOwnerUUID", null);
         if (owner == null) {
             return null;
         }
-        return server.getPlayerList().getPlayerByUUID(owner);
+        return server.getPlayerList().getPlayer(owner);
     }
 
     @Nullable
-    public static IFormattableTextComponent getKnowledgeOwnerName(ItemStack stack) {
+    public static MutableComponent getKnowledgeOwnerName(ItemStack stack) {
         if (isCreative(stack)) return null;
 
-        CompoundNBT compound = NBTHelper.getPersistentData(stack);
+        CompoundTag compound = NBTHelper.getPersistentData(stack);
         if (!compound.contains("knowledgeOwnerName")) {
             return null;
         }
-        return ITextComponent.Serializer.getComponentFromJson(compound.getString("knowledgeOwnerName"));
+        return Component.Serializer.fromJson(compound.getString("knowledgeOwnerName"));
     }
 
     @Nullable
     public static PlayerProgress getKnowledge(ItemStack stack) {
         if (isCreative(stack)) return null;
 
-        CompoundNBT compound = NBTHelper.getPersistentData(stack);
+        CompoundTag compound = NBTHelper.getPersistentData(stack);
         if (!compound.contains("knowledgeTag")) {
             return null;
         }
-        CompoundNBT tag = compound.getCompound("knowledgeTag");
+        CompoundTag tag = compound.getCompound("knowledgeTag");
         try {
             PlayerProgress progress = new PlayerProgress();
             progress.loadKnowledge(tag);
@@ -175,30 +181,30 @@ public class ItemKnowledgeShare extends Item {
         }
     }
 
-    public static boolean canInscribeKnowledge(ItemStack stack, PlayerEntity player) {
+    public static boolean canInscribeKnowledge(ItemStack stack, Player player) {
         if (isCreative(stack)) return false;
 
-        CompoundNBT compound = NBTHelper.getPersistentData(stack);
+        CompoundTag compound = NBTHelper.getPersistentData(stack);
         UUID owner = NBTHelper.getUUID(compound, "knowledgeOwnerUUID", null);
         if (owner == null) {
             return true;
         }
-        return player.getUniqueID().equals(owner);
+        return player.getUUID().equals(owner);
     }
 
-    public static void setKnowledge(ItemStack stack, PlayerEntity player, PlayerProgress progress) {
+    public static void setKnowledge(ItemStack stack, Player player, PlayerProgress progress) {
         if (isCreative(stack) || !progress.isValid()) return;
 
-        CompoundNBT knowledge = new CompoundNBT();
+        CompoundTag knowledge = new CompoundTag();
         progress.storeKnowledge(knowledge);
-        CompoundNBT compound = NBTHelper.getPersistentData(stack);
-        compound.putString("knowledgeOwnerName", ITextComponent.Serializer.toJson(player.getDisplayName()));
-        compound.putUniqueId("knowledgeOwnerUUID", player.getUniqueID());
+        CompoundTag compound = NBTHelper.getPersistentData(stack);
+        compound.putString("knowledgeOwnerName", Component.Serializer.toJson(player.getDisplayName()));
+        compound.putUUID("knowledgeOwnerUUID", player.getUUID());
         compound.put("knowledgeTag", knowledge);
     }
 
     public static boolean isCreative(ItemStack stack) {
-        CompoundNBT cmp = NBTHelper.getPersistentData(stack);
+        CompoundTag cmp = NBTHelper.getPersistentData(stack);
         if (!cmp.contains("creativeKnowledge")) {
             return false;
         }

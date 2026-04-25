@@ -21,25 +21,23 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchManager;
 import hellfirepvp.astralsorcery.common.item.base.PerkExperienceRevealer;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.UseAction;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.Util;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.LogicalSide;
+import net.minecraft.ChatFormatting;
+
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -55,50 +53,52 @@ public class ItemShiftingStar extends Item implements PerkExperienceRevealer {
 
     public ItemShiftingStar() {
         super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
+                .stacksTo(1)
+                .tab(CommonProxy.ITEM_GROUP_AS));
     }
 
+    protected final RandomSource random = RandomSource.create();
+
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, net.minecraft.world.item.TooltipFlag flag) {
+
         IConstellation cst = this.getBaseConstellation();
+
         if (cst != null) {
             if (ResearchHelper.getClientProgress().hasConstellationDiscovered(cst)) {
-                tooltip.add(cst.getConstellationName().mergeStyle(TextFormatting.BLUE));
+                tooltip.add(cst.getConstellationName().copy().withStyle(ChatFormatting.BLUE));
             } else {
-                tooltip.add(new TranslationTextComponent("astralsorcery.misc.noinformation").mergeStyle(TextFormatting.GRAY));
+                tooltip.add(Component.translatable("astralsorcery.misc.noinformation").withStyle(ChatFormatting.GRAY));
             }
         }
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World worldIn, PlayerEntity playerIn, Hand handIn) {
-        playerIn.setActiveHand(handIn);
-        return super.onItemRightClick(worldIn, playerIn, handIn);
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        player.startUsingItem(hand);
+        return InteractionResultHolder.consume(player.getItemInHand(hand));
     }
 
     @Override
-    public ItemStack onItemUseFinish(ItemStack stack, World worldIn, LivingEntity entityLiving) {
-        if (!worldIn.isRemote() && entityLiving instanceof ServerPlayerEntity) {
-            ServerPlayerEntity player = (ServerPlayerEntity) entityLiving;
+    public ItemStack finishUsingItem(ItemStack stack, Level worldIn, LivingEntity entityLiving) {
+        if (!worldIn.isClientSide && entityLiving instanceof ServerPlayer player) {
             IMajorConstellation cst = this.getBaseConstellation();
             if (cst != null) {
-                PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
+                PlayerProgress prog = ResearchHelper.getProgress(player, net.minecraftforge.fml.LogicalSide.SERVER);
                 if (!prog.isValid() || !prog.wasOnceAttuned() || !prog.hasConstellationDiscovered(cst)) {
                     return stack;
                 }
 
                 double perkExp = prog.getPerkData().getPerkExp();
                 if (ResearchManager.setAttunedConstellation(player, cst)) {
-                    ResearchManager.setExp(player, MathHelper.lfloor(perkExp));
-                    player.sendMessage(new TranslationTextComponent("astralsorcery.progress.switch.attunement").mergeStyle(TextFormatting.BLUE), Util.DUMMY_UUID);
-                    SoundHelper.playSoundAround(SoundEvents.BLOCK_GLASS_BREAK, worldIn, entityLiving.getPosition(), 1F, 1F);
+                    ResearchManager.setExp(player, Mth.lfloor(perkExp));
+                    player.sendSystemMessage(Component.translatable("astralsorcery.progress.switch.attunement").withStyle(ChatFormatting.BLUE));
+                    SoundHelper.playSoundAround(SoundEvents.GLASS_BREAK, worldIn, player.blockPosition(), 1F, 1F);
                     return ItemStack.EMPTY;
                 }
             } else if (ResearchManager.setAttunedConstellation(player, null)) {
-                player.sendMessage(new TranslationTextComponent("astralsorcery.progress.remove.attunement").mergeStyle(TextFormatting.BLUE), Util.DUMMY_UUID);
-                SoundHelper.playSoundAround(SoundEvents.BLOCK_GLASS_BREAK, worldIn, entityLiving.getPosition(), 1F, 1F);
+                player.sendSystemMessage(Component.translatable("astralsorcery.progress.remove.attunement").withStyle(ChatFormatting.BLUE));
+                SoundHelper.playSoundAround(SoundEvents.GLASS_BREAK, worldIn, player.blockPosition(), 1F, 1F);
                 return ItemStack.EMPTY;
             }
         }
@@ -106,18 +106,17 @@ public class ItemShiftingStar extends Item implements PerkExperienceRevealer {
     }
 
     @Override
-    public void onUsingTick(ItemStack stack, LivingEntity player, int count) {
-        if (player.getEntityWorld().isRemote()) {
-            this.playUseEffects(player, getUseDuration(stack) - count, getUseDuration(stack));
+    public void onUseTick(Level level, LivingEntity entity, ItemStack stack, int remaining) {
+        if (level.isClientSide) {
+            playUseEffects(entity, getUseDuration(stack) - remaining, getUseDuration(stack));
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
     private void playUseEffects(LivingEntity player, int tick, int total) {
         IMajorConstellation cst = this.getBaseConstellation();
         if (cst == null) {
             FXFacingParticle p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                    .spawn(Vector3.atEntityCorner(player).addY(player.getHeight() / 2))
+                    .spawn(Vector3.atEntityCorner(player).addY(player.getBbHeight() / 2))
                     .setMotion(new Vector3(-0.1 + random.nextFloat() * 0.2, 0.01, -0.1 + random.nextFloat() * 0.2))
                     .setScaleMultiplier(0.2F + random.nextFloat());
             if (random.nextBoolean()) {
@@ -128,10 +127,10 @@ public class ItemShiftingStar extends Item implements PerkExperienceRevealer {
             int parts = 5;
             for (int i = 0; i < parts; i++) {
                 float angleSwirl = 75F;
-                Vector3 center = Vector3.atEntityCorner(player).addY(player.getHeight() / 2);
+                Vector3 center = Vector3.atEntityCorner(player).addY(player.getBbHeight() / 2);
                 Vector3 v = Vector3.RotAxis.X_AXIS.clone();
                 float originalAngle = (((float) i) / ((float) parts)) * 360F;
-                double angle = originalAngle + (MathHelper.sin(percCycle) * angleSwirl);
+                double angle = originalAngle + (Mth.sin(percCycle) * angleSwirl);
                 v.rotate(-Math.toRadians(angle), Vector3.RotAxis.Y_AXIS).normalize().multiply(4);
                 Vector3 pos = center.clone().add(v);
                 Vector3 mot = center.clone().subtract(pos).normalize().multiply(0.1);
@@ -158,8 +157,8 @@ public class ItemShiftingStar extends Item implements PerkExperienceRevealer {
     }
 
     @Override
-    public UseAction getUseAction(ItemStack stack) {
-        return UseAction.BOW;
+    public UseAnim getUseAnimation(ItemStack stack) {
+        return UseAnim.BOW;
     }
 
     @Nullable

@@ -13,13 +13,13 @@ import hellfirepvp.astralsorcery.common.data.sync.client.ClientTimeFreezeEntitie
 import hellfirepvp.astralsorcery.common.data.sync.server.DataTimeFreezeEffects;
 import hellfirepvp.astralsorcery.common.data.sync.server.DataTimeFreezeEntities;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.boss.dragon.phase.PhaseType;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
 
@@ -36,18 +36,18 @@ import java.util.*;
  */
 public class TimeStopController implements ITickHandler {
 
-    private static final Map<RegistryKey<World>, List<TimeStopZone>> activeTimeStopZones = new HashMap<>();
+    private static final Map<ResourceKey<Level>, List<TimeStopZone>> activeTimeStopZones = new HashMap<>();
 
     public static final TimeStopController INSTANCE = new TimeStopController();
 
     private TimeStopController() {}
 
     @Nullable
-    public static TimeStopZone tryGetZoneAt(World world, BlockPos pos) {
-        if (world.isRemote) {
+    public static TimeStopZone tryGetZoneAt(Level world, BlockPos pos) {
+        if (world.isClientSide) {
             return null;
         }
-        List<TimeStopZone> zones = activeTimeStopZones.getOrDefault(world.getDimensionKey(), Collections.emptyList());
+        List<TimeStopZone> zones = activeTimeStopZones.getOrDefault(world.dimension(), Collections.emptyList());
         for (TimeStopZone zone : zones) {
             if (zone.offset.equals(pos)) {
                 return zone;
@@ -67,23 +67,23 @@ public class TimeStopController implements ITickHandler {
      * @return null if the world's provider is null, otherwise a registered and running instance of the timeStopEffect
      */
     @Nonnull
-    public static TimeStopZone freezeWorldAt(@Nonnull TimeStopZone.EntityTargetController controller, @Nonnull World world, @Nonnull BlockPos offset, float range, int maxAge) {
+    public static TimeStopZone freezeWorldAt(@Nonnull TimeStopZone.EntityTargetController controller, @Nonnull Level world, @Nonnull BlockPos offset, float range, int maxAge) {
         TimeStopZone stopZone = new TimeStopZone(controller, range, offset, world, maxAge);
-        List<TimeStopZone> zones = activeTimeStopZones.computeIfAbsent(world.getDimensionKey(), (id) -> new LinkedList<>());
+        List<TimeStopZone> zones = activeTimeStopZones.computeIfAbsent(world.dimension(), (id) -> new LinkedList<>());
         zones.add(stopZone);
 
         SyncDataHolder.executeServer(SyncDataHolder.DATA_TIME_FREEZE_EFFECTS, DataTimeFreezeEffects.class, data -> {
-            data.addNewEffect(world.getDimensionKey(), TimeStopEffectHelper.fromZone(stopZone));
+            data.addNewEffect(world.dimension(), TimeStopEffectHelper.fromZone(stopZone));
         });
         return stopZone;
     }
 
-    public static void onWorldUnload(World world) {
-        if (world.isRemote()) {
+    public static void onWorldUnload(Level world) {
+        if (world.isClientSide()) {
             return;
         }
 
-        RegistryKey<World> dimKey = world.getDimensionKey();
+        ResourceKey<Level> dimKey = world.dimension();
         for (TimeStopZone stop : activeTimeStopZones.getOrDefault(dimKey, Collections.emptyList())) {
             stop.stopEffect();
         }
@@ -91,7 +91,7 @@ public class TimeStopController implements ITickHandler {
     }
 
     public static boolean isFrozenDirectly(Entity e) {
-        if (e.getEntityWorld().isRemote()) {
+        if (e.level().isClientSide()) {
             return SyncDataHolder.computeClient(SyncDataHolder.DATA_TIME_FREEZE_ENTITIES, ClientTimeFreezeEntities.class, data -> data.isFrozen(e)).orElse(false);
         } else {
             return SyncDataHolder.computeServer(SyncDataHolder.DATA_TIME_FREEZE_ENTITIES, DataTimeFreezeEntities.class, data -> data.isFrozen(e)).orElse(false);
@@ -104,29 +104,29 @@ public class TimeStopController implements ITickHandler {
             if (!e.isAlive() || e.getHealth() <= 0) {
                 shouldFreeze = false;
             }
-            if (e instanceof EnderDragonEntity && ((EnderDragonEntity) e).getPhaseManager().getCurrentPhase().getType() == PhaseType.DYING) {
+            if (e instanceof EnderDragon dragon && dragon.getPhaseManager().getCurrentPhase().getPhase() == EnderDragonPhase.DYING) {
                 shouldFreeze = false;
             }
             if (shouldFreeze) {
-                if (e.world.isRemote()) {
-                    int amt = (int) MathHelper.sqrt(e.getWidth() * e.getHeight());
+                if (e.level().isClientSide()) {
+                    int amt = (int) Mth.sqrt(e.getBbWidth() * e.getBbHeight());
                     for (int i = 0; i < amt; i++) {
-                        if (e.world.rand.nextInt(5) == 0) {
+                        if (e.level().random.nextInt(5) == 0) {
                             TimeStopEffectHelper.playEntityParticles(e);
                         }
                     }
                 }
-                if (!e.getEntityWorld().isRemote()) {
+                if (!e.level().isClientSide()) {
                     TimeStopZone.handleImportantEntityTicks(e);
                     return true;
                 }
             }
         }
-        List<TimeStopZone> freezeAreas = activeTimeStopZones.get(e.getEntityWorld().getDimensionKey());
+        List<TimeStopZone> freezeAreas = activeTimeStopZones.get(e.level().dimension());
         if (freezeAreas != null && !freezeAreas.isEmpty()) {
             for (TimeStopZone stop : freezeAreas) {
                 if (stop.interceptEntityTick(e)) {
-                    if (!e.getEntityWorld().isRemote()) {
+                    if (!e.level().isClientSide()) {
                         TimeStopZone.handleImportantEntityTicks(e);
                         return true;
                     }
@@ -138,7 +138,7 @@ public class TimeStopController implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        for (Map.Entry<RegistryKey<World>, List<TimeStopZone>> zoneMap : activeTimeStopZones.entrySet()) {
+        for (Map.Entry<ResourceKey<Level>, List<TimeStopZone>> zoneMap : activeTimeStopZones.entrySet()) {
             Iterator<TimeStopZone> iterator = zoneMap.getValue().iterator();
             while (iterator.hasNext()) {
                 TimeStopZone zone = iterator.next();

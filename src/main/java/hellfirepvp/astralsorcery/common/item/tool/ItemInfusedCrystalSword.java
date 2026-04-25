@@ -19,11 +19,12 @@ import hellfirepvp.astralsorcery.common.util.CelestialStrike;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.object.CacheReference;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.LogicalSide;
 
 import java.util.Collection;
@@ -44,20 +45,26 @@ public class ItemInfusedCrystalSword extends ItemCrystalSword implements Equipme
             new CacheReference<>(() -> new DynamicAttributeModifier(MODIFIER_ID, PerkAttributeTypesAS.ATTR_TYPE_INC_CRIT_CHANCE, ModifierType.ADDITION, 5F));
 
     @Override
-    public boolean onLeftClickEntity(ItemStack stack, PlayerEntity player, Entity entity) {
-        if (!player.getEntityWorld().isRemote() && player instanceof ServerPlayerEntity) {
-            ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
-            ItemStack sword = serverPlayer.getHeldItem(Hand.MAIN_HAND);
+    public boolean onLeftClickEntity(ItemStack stack, Player player, Entity entity) {
+        Level level = player.level();
+        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
+            ItemStack sword = serverPlayer.getItemInHand(InteractionHand.MAIN_HAND);
             if (!MiscUtils.isPlayerFakeMP(serverPlayer) &&
                     !sword.isEmpty() &&
                     sword.getItem() instanceof ItemInfusedCrystalSword &&
-                    !serverPlayer.isSneaking() &&
-                    !serverPlayer.getCooldownTracker().hasCooldown(sword.getItem())) {
-
+                    !serverPlayer.isShiftKeyDown() &&
+                    !serverPlayer.getCooldowns().isOnCooldown(sword.getItem())) {
                 PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
                 if (prog.doPerkAbilities()) {
-                    CelestialStrike.play(serverPlayer, serverPlayer.getServerWorld(), Vector3.atEntityCorner(entity), Vector3.atEntityCorner(entity));
-                    serverPlayer.getCooldownTracker().setCooldown(sword.getItem(), 120);
+
+                    CelestialStrike.play(
+                            serverPlayer,
+                            serverPlayer.serverLevel(),
+                            Vector3.atEntityCorner(entity),
+                            Vector3.atEntityCorner(entity)
+                    );
+
+                    serverPlayer.getCooldowns().addCooldown(sword.getItem(), 120);
                 }
             }
         }
@@ -65,7 +72,7 @@ public class ItemInfusedCrystalSword extends ItemCrystalSword implements Equipme
     }
 
     @Override
-    public Collection<PerkAttributeModifier> getModifiers(ItemStack stack, PlayerEntity player, LogicalSide side, boolean ignoreRequirements) {
+    public Collection<PerkAttributeModifier> getModifiers(ItemStack stack, Player player, LogicalSide side, boolean ignoreRequirements) {
         return Collections.singletonList(BASECRIT_MODIFIER.get());
     }
 }

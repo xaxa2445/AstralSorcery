@@ -20,17 +20,17 @@ import net.minecraftforge.eventbus.api.Event;
  */
 public class CooldownSetEvent extends Event {
 
-    private final PlayerEntity player;
+    private final Player player;
     private final int originalCooldown;
     private int cooldown;
 
-    public CooldownSetEvent(PlayerEntity player, int originalCooldown) {
+    public CooldownSetEvent(Player player, int originalCooldown) {
         this.player = player;
         this.originalCooldown = originalCooldown;
         this.setCooldown(this.getOriginalCooldown());
     }
 
-    public PlayerEntity getPlayer() {
+    public Player getPlayer() {
         return player;
     }
 

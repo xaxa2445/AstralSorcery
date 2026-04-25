@@ -8,6 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.item.block;
 
+import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.block.tile.BlockCelestialCrystalCluster;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeGenItem;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
@@ -37,7 +38,7 @@ import java.util.List;
 public class ItemBlockCelestialCrystalCluster extends ItemBlockCustom implements CrystalAttributeGenItem {
 
     public ItemBlockCelestialCrystalCluster(Block block, Item.Properties properties) {
-        super(block, properties.rarity(Rarity.RARE));
+        super(block, properties.rarity(CommonProxy.RARITY_CELESTIAL));
     }
 
     @Override

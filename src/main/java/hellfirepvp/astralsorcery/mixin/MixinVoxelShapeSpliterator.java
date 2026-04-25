@@ -9,12 +9,11 @@
 package hellfirepvp.astralsorcery.mixin;
 
 import hellfirepvp.astralsorcery.common.util.collision.CollisionHelper;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapeSpliterator;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 import java.util.function.Consumer;
 
@@ -25,20 +24,18 @@ import java.util.function.Consumer;
  * Created by HellFirePvP
  * Date: 01.01.2022 / 09:52
  */
-@Mixin(VoxelShapeSpliterator.class)
+@Mixin(Entity.class)
 public class MixinVoxelShapeSpliterator {
 
-    private boolean astralSorceryDidCustomCollision = false;
+    @ModifyVariable(
+            method = "move",
+            at = @At("HEAD"),
+            argsOnly = true
+    )
+    private Vec3 astralSorcery$modifyMovement(Vec3 movement) {
+        Entity self = (Entity)(Object)this;
 
-    @Inject(method = "tryAdvance", at = @At("HEAD"), cancellable = true)
-    public void addCustomCollision(Consumer<? super VoxelShape> collisionShapeIterator, CallbackInfoReturnable<Boolean> cir) {
-        if (!this.astralSorceryDidCustomCollision) {
-            VoxelShapeSpliterator iterator = (VoxelShapeSpliterator)(Object) this;
-            if (CollisionHelper.onCollision(iterator, collisionShapeIterator)) {
-                cir.setReturnValue(true);
-                return;
-            }
-            this.astralSorceryDidCustomCollision = true;
-        }
+        Vec3 modified = CollisionHelper.onEntityCollision(movement, self);
+        return modified != null ? modified : movement;
     }
 }

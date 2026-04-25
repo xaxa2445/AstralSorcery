@@ -9,10 +9,10 @@
 package hellfirepvp.astralsorcery.common.util.collision;
 
 import hellfirepvp.astralsorcery.common.constellation.mantle.effect.MantleEffectAevitas;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.VoxelShapeSpliterator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.Shapes;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -29,8 +29,8 @@ public class CollisionManager {
     private static final List<CustomCollisionHandler> customHandlers = new ArrayList<>();
 
     private static final int maxCacheSize = 20;
-    private static final LinkedList<VoxelShapeSpliterator> accessList = new LinkedList<>();
-    private static final Map<VoxelShapeSpliterator, List<AxisAlignedBB>> instanceFlags = new HashMap<>();
+    private static final LinkedList<Object> accessList = new LinkedList<>();
+    private static final Map<Object, List<AABB>> instanceFlags = new HashMap<>();
 
     public static void init() {
         register(new MantleEffectAevitas.PlayerWalkableAir());
@@ -41,9 +41,9 @@ public class CollisionManager {
     }
 
     @Nullable
-    public static AxisAlignedBB getIteratorBoundingBoxes(VoxelShapeSpliterator iterator, @Nullable Entity entity) {
+    public static AABB getIteratorBoundingBoxes(Object iterator, @Nullable Entity entity) {
         if (!instanceFlags.containsKey(iterator)) {
-            List<AxisAlignedBB> additionalBoundingBoxes = getAdditionalBoundingBoxes(entity);
+            List<AABB> additionalBoundingBoxes = getAdditionalBoundingBoxes(entity);
             if (additionalBoundingBoxes.isEmpty()) {
                 return null;
             }
@@ -51,7 +51,7 @@ public class CollisionManager {
             instanceFlags.put(iterator, additionalBoundingBoxes);
             accessList.addFirst(iterator);
         }
-        List<AxisAlignedBB> boxes = instanceFlags.get(iterator);
+        List<AABB> boxes = instanceFlags.get(iterator);
         if (boxes == null || boxes.isEmpty()) {
             return null;
         }
@@ -68,9 +68,9 @@ public class CollisionManager {
         return false;
     }
 
-    public static List<AxisAlignedBB> getAdditionalBoundingBoxes(@Nullable Entity entity) {
-        List<AxisAlignedBB> additionalCollision = new ArrayList<>();
-        AxisAlignedBB entityBox = entity != null ? entity.getBoundingBox() : new AxisAlignedBB(BlockPos.ZERO);
+    public static List<AABB> getAdditionalBoundingBoxes(@Nullable Entity entity) {
+        List<AABB> additionalCollision = new ArrayList<>();
+        AABB entityBox = entity != null ? entity.getBoundingBox() : new AABB(BlockPos.ZERO);
         customHandlers.stream()
                 .filter(handler -> handler.shouldAddCollisionFor(entity))
                 .forEach(handler -> handler.addCollision(entity, entityBox, additionalCollision));
@@ -79,7 +79,7 @@ public class CollisionManager {
 
     private static void removeOldestEntry() {
         if (accessList.size() >= maxCacheSize) {
-            VoxelShapeSpliterator oldest;
+            Object oldest;
             //Apparently the list can be both >= 20 elements in size AND empty at the same time.
             try {
                 oldest = accessList.removeLast();
@@ -99,7 +99,7 @@ public class CollisionManager {
         }
     }
 
-    private static void markActive(VoxelShapeSpliterator it) {
+    private static void markActive(Object it) {
         if (accessList.remove(it)) {
             accessList.addFirst(it);
         }

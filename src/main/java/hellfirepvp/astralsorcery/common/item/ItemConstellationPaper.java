@@ -58,18 +58,18 @@ import java.util.List;
 public class ItemConstellationPaper extends Item implements ItemDynamicColor, ConstellationBaseItem {
 
     public ItemConstellationPaper() {
-        super(new Item.Properties().stacksTo(1)); // maxStackSize -> stacksTo
+        super(new Properties().stacksTo(1));
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (this.isInGroup(group)) {
-            items.add(new ItemStack(this, 1));
+    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
+        if (this.allowedIn(tab)) {
+            items.add(new ItemStack(this));
 
             for (IConstellation c : ConstellationRegistry.getAllConstellations()) {
-                ItemStack cPaper = new ItemStack(this, 1);
-                setConstellation(cPaper, c);
-                items.add(cPaper);
+                ItemStack stack = new ItemStack(this);
+                setConstellation(stack, c);
+                items.add(stack);
             }
         }
     }

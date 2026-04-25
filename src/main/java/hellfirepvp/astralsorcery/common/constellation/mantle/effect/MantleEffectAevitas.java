@@ -22,14 +22,12 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.util.collision.CustomCollisionHandler;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.Pose;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.FoodStats;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.food.FoodData;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -58,7 +56,7 @@ public class MantleEffectAevitas extends MantleEffect {
     }
 
     @Override
-    protected void tickServer(PlayerEntity player) {
+    protected void tickServer(Player player) {
         super.tickServer(player);
 
         if (isStandingOnAir(player)) {
@@ -71,10 +69,10 @@ public class MantleEffectAevitas extends MantleEffect {
             player.heal(CONFIG.healthPerCycle.get().floatValue());
         }
         if (foodChance > 0 && rand.nextInt(foodChance) == 0) {
-            FoodStats stats = player.getFoodStats();
+            FoodData stats = player.getFoodData();
             if (stats.getFoodLevel() < 20 || stats.getSaturationLevel() < 5) {
                 if (AlignmentChargeHandler.INSTANCE.hasCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerFood.get())) {
-                    stats.addStats(CONFIG.foodPerCycle.get().intValue(), 0.5F);
+                    stats.eat(CONFIG.foodPerCycle.get().intValue(), 0.5F);
                     AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerFood.get(), false);
                 }
             }
@@ -83,7 +81,7 @@ public class MantleEffectAevitas extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
         this.playCapeSparkles(player, 0.1F);
@@ -114,8 +112,8 @@ public class MantleEffectAevitas extends MantleEffect {
         return CONFIG;
     }
 
-    public static boolean canSupportEffect(PlayerEntity player) {
-        LogicalSide side = player.getEntityWorld().isRemote() ? LogicalSide.CLIENT : LogicalSide.SERVER;
+    public static boolean canSupportEffect(Player player) {
+        LogicalSide side = player.level().isClientSide ? LogicalSide.CLIENT : LogicalSide.SERVER;
         PlayerProgress progress = ResearchHelper.getProgress(player, side);
         return progress.doPerkAbilities() &&
                 progress.hasConstellationDiscovered(ConstellationsAS.aevitas) &&
@@ -123,10 +121,10 @@ public class MantleEffectAevitas extends MantleEffect {
     }
 
     public static boolean isStandingOnAir(Entity entity) {
-        if (entity.isOnGround()) {
-            World world = entity.getEntityWorld();
-            BlockPos at = entity.getPosition().down();
-            return world.getBlockState(at).isAir(world, at);
+        if (entity.onGround()) {
+            Level world = entity.level();
+            BlockPos at = entity.blockPosition().below();
+            return world.getBlockState(at).isAir();
         }
         return false;
     }
@@ -193,24 +191,24 @@ public class MantleEffectAevitas extends MantleEffect {
 
     public static class PlayerWalkableAir implements CustomCollisionHandler {
 
-        private static final AxisAlignedBB FULL_BOX = new AxisAlignedBB(BlockPos.ZERO);
+        private static final AABB FULL_BOX = new AABB(BlockPos.ZERO);
 
         @Override
         public boolean shouldAddCollisionFor(Entity entity) {
-            if (!(entity instanceof PlayerEntity) || ((PlayerEntity) entity).abilities.isFlying) {
+            if (!(entity instanceof Player player) || player.getAbilities().flying) {
                 return false;
             }
             return ItemMantle.getEffect((LivingEntity) entity, ConstellationsAS.aevitas) != null &&
-                    canSupportEffect((PlayerEntity) entity);
+                    canSupportEffect((Player) entity);
         }
 
         @Override
-        public void addCollision(Entity entity, AxisAlignedBB testBox, List<AxisAlignedBB> additionalCollision) {
+        public void addCollision(Entity entity, AABB testBox, List<AABB> additionalCollision) {
             int yOffset = 1;
             if (entity.getPose() == Pose.CROUCHING && isStandingOnAir(entity)) {
                 yOffset = 2;
             }
-            additionalCollision.add(FULL_BOX.offset(entity.getPosX(), Math.floor(entity.getPosY()) - yOffset, entity.getPosZ()));
+            additionalCollision.add(FULL_BOX.move(entity.getX(), Math.floor(entity.getY()) - yOffset, entity.getZ()));
         }
     }
 }

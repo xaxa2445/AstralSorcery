@@ -10,11 +10,10 @@ package hellfirepvp.astralsorcery.common.crystal;
 
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import hellfirepvp.astralsorcery.common.registry.IHasRegistryName; // Tu interfaz
+import net.minecraft.network.chat.Component; // ITextComponent -> Component
+import net.minecraft.network.chat.MutableComponent; // IFormattableTextComponent -> MutableComponent
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ import java.util.function.Predicate;
  * Created by HellFirePvP
  * Date: 29.01.2019 / 21:23
  */
-public abstract class CrystalProperty extends ForgeRegistryEntry<CrystalProperty> implements Comparable<CrystalProperty> {
+public abstract class CrystalProperty implements IHasRegistryName, Comparable<CrystalProperty> {
 
     private static int counter = 0;
     private final int sortingId;
@@ -95,8 +94,8 @@ public abstract class CrystalProperty extends ForgeRegistryEntry<CrystalProperty
         return value;
     }
 
-    public IFormattableTextComponent getName(int currentTier) {
-        return new TranslationTextComponent(String.format("crystal.property.%s.%s.name", getRegistryName().getNamespace(), getRegistryName().getPath()));
+    public MutableComponent getName(int currentTier) {
+        return Component.translatable(String.format("crystal.property.%s.%s.name", getRegistryName().getNamespace(), getRegistryName().getPath()));
     }
 
     @Override
