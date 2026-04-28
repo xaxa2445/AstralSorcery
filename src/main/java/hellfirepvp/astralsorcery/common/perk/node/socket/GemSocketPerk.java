@@ -15,14 +15,13 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchManager;
 import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -43,23 +42,23 @@ public interface GemSocketPerk {
 
     public static final String SOCKET_DATA_KEY = "socketedItem";
 
-    default public boolean hasItem(PlayerEntity player, LogicalSide side) {
+    default public boolean hasItem(Player player, LogicalSide side) {
         return hasItem(player, side, null);
     }
 
-    default public boolean hasItem(PlayerEntity player, LogicalSide side, @Nullable CompoundNBT data) {
+    default public boolean hasItem(Player player, LogicalSide side, @Nullable CompoundTag data) {
         return !getContainedItem(player, side, data).isEmpty();
     }
 
-    default public ItemStack getContainedItem(PlayerEntity player, LogicalSide side) {
+    default public ItemStack getContainedItem(Player player, LogicalSide side) {
         return getContainedItem(player, side, null);
     }
 
-    default public ItemStack getContainedItem(PlayerEntity player, LogicalSide side, @Nullable CompoundNBT dataOvr) {
+    default public ItemStack getContainedItem(Player player, LogicalSide side, @Nullable CompoundTag dataOvr) {
         if (!(this instanceof AbstractPerk)) {
             throw new UnsupportedOperationException("Cannot do perk-specific socketing logic on something that's not a perk!");
         }
-        CompoundNBT data = dataOvr != null ? dataOvr : ((AbstractPerk) this).getPerkData(player, side);
+        CompoundTag data = dataOvr != null ? dataOvr : ((AbstractPerk) this).getPerkData(player, side);
         if (data == null) {
             return ItemStack.EMPTY;
         }
@@ -68,11 +67,11 @@ public interface GemSocketPerk {
         return stack != null ? stack : ItemStack.EMPTY;
     }
 
-    default public boolean setContainedItem(PlayerEntity player, LogicalSide side, ItemStack stack) {
+    default public boolean setContainedItem(Player player, LogicalSide side, ItemStack stack) {
         return setContainedItem(player, side, null, stack);
     }
 
-    default public <T extends AbstractPerk & GemSocketPerk> boolean setContainedItem(PlayerEntity player, LogicalSide side, @Nullable CompoundNBT dataOvr, ItemStack stack) {
+    default public <T extends AbstractPerk & GemSocketPerk> boolean setContainedItem(Player player, LogicalSide side, @Nullable CompoundTag dataOvr, ItemStack stack) {
         if (!(this instanceof AbstractPerk)) {
             throw new UnsupportedOperationException("Cannot do perk-specific socketing logic on something that's not a perk!");
         }
@@ -83,14 +82,14 @@ public interface GemSocketPerk {
         }
         //a given data override signifies that that override should be used, but not written.
         boolean useLiveData = dataOvr == null;
-        CompoundNBT data = dataOvr;
+        CompoundTag data = dataOvr;
         if (useLiveData) {
             data = ((AbstractPerk) this).getPerkData(player, side);
         }
         if (data == null) {
             return false;
         }
-        CompoundNBT prev = data.copy();
+        CompoundTag prev = data.copy();
 
         if (stack.isEmpty()) {
             ItemStack existing = NBTHelper.getStack(data, SOCKET_DATA_KEY);
@@ -111,16 +110,16 @@ public interface GemSocketPerk {
         return true;
     }
 
-    default public void dropItemToPlayer(PlayerEntity player) {
+    default public void dropItemToPlayer(Player player) {
         dropItemToPlayer(player, null);
     }
 
-    default public void dropItemToPlayer(PlayerEntity player, @Nullable CompoundNBT data) {
+    default public void dropItemToPlayer(Player player, @Nullable CompoundTag data) {
         if (!(this instanceof AbstractPerk)) {
             throw new UnsupportedOperationException("Cannot do perk-specific socketing logic on something that's not a perk!");
         }
 
-        if (player.getEntityWorld().isRemote()) {
+        if (player.level().isClientSide()) {
             return;
         }
 
@@ -131,12 +130,12 @@ public interface GemSocketPerk {
         if (data == null) {
             return;
         }
-        CompoundNBT prev = data.copy();
+        CompoundTag prev = data.copy();
 
         ItemStack contained = getContainedItem(player, LogicalSide.SERVER, data);
         if (!contained.isEmpty()) {
-            if (!player.addItemStackToInventory(contained)) {
-                ItemUtils.dropItem(player.getEntityWorld(), player.getPosX(), player.getPosY(), player.getPosZ(), contained);
+            if (!player.getInventory().add(contained)) {
+                ItemUtils.dropItem(player.level(), player.getX(), player.getY(), player.getZ(), contained);
             }
         }
         setContainedItem(player, LogicalSide.SERVER, data, ItemStack.EMPTY);
@@ -147,7 +146,7 @@ public interface GemSocketPerk {
     }
 
     @OnlyIn(Dist.CLIENT)
-    default public <T extends AbstractPerk & GemSocketPerk> void addTooltipInfo(Collection<IFormattableTextComponent> tooltip) {
+    default public <T extends AbstractPerk & GemSocketPerk> void addTooltipInfo(Collection<Component> tooltip) {
         if (!(this instanceof AbstractPerk)) {
             return;
         }
@@ -160,9 +159,9 @@ public interface GemSocketPerk {
 
         ItemStack contained = getContainedItem(Minecraft.getInstance().player, LogicalSide.CLIENT);
         if (contained.isEmpty()) {
-            tooltip.add(new TranslationTextComponent("perk.info.astralsorcery.gem.empty").mergeStyle(TextFormatting.GRAY));
+            tooltip.add(Component.translatable("perk.info.astralsorcery.gem.empty").withStyle(ChatFormatting.GRAY));
             if (perkData.hasPerkEffect(thisPerk)) {
-                tooltip.add(new TranslationTextComponent("perk.info.astralsorcery.gem.content.empty").mergeStyle(TextFormatting.GRAY));
+                tooltip.add(Component.translatable("perk.info.astralsorcery.gem.content.empty").withStyle(ChatFormatting.GRAY));
 
                 boolean has = !ItemUtils.findItemsIndexedInPlayerInventory(Minecraft.getInstance().player, stack -> {
                     if (stack.isEmpty() || !(stack.getItem() instanceof GemSocketItem)) {
@@ -172,25 +171,25 @@ public interface GemSocketPerk {
                     return item.canBeInserted(stack, thisPerk, Minecraft.getInstance().player, ResearchHelper.getClientProgress(), LogicalSide.CLIENT);
                 }).isEmpty();
                 if (!has) {
-                    tooltip.add(new TranslationTextComponent("perk.info.astralsorcery.gem.content.empty.none")
-                            .mergeStyle(TextFormatting.RED));
+                    tooltip.add(Component.translatable("perk.info.astralsorcery.gem.content.empty.none")
+                            .withStyle(ChatFormatting.RED));
                 }
             }
         } else {
             if (contained.getItem() instanceof GemSocketItem) {
                 GemSocketItem item = (GemSocketItem) contained.getItem();
-                List<IFormattableTextComponent> additionalToolTip = new ArrayList<>();
+                List<Component> additionalToolTip = new ArrayList<>();
                 item.addTooltip(contained, thisPerk, additionalToolTip);
                 if (!additionalToolTip.isEmpty()) {
                     tooltip.addAll(additionalToolTip);
-                    tooltip.add(new StringTextComponent(""));
+                    tooltip.add(Component.literal(""));
                 }
             }
 
-            tooltip.add(new TranslationTextComponent("perk.info.astralsorcery.gem.content.item", contained.getDisplayName())
-                    .mergeStyle(TextFormatting.GRAY));
+            tooltip.add(Component.translatable("perk.info.astralsorcery.gem.content.item", contained.getDisplayName())
+                    .withStyle(ChatFormatting.GRAY));
             if (perkData.hasPerkEffect(thisPerk)) {
-                tooltip.add(new TranslationTextComponent("perk.info.astralsorcery.gem.remove").mergeStyle(TextFormatting.GRAY));
+                tooltip.add(Component.translatable("perk.info.astralsorcery.gem.remove").withStyle(ChatFormatting.GRAY));
             }
         }
     }

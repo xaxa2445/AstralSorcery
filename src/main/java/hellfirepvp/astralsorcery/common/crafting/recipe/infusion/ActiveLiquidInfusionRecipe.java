@@ -322,9 +322,9 @@ public class ActiveLiquidInfusionRecipe {
     }
 
     @Nullable
-    public PlayerEntity tryGetCraftingPlayerServer() {
+    public Player tryGetCraftingPlayerServer() {
         MinecraftServer srv = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-        return srv.getPlayerList().getPlayerByUUID(this.getPlayerCraftingUUID());
+        return srv.getPlayerList().getUUID(this.getPlayerCraftingUUID());
     }
 
     @Nullable

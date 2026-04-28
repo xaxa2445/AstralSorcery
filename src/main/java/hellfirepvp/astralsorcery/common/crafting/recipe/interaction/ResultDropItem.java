@@ -14,13 +14,9 @@ import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.JsonHelper;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import mezz.jei.api.gui.IRecipeLayout;
-import mezz.jei.api.ingredients.IIngredients;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level; // World -> Level
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -48,7 +44,7 @@ public class ResultDropItem extends InteractionResult {
     }
 
     @Override
-    public void doResult(World world, Vector3 at) {
+    public void doResult(Level world, Vector3 at) {
         ItemUtils.dropItemNaturally(world, at.getX(), at.getY(), at.getZ(), this.output.copy());
     }
 
@@ -66,12 +62,12 @@ public class ResultDropItem extends InteractionResult {
     }
 
     @Override
-    public void read(PacketBuffer buf) {
+    public void read(FriendlyByteBuf buf) {
         this.output = ByteBufUtils.readItemStack(buf);
     }
 
     @Override
-    public void write(PacketBuffer buf) {
+    public void write(FriendlyByteBuf buf) {
         ByteBufUtils.writeItemStack(buf, this.output);
     }
 }

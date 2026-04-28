@@ -9,7 +9,7 @@
 package hellfirepvp.astralsorcery.client.screen.helper;
 
 import hellfirepvp.astralsorcery.client.screen.base.WidthHeightScreen;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -140,11 +140,11 @@ public abstract class SizeHandler {
     }
 
     public float clampX(float centerX) {
-        return MathHelper.clamp(centerX, 0, this.getTotalWidth());
+        return Mth.clamp(centerX, 0, this.getTotalWidth());
     }
 
     public float clampY(float centerY) {
-        return MathHelper.clamp(centerY, 0, this.getTotalHeight());
+        return Mth.clamp(centerY, 0, this.getTotalHeight());
     }
 
     //Translates a renderPos into a gui-valid renderPosition (zoomed)

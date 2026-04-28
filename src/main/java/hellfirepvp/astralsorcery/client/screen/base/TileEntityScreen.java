@@ -41,7 +41,7 @@ public class TileEntityScreen<T extends TileEntity & NamedInventoryTile> extends
         if (tile.isRemoved() ||
                 clWorld == null ||
                 !clWorld.getDimensionKey().equals(tile.getWorld().getDimensionKey())) {
-            this.closeScreen();
+            this.onClose();
         }
     }
 }

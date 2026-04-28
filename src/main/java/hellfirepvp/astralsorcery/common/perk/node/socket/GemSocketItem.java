@@ -11,9 +11,10 @@ package hellfirepvp.astralsorcery.common.perk.node.socket;
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.modifier.DynamicAttributeModifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.LogicalSide;
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public interface GemSocketItem {
      * @param player
      * @param progress
      */
-    default <T extends AbstractPerk & GemSocketPerk> void onInsert(ItemStack stack, T perk, PlayerEntity player, PlayerProgress progress) {
+    default <T extends AbstractPerk & GemSocketPerk> void onInsert(ItemStack stack, T perk, Player player, PlayerProgress progress) {
         return;
     }
 
@@ -51,7 +52,7 @@ public interface GemSocketItem {
      * @param player
      * @param progress
      */
-    default <T extends AbstractPerk & GemSocketPerk> void onExtract(ItemStack stack, T perk, PlayerEntity player, PlayerProgress progress) {
+    default <T extends AbstractPerk & GemSocketPerk> void onExtract(ItemStack stack, T perk, Player player, PlayerProgress progress) {
         return;
     }
 
@@ -67,7 +68,7 @@ public interface GemSocketItem {
      * @param side
      * @return if the gem socket can be *inserted*
      */
-    default <T extends AbstractPerk & GemSocketPerk> boolean canBeInserted(ItemStack stack, T perk, PlayerEntity player, PlayerProgress progress, LogicalSide side) {
+    default <T extends AbstractPerk & GemSocketPerk> boolean canBeInserted(ItemStack stack, T perk, Player player, PlayerProgress progress, LogicalSide side) {
         return true;
     }
 
@@ -81,7 +82,7 @@ public interface GemSocketItem {
      * @param side
      * @return the list of modifiers
      */
-    default <T extends AbstractPerk & GemSocketPerk> List<DynamicAttributeModifier> getModifiers(ItemStack stack, T perk, PlayerEntity player, LogicalSide side) {
+    default <T extends AbstractPerk & GemSocketPerk> List<DynamicAttributeModifier> getModifiers(ItemStack stack, T perk, Player player, LogicalSide side) {
         return new ArrayList<>();
     }
 
@@ -92,6 +93,6 @@ public interface GemSocketItem {
      * @param perk
      * @param toolTip
      */
-    default <T extends AbstractPerk & GemSocketPerk> void addTooltip(ItemStack stack, T perk, List<IFormattableTextComponent> toolTip) {}
+    default <T extends AbstractPerk & GemSocketPerk> void addTooltip(ItemStack stack, T perk, List<Component> toolTip) {}
 
 }

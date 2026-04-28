@@ -79,7 +79,7 @@ public class BlockUtils {
     public static BlockPos getWorldTopPos(Level level, BlockPos at) {
         BlockPos it = at;
         while (it.getY() < level.getMaxBuildHeight()) {
-            it = it.up();
+            it = it.above();
         }
         return it;
     }
@@ -88,7 +88,7 @@ public class BlockUtils {
         BlockState state = world.getBlockState(at);
         // getMaterial() fue eliminado; ahora usamos propiedades de colisión
         while (at.getY() > world.getMinBuildHeight() && !state.canOcclude() && state.getFluidState().isEmpty()) {
-            at = at.down();
+            at = at.below();
             state = world.getBlockState(at);
         }
         return at;

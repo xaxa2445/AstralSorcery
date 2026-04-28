@@ -33,14 +33,14 @@ public class PerkAttributeInterpreter {
     private final Map<PerkAttributeType, PerkAttributeReader> attributeReaderOverrides = Maps.newHashMap();
 
     private PerkAttributeMap attributeMap;
-    private final PlayerEntity player;
+    private final Player player;
 
-    private PerkAttributeInterpreter(PerkAttributeMap attributeMap, PlayerEntity player) {
+    private PerkAttributeInterpreter(PerkAttributeMap attributeMap, Player player) {
         this.attributeMap = attributeMap;
         this.player = player;
     }
 
-    public static PerkAttributeInterpreter defaultInterpreter(PlayerEntity player) {
+    public static PerkAttributeInterpreter defaultInterpreter(Player player) {
         return new Builder(player).build();
     }
 
@@ -61,11 +61,11 @@ public class PerkAttributeInterpreter {
 
         private final PerkAttributeInterpreter reader;
 
-        private Builder(PlayerEntity player) {
+        private Builder(Player player) {
             this.reader = new PerkAttributeInterpreter(null, player);
         }
 
-        public static Builder newBuilder(PlayerEntity player) {
+        public static Builder newBuilder(Player player) {
             return new Builder(player);
         }
 

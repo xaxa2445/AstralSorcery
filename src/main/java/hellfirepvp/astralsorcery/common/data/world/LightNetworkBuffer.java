@@ -28,16 +28,15 @@ import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.observerlib.common.data.WorldCacheDomain;
 import hellfirepvp.observerlib.common.data.base.SectionWorldData;
 import hellfirepvp.observerlib.common.data.base.WorldSection;
-import net.minecraft.block.BlockState;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.nbt.ListTag;     // ListNBT -> ListTag
+import net.minecraft.nbt.Tag;         // Reemplaza Constants.NBT
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos; // Para manejar secciones correctamente
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.Constants;
+import net.minecraft.world.level.Level; // World -> Level
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -60,7 +59,7 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
         super(key, PRECISION_CHUNK);
     }
 
-    public WorldNetworkHandler getNetworkHandler(World world) {
+    public WorldNetworkHandler getNetworkHandler(Level world) {
         return new WorldNetworkHandler(this, world);
     }
 
@@ -70,7 +69,7 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
     }
 
     @Override
-    public void updateTick(World world) {
+    public void updateTick(Level world) {
         cleanupQueuedChunks();
 
         TransmissionWorldHandler handle = StarlightTransmissionHandler.getInstance().getWorldHandler(world);
@@ -96,7 +95,7 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
                     AstralSorcery.log.warn("Purging cache entry and removing erroneous block!");
                     AstralSorcery.log.warn("Block that gets purged: " + BlockStateHelper.serialize(actual));
                     iterator.remove();
-                    if (world.setBlockState(pos, actual.getFluidState().getBlockState())) {
+                    if (world.setBlock(pos, actual.getFluidState().createLegacyBlock(), 3)) {
                         ChunkNetworkData data = getSection(pos);
                         if (data != null) {
                             data.removeSourceTile(pos);
@@ -108,11 +107,11 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
     }
 
     @Override
-    public void onLoad(World world) {
+    public void onLoad(Level world) {
         super.onLoad(world);
 
         if (LightNetworkConfig.CONFIG.performNetworkIntegrityCheck.get()) {
-            AstralSorcery.log.info("[LightNetworkIntegrityCheck] Performing StarlightNetwork integrity check for world " + world.getDimensionKey().getLocation());
+            AstralSorcery.log.info("[LightNetworkIntegrityCheck] Performing StarlightNetwork integrity check for world " + world.dimension().location());
             List<IPrismTransmissionNode> invalidRemoval = new LinkedList<>();
 
             for (ChunkNetworkData data : getSections()) {
@@ -191,17 +190,17 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
     }
 
     @Override
-    public void readFromNBT(CompoundNBT nbt) {
+    public void readFromNBT(CompoundTag nbt) {
         starlightSources.clear();
         cachedSourceTuples = null;
 
         if (nbt.contains("sources")) {
-            ListNBT list = nbt.getList("sources", Constants.NBT.TAG_COMPOUND);
+            ListTag list = nbt.getList("sources", Tag.TAG_COMPOUND);
             for (int i = 0; i < list.size(); i++) {
-                CompoundNBT sourcePos = list.getCompound(i);
+                CompoundTag sourcePos = list.getCompound(i);
                 BlockPos at = NBTHelper.readBlockPosFromNBT(sourcePos);
 
-                CompoundNBT comp = sourcePos.getCompound("source");
+                CompoundTag comp = sourcePos.getCompound("source");
                 ResourceLocation identifier = new ResourceLocation(comp.getString("sTypeId"));
                 SourceClassRegistry.SourceProvider provider = SourceClassRegistry.getProvider(identifier);
                 if (provider == null) {
@@ -216,14 +215,14 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
     }
 
     @Override
-    public void writeToNBT(CompoundNBT nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         cleanupQueuedChunks();
 
-        ListNBT sourceList = new ListNBT();
+        ListTag sourceList = new ListTag();
         for (BlockPos pos : starlightSources.keySet()) {
-            CompoundNBT sourceTag = new CompoundNBT();
+            CompoundTag sourceTag = new CompoundTag();
             NBTHelper.writeBlockPosToNBT(pos, sourceTag);
-            CompoundNBT source = new CompoundNBT();
+            CompoundTag source = new CompoundTag();
             IIndependentStarlightSource sourceNode = starlightSources.get(pos);
             try {
                 sourceNode.writeToNBT(source);
@@ -336,25 +335,25 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
         }
 
         @Override
-        public void readFromNBT(CompoundNBT tag) {
-            for (String key : tag.keySet()) {
+        public void readFromNBT(CompoundTag tag) {
+            for (String key : tag.getAllKeys()) {
                 int yLevel;
                 try {
                     yLevel = Integer.parseInt(key);
                 } catch (NumberFormatException exc) {
                     continue;
                 }
-                ListNBT yData = tag.getList(key, Constants.NBT.TAG_COMPOUND);
+                ListTag yData = tag.getList(key, Tag.TAG_COMPOUND);
                 ChunkSectionNetworkData sectionNetData = ChunkSectionNetworkData.loadFromNBT(yData);
                 this.sections.put(yLevel, sectionNetData);
             }
         }
 
         @Override
-        public void writeToNBT(CompoundNBT data) {
+        public void writeToNBT(CompoundTag data) {
             for (Integer yLevel : sections.keySet()) {
                 ChunkSectionNetworkData sectionData = sections.get(yLevel);
-                ListNBT sectionTag = new ListNBT();
+                ListTag sectionTag = new ListTag();
                 sectionData.writeToNBT(sectionTag);
                 data.put(String.valueOf(yLevel), sectionTag);
             }
@@ -420,13 +419,13 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
 
         private final Map<BlockPos, IPrismTransmissionNode> nodes = new HashMap<>();
 
-        private static ChunkSectionNetworkData loadFromNBT(ListNBT sectionData) {
+        private static ChunkSectionNetworkData loadFromNBT(ListTag sectionData) {
             ChunkSectionNetworkData netData = new ChunkSectionNetworkData();
             for (int i = 0; i < sectionData.size(); i++) {
-                CompoundNBT nodeComp = sectionData.getCompound(i);
+                CompoundTag nodeComp = sectionData.getCompound(i);
                 BlockPos pos = NBTHelper.readBlockPosFromNBT(nodeComp);
 
-                CompoundNBT prismComp = nodeComp.getCompound("nodeTag");
+                CompoundTag prismComp = nodeComp.getCompound("nodeTag");
                 ResourceLocation nodeIdentifier = new ResourceLocation(prismComp.getString("trNodeId"));
                 TransmissionProvider provider = TransmissionClassRegistry.getProvider(nodeIdentifier);
                 if (provider == null) {
@@ -440,13 +439,13 @@ public class LightNetworkBuffer extends SectionWorldData<LightNetworkBuffer.Chun
             return netData;
         }
 
-        private void writeToNBT(ListNBT sectionData) {
+        private void writeToNBT(ListTag sectionData) {
             for (Map.Entry<BlockPos, IPrismTransmissionNode> node : nodes.entrySet()) {
                 try {
-                    CompoundNBT nodeComp = new CompoundNBT();
+                    CompoundTag nodeComp = new CompoundTag();
                     NBTHelper.writeBlockPosToNBT(node.getKey(), nodeComp);
 
-                    CompoundNBT prismComp = new CompoundNBT();
+                    CompoundTag prismComp = new CompoundTag();
                     IPrismTransmissionNode prismNode = node.getValue();
                     prismNode.writeToNBT(prismComp);
                     prismComp.putString("trNodeId", prismNode.getProvider().getIdentifier().toString());

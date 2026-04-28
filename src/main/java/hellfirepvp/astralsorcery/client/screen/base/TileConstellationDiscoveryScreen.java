@@ -42,7 +42,7 @@ public abstract class TileConstellationDiscoveryScreen<T extends TileEntity & Na
         if (tile.isRemoved() ||
                 clWorld == null ||
                 !clWorld.getDimensionKey().equals(tile.getWorld().getDimensionKey())) {
-            this.closeScreen();
+            this.onClose();
         }
     }
 

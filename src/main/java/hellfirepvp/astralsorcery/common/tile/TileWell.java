@@ -33,19 +33,15 @@ import hellfirepvp.astralsorcery.common.util.tile.FluidTankAccess;
 import hellfirepvp.astralsorcery.common.util.tile.PrecisionSingleFluidTank;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventoryFiltered;
 import hellfirepvp.astralsorcery.common.util.world.SkyCollectionHelper;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.ISeedReader;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fluids.FluidAttributes;
-
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.common.capabilities.ForgeCapabilities; // Nuevo acceso a Caps
+import net.minecraftforge.fluids.FluidType; // Reemplaza mucho de FluidAttributes
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -59,7 +55,7 @@ import java.awt.*;
  */
 public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
 
-    private static final int TANK_SIZE = 2 * FluidAttributes.BUCKET_VOLUME;
+    private static final int TANK_SIZE = 2 * FluidType.BUCKET_VOLUME;
 
     private WellLiquefaction runningRecipe = null;
 
@@ -70,8 +66,8 @@ public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
     private double starlightBuffer = 0;
     private float posDistribution = -1;
 
-    public TileWell() {
-        super(TileEntityTypesAS.WELL);
+    public TileWell(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.WELL, pos, state);
 
         this.tank = new PrecisionSingleFluidTank(TANK_SIZE);
         this.tank.setAllowInput(false);

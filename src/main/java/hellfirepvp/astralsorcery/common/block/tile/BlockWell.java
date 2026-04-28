@@ -19,32 +19,32 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.VoxelUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.shapes.IBooleanFunction;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraftforge.fluids.FluidActionResult;
-import net.minecraftforge.fluids.FluidAttributes;
 import net.minecraftforge.fluids.FluidUtil;
-import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.items.ItemStackHandler;
-import net.minecraftforge.items.wrapper.InvWrapper;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.sounds.SoundSource; // Reemplaza SoundCategory
+import net.minecraftforge.common.capabilities.ForgeCapabilities; // Nuevo import
+import net.minecraftforge.fluids.FluidType; // Nuevo import
+import net.minecraftforge.items.wrapper.PlayerMainInvWrapper; // Nuevo import
 
 import javax.annotation.Nullable;
 
@@ -60,82 +60,92 @@ public class BlockWell extends BlockStarlightNetwork implements CustomItemBlock 
     private final VoxelShape shape;
 
     public BlockWell() {
-        super(PropertiesMarble.defaultMarble()
-                .harvestLevel(1)
-                .harvestTool(ToolType.PICKAXE));
+        // En 1.20.1, las propiedades se manejan distinto.
+        // harvestLevel/Tool ahora se definen via JSON Tags (minecraft/tags/blocks/mineable/pickaxe)
+        super(PropertiesMarble.defaultMarble());
         this.shape = createShape();
     }
 
     protected VoxelShape createShape() {
-        VoxelShape footing = Block.makeCuboidShape(1, 0, 1, 15, 2, 15);
-        VoxelShape floor = Block.makeCuboidShape(3, 2, 3, 13, 4, 13);
-        VoxelShape basinFloor = Block.makeCuboidShape(1, 4, 1, 15, 5, 15);
-        VoxelShape w1 = Block.makeCuboidShape(1, 5, 1, 2, 16, 14);
-        VoxelShape w2 = Block.makeCuboidShape(2, 5, 1, 15, 16, 2);
-        VoxelShape w3 = Block.makeCuboidShape(14, 5, 2, 15, 16, 15);
-        VoxelShape w4 = Block.makeCuboidShape(1, 5, 14, 14, 16, 15);
+        VoxelShape footing = Block.box(1, 0, 1, 15, 2, 15);
+        VoxelShape floor = Block.box(3, 2, 3, 13, 4, 13);
+        VoxelShape basinFloor = Block.box(1, 4, 1, 15, 5, 15);
+        VoxelShape w1 = Block.box(1, 5, 1, 2, 16, 14);
+        VoxelShape w2 = Block.box(2, 5, 1, 15, 16, 2);
+        VoxelShape w3 = Block.box(14, 5, 2, 15, 16, 15);
+        VoxelShape w4 = Block.box(1, 5, 14, 14, 16, 15);
 
-        return VoxelUtils.combineAll(IBooleanFunction.OR,
+        return VoxelUtils.combineAll(BooleanOp.OR,
                 footing, floor, basinFloor, w1, w2, w3, w4);
     }
 
     @Override
-    public VoxelShape getShape(BlockState p_220053_1_, IBlockReader p_220053_2_, BlockPos p_220053_3_, ISelectionContext p_220053_4_) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos p_220053_3_, CollisionContext context) {
         return this.shape;
     }
 
     @Override
-    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
-        if (!world.isRemote()) {
-            ItemStack heldItem = player.getHeldItem(hand);
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!world.isClientSide()) {
+            ItemStack heldItem = player.getItemInHand(hand);
             if (!heldItem.isEmpty()) {
                 TileWell tw = MiscUtils.getTileAt(world, pos, TileWell.class, false);
                 if (tw == null) {
-                    return ActionResultType.PASS;
+                    return InteractionResult.PASS;
                 }
 
                 WellLiquefaction entry = RecipeTypesAS.TYPE_WELL.findRecipe(new WellLiquefactionContext(heldItem));
                 if (entry != null) {
                     ItemStackHandler handle = tw.getInventory();
                     if (!handle.getStackInSlot(0).isEmpty()) {
-                        return ActionResultType.PASS;
+                        return InteractionResult.PASS;
                     }
-                    if (!world.isAirBlock(pos.up())) {
-                        return ActionResultType.PASS;
+                    if (!world.isEmptyBlock(pos.above())) {
+                        return InteractionResult.PASS;
                     }
 
                     handle.setStackInSlot(0, ItemUtils.copyStackWithSize(heldItem, 1));
                     world.playSound(null, pos.getX(), pos.getY(), pos.getZ(),
-                            SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2F,
-                            ((world.rand.nextFloat() - world.rand.nextFloat()) * 0.7F + 1.0F) * 2.0F);
+                            SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.2F,
+                            ((world.random.nextFloat() - world.random.nextFloat()) * 0.7F + 1.0F) * 2.0F);
 
                     if (!player.isCreative()) {
                         heldItem.shrink(1);
                     }
                     if (heldItem.getCount() <= 0) {
-                        player.setHeldItem(hand, ItemStack.EMPTY);
+                        player.setItemInHand(hand, ItemStack.EMPTY);
                     }
                 }
 
-                tw.getCapability(CapabilityFluidHandler.FLUID_HANDLER_CAPABILITY, null)
+                tw.getCapability(ForgeCapabilities.FLUID_HANDLER, null)
                         .ifPresent((handler) -> {
+                            // FluidUtil sigue siendo similar, pero las constantes cambian
                             FluidActionResult far = FluidUtil.tryFillContainerAndStow(heldItem,
-                                    handler, new InvWrapper(player.inventory), FluidAttributes.BUCKET_VOLUME, player, true);
+                                    handler,
+                                    new PlayerMainInvWrapper(player.getInventory()), // player.inventory -> player.getInventory()
+                                    FluidType.BUCKET_VOLUME,
+                                    player,
+                                    true);
+
                             if (far.isSuccess()) {
-                                player.setHeldItem(hand, far.getResult());
-                                SoundHelper.playSoundAround(SoundEvents.ITEM_BUCKET_FILL, world, pos, 1F, 1F);
-                                tw.markForUpdate();
+                                // setHeldItem -> setItemInHand
+                                player.setItemInHand(hand, far.getResult());
+
+                                // SoundHelper debe estar actualizado para usar SoundSource.BLOCKS o similar
+                                SoundHelper.playSoundAround(SoundEvents.BUCKET_FILL, world, pos, 1F, 1F);
+
+                                tw.setChanged(); // markForUpdate suele envolver a setChanged() en 1.20.1
                             }
                         });
             }
         }
-        return ActionResultType.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
     @Override
-    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
+    public void onReplaced(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
         TileWell tw = MiscUtils.getTileAt(worldIn, pos, TileWell.class, true);
-        if (tw != null && !worldIn.isRemote) {
+        if (tw != null && !worldIn.isClientSide) {
             ItemStack stack = tw.getInventory().getStackInSlot(0);
             if (!stack.isEmpty()) {
                 tw.breakCatalyst();
@@ -146,34 +156,34 @@ public class BlockWell extends BlockStarlightNetwork implements CustomItemBlock 
     }
 
     @Override
-    public boolean hasComparatorInputOverride(BlockState p_149740_1_) {
+    public boolean hasAnalogOutputSignal(BlockState state) {
         return true;
     }
 
     @Override
-    public int getComparatorInputOverride(BlockState state, World world, BlockPos pos) {
+    public int getAnalogOutputSignal(BlockState state, Level world, BlockPos pos) {
         TileWell tw = MiscUtils.getTileAt(world, pos, TileWell.class, false);
         if (tw != null) {
-            int fluidPart = MathHelper.ceil(tw.getTank().getPercentageFilled() * 8F);
+            int fluidPart = Mth.ceil(tw.getTank().getPercentageFilled() * 8F);
             return tw.getCatalyst().isEmpty() ? fluidPart : fluidPart + 7;
         }
         return 0;
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter worldIn, BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState p_149645_1_) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderType(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TileWell();
+    public BlockEntity createNewTileEntity(BlockPos pos, BlockState state) {
+        return new TileWell(pos, state);
     }
 
 }

@@ -16,13 +16,13 @@ import hellfirepvp.astralsorcery.common.starlight.network.TransmissionWorldHandl
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.ITransmissionSource;
 import hellfirepvp.astralsorcery.common.starlight.transmission.NodeConnection;
-import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
-import net.minecraft.world.level.Level;
+import net.minecraft.util.Mth; // MathHelper -> Mth
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level; // World -> Level
+import net.minecraft.world.phys.Vec3; // Vector3d -> Vec3
+import net.minecraft.util.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -39,18 +39,18 @@ import java.util.List;
 public class WorldNetworkHandler {
 
     private final LightNetworkBuffer buffer;
-    private final World world;
+    private final Level world;
 
-    public WorldNetworkHandler(LightNetworkBuffer lightNetworkBuffer, World world) {
+    public WorldNetworkHandler(LightNetworkBuffer lightNetworkBuffer, Level world) {
         this.buffer = lightNetworkBuffer;
         this.world = world;
     }
 
-    public World getWorld() {
+    public Level getWorld() {
         return world;
     }
 
-    public static WorldNetworkHandler getNetworkHandler(World world) {
+    public static WorldNetworkHandler getNetworkHandler(Level world) {
         return DataAS.DOMAIN_AS.getData(world, DataAS.KEY_STARLIGHT_NETWORK).getNetworkHandler(world);
     }
 
@@ -77,16 +77,16 @@ public class WorldNetworkHandler {
         for (Tuple<BlockPos, IIndependentStarlightSource> source : getAllSources()) {
             if (!source.getB().providesAutoLink()) continue;
 
-            if (source.getA().distanceSq(Vector3d.copy(at), false) <= 256) {
+            if (source.getA().distSqr(at) <= 256) {
                 IPrismTransmissionNode node = getTransmissionNode(source.getA());
                 if (node == null) {
                     AstralSorcery.log.warn("Didn't find a TransmissionNode at a position that's supposed to be a source!");
-                    AstralSorcery.log.warn("Details: Dim=" + getWorld().getDimensionKey().getLocation() + " at " + source.getA());
+                    AstralSorcery.log.warn("Details: Dim=" + getWorld().dimension().location() + " at " + source.getA());
                     continue;
                 }
                 if (!(node instanceof ITransmissionSource)) {
                     AstralSorcery.log.warn("Found TransmissionNode that isn't a source at a source position!");
-                    AstralSorcery.log.warn("Details: Dim=" + getWorld().getDimensionKey().getLocation() + " at " + source.getA());
+                    AstralSorcery.log.warn("Details: Dim=" + getWorld().dimension().location() + " at " + source.getA());
                     continue;
                 }
                 ITransmissionSource sourceNode = (ITransmissionSource) node;
@@ -107,16 +107,16 @@ public class WorldNetworkHandler {
         for (Tuple<BlockPos, IIndependentStarlightSource> source : getAllSources()) {
             if (!source.getB().providesAutoLink()) continue;
 
-            if (source.getA().distanceSq(Vector3d.copy(at), false) <= 256) {
+            if (source.getA().distSqr(at) <= 256) {
                 IPrismTransmissionNode node = getTransmissionNode(source.getA());
                 if (node == null) {
                     AstralSorcery.log.warn("Didn't find a TransmissionNode at a position that's supposed to be a source!");
-                    AstralSorcery.log.warn("Details: Dim=" + getWorld().getDimensionKey().getLocation() + " at " + source.getA());
+                    AstralSorcery.log.warn("Details: Dim=" + getWorld().dimension().location() + " at " + source.getA());
                     continue;
                 }
                 if (!(node instanceof ITransmissionSource)) {
                     AstralSorcery.log.warn("Found TransmissionNode that isn't a source at a source position!");
-                    AstralSorcery.log.warn("Details: Dim=" + getWorld().getDimensionKey().getLocation() + " at " + source.getA());
+                    AstralSorcery.log.warn("Details: Dim=" + getWorld().dimension().location() + " at " + source.getA());
                     continue;
                 }
                 ITransmissionSource sourceNode = (ITransmissionSource) node;
@@ -141,8 +141,8 @@ public class WorldNetworkHandler {
         return null;
     }
 
-    public void markDirty(Vector3i... positions) {
-        for (Vector3i pos : positions) {
+    public void markDirty(Vec3i... positions) {
+        for (Vec3i pos : positions) {
             buffer.markDirty(pos);
         }
     }
@@ -247,7 +247,7 @@ public class WorldNetworkHandler {
             for (IPrismTransmissionNode otherNode : data.getAllTransmissionNodes()) {
                 List<NodeConnection<IPrismTransmissionNode>> nodeConnections = otherNode.queryNext(this);
                 for (NodeConnection<IPrismTransmissionNode> connection : nodeConnections) {
-                    if (connection.getTo().equals(thisPos)) {
+                    if ((thisPos.equals(connection.getTo()))) {
                         node.notifySourceLink(getWorld(), otherNode.getLocationPos());
                         if (handle != null) {
                             handle.notifyTransmissionNodeChange(otherNode);
@@ -263,12 +263,17 @@ public class WorldNetworkHandler {
     private List<LightNetworkBuffer.ChunkSectionNetworkData> getAffectedChunkSections(BlockPos centralPos) {
         List<LightNetworkBuffer.ChunkSectionNetworkData> dataList = new LinkedList<>();
         ChunkPos central = new ChunkPos(centralPos);
-        int posYLevel = MathHelper.clamp(centralPos.getY(), 0, 255);
+        int minY = world.getMinBuildHeight();
+        int maxY = world.getMaxBuildHeight() - 1;
+        int posYLevel = Mth.clamp(centralPos.getY(), 0, 255);
         for (int xx = -1; xx <= 1; xx++) {
             for (int zz = -1; zz <= 1; zz++) {
                 for (int yy = -1; yy <= 1; yy++) {
-                    BlockPos pos = central.asBlockPos();
-                    pos = pos.add(xx * 16, MathHelper.clamp(posYLevel + yy * 16, 0, 255), zz * 16);
+                    BlockPos pos = central.getWorldPosition().offset(
+                            xx * 16,
+                            Mth.clamp(posYLevel + yy * 16, minY, maxY) - centralPos.getY(), // Delta de altura
+                            zz * 16
+                    );
                     queryData(pos, dataList);
                 }
             }

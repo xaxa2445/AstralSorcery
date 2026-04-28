@@ -22,19 +22,20 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.tile.FluidTankAccess;
 import hellfirepvp.astralsorcery.common.util.tile.SimpleSingleFluidTank;
-import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.resources.ResourceLocation; // net.minecraft.util -> net.minecraft.resources
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ForgeCapabilities; // Importante para FluidHandler
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.fluids.FluidAttributes;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidType; // FluidAttributes -> FluidType
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -51,8 +52,8 @@ import java.util.Objects;
  */
 public class TileFountain extends TileEntityTick {
 
-    private static final int TANK_SIZE = 16 * FluidAttributes.BUCKET_VOLUME;
-    private static final int LIQUID_STARLIGHT_TANK_SIZE = 16 * FluidAttributes.BUCKET_VOLUME;
+    private static final int TANK_SIZE = 16 * FluidType.BUCKET_VOLUME;
+    private static final int LIQUID_STARLIGHT_TANK_SIZE = 16 * FluidType.BUCKET_VOLUME;
 
     private FountainEffect<?> currentEffect;
     private FountainEffect.EffectContext effectContext;
@@ -64,8 +65,8 @@ public class TileFountain extends TileEntityTick {
     private final FluidTankAccess access;
     private final SimpleSingleFluidTank tank;
 
-    public TileFountain() {
-        super(TileEntityTypesAS.FOUNTAIN);
+    public TileFountain(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.FOUNTAIN, pos, state);
 
         this.tank = new SimpleSingleFluidTank(TANK_SIZE);
         this.tank.addUpdateFunction(this::markForUpdate);
@@ -74,10 +75,10 @@ public class TileFountain extends TileEntityTick {
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!getWorld().isRemote()) {
+        if (!getLevel().isClientSide()) {
             if (this.hasMultiblock()) {
                 this.updateFountainComponents();
                 this.drawLiquidStarlight();
@@ -100,11 +101,11 @@ public class TileFountain extends TileEntityTick {
                     if (segment != nextSegment) {
                         effect.transition(this, ctx, LogicalSide.SERVER, segment, nextSegment);
                         PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.FOUNTAIN_TRANSITION_SEGMENT).addData(buf -> {
-                            ByteBufUtils.writePos(buf, pos);
+                            ByteBufUtils.writePos(buf, this.worldPosition);
                             ByteBufUtils.writeEnumValue(buf, segment);
                             ByteBufUtils.writeEnumValue(buf, nextSegment);
                         });
-                        PacketChannel.CHANNEL.sendToAllAround(pkt, PacketChannel.pointFromPos(world, pos, 32));
+                        PacketChannel.CHANNEL.sendToAllAround(pkt, PacketChannel.pointFromPos(level, this.worldPosition, 32));
                     }
                     effect.tick(this, ctx, this.tickActiveFountainEffect, LogicalSide.SERVER, this.getSegment());
                 }
@@ -125,7 +126,7 @@ public class TileFountain extends TileEntityTick {
         FountainEffect.OperationSegment segment = ByteBufUtils.readEnumValue(pktPlayEffect.getExtraData(), FountainEffect.OperationSegment.class);
         FountainEffect.OperationSegment nextSegment = ByteBufUtils.readEnumValue(pktPlayEffect.getExtraData(), FountainEffect.OperationSegment.class);
 
-        World world = Minecraft.getInstance().world;
+        Level world = Minecraft.getInstance().level;
         if (world == null) {
             return;
         }
@@ -143,7 +144,7 @@ public class TileFountain extends TileEntityTick {
     @OnlyIn(Dist.CLIENT)
     public static void replaceEffect(PktPlayEffect pktPlayEffect) {
         BlockPos at = ByteBufUtils.readPos(pktPlayEffect.getExtraData());
-        World world = Minecraft.getInstance().world;
+        Level world = Minecraft.getInstance().level;
         if (world == null) {
             return;
         }
@@ -165,7 +166,7 @@ public class TileFountain extends TileEntityTick {
             this.tickDrawLiquidStarlight = 100;
 
             if (this.mbLiquidStarlight < (LIQUID_STARLIGHT_TANK_SIZE * 0.8F) && this.currentEffect != null) {
-                TileChalice chalice = MiscUtils.getTileAt(world, pos.up(), TileChalice.class, false);
+                TileChalice chalice = MiscUtils.getTileAt(level, this.worldPosition.above(), TileChalice.class, false);
                 if (chalice != null) {
                     FluidStack fluid = chalice.getTank().drain(400, IFluidHandler.FluidAction.SIMULATE);
                     if (!fluid.isEmpty() && fluid.getFluid() instanceof FluidLiquidStarlight) {
@@ -182,7 +183,7 @@ public class TileFountain extends TileEntityTick {
         FountainEffect prevEffect = this.getCurrentEffect();
         FountainEffect.EffectContext prevContext = this.effectContext;
 
-        BlockState primeState = world.getBlockState(pos.down());
+        BlockState primeState = level.getBlockState(this.worldPosition.below());
         if (primeState.getBlock() instanceof BlockFountainPrime) {
             if (this.setCurrentEffect(((BlockFountainPrime) primeState.getBlock()).provideEffect()) && prevEffect != null) {
                 this.replaceCurrentEffect(prevEffect, prevContext, this.getCurrentEffect());
@@ -197,8 +198,8 @@ public class TileFountain extends TileEntityTick {
     private void replaceCurrentEffect(FountainEffect prevEffect, FountainEffect.EffectContext prevContext, FountainEffect newEffect) {
         prevEffect.onReplace(this, prevContext, newEffect, LogicalSide.SERVER);
         PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.FOUNTAIN_REPLACE_EFFECT)
-                .addData(buf -> ByteBufUtils.writePos(buf, pos));
-        PacketChannel.CHANNEL.sendToAllAround(pkt, PacketChannel.pointFromPos(world, pos, 32));
+                .addData(buf -> ByteBufUtils.writePos(buf, this.worldPosition));
+        PacketChannel.CHANNEL.sendToAllAround(pkt, PacketChannel.pointFromPos(level, this.worldPosition, 32));
 
     }
 
@@ -265,7 +266,7 @@ public class TileFountain extends TileEntityTick {
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.tickActiveFountainEffect = compound.getInt("tickActiveFountainEffect");
@@ -291,7 +292,7 @@ public class TileFountain extends TileEntityTick {
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         compound.putInt("tickActiveFountainEffect", this.tickActiveFountainEffect);
@@ -300,7 +301,7 @@ public class TileFountain extends TileEntityTick {
         if (this.currentEffect != null) {
             compound.putString("currentEffect", this.currentEffect.getId().toString());
             if (this.effectContext != null) {
-                CompoundNBT tag = new CompoundNBT();
+                CompoundTag tag = new CompoundTag();
                 this.effectContext.writeToNBT(tag);
                 compound.put("currentEffectData", tag);
             }

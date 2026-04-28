@@ -19,17 +19,18 @@ import hellfirepvp.astralsorcery.common.util.MapStream;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.JsonHelper;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth; // MathHelper -> Mth
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipeType;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 
@@ -64,7 +65,7 @@ public class LiquidInfusion extends CustomMatcherRecipe implements GatedRecipe.P
         this.copyNBTToOutputs = copyNBTToOutputs;
     }
 
-    public boolean matches(TileInfuser infuser, PlayerEntity crafter, LogicalSide side) {
+    public boolean matches(TileInfuser infuser, Player crafter, LogicalSide side) {
         if (crafter == null) {
             return false;
         }
@@ -78,7 +79,7 @@ public class LiquidInfusion extends CustomMatcherRecipe implements GatedRecipe.P
             return false;
         }
         boolean hasFluidInputs = MapStream.of(infuser.getLiquids())
-                .mapKey(pos -> pos.add(infuser.getPos()))
+                .mapKey(pos -> pos.offset(infuser.getBlockPos()))
                 .allMatch(tpl -> this.liquidInput.equals(tpl.getB()));
 
         if (!hasFluidInputs) {
@@ -122,7 +123,7 @@ public class LiquidInfusion extends CustomMatcherRecipe implements GatedRecipe.P
     }
 
     public float getConsumptionChance() {
-        return MathHelper.clamp(consumptionChance, 0F, 1F);
+        return Mth.clamp(consumptionChance, 0F, 1F);
     }
 
     public boolean doesConsumeMultipleFluids() {
@@ -137,9 +138,9 @@ public class LiquidInfusion extends CustomMatcherRecipe implements GatedRecipe.P
         return copyNBTToOutputs;
     }
 
-    public static LiquidInfusion read(ResourceLocation recipeId, PacketBuffer buffer) {
+    public static LiquidInfusion read(ResourceLocation recipeId, FriendlyByteBuf buffer) {
         Fluid fluidIn = ByteBufUtils.readRegistryEntry(buffer);
-        Ingredient itemIn = Ingredient.read(buffer);
+        Ingredient itemIn = Ingredient.fromNetwork(buffer);
         ItemStack output = ByteBufUtils.readItemStack(buffer);
         float consumptionChance = buffer.readFloat();
         int duration = buffer.readInt();
@@ -149,9 +150,9 @@ public class LiquidInfusion extends CustomMatcherRecipe implements GatedRecipe.P
         return new LiquidInfusion(recipeId, duration, fluidIn, itemIn, output, consumptionChance, consumeMultiple, acceptChalice, copyNBTToOutputs);
     }
 
-    public final void write(PacketBuffer buffer) {
+    public final void write(FriendlyByteBuf buffer) {
         ByteBufUtils.writeRegistryEntry(buffer, this.getLiquidInput());
-        this.getItemInput().write(buffer);
+        this.getItemInput().toNetwork(buffer);
         ByteBufUtils.writeItemStack(buffer, this.output);
         buffer.writeFloat(this.getConsumptionChance());
         buffer.writeInt(this.getCraftingTickTime());
@@ -161,8 +162,9 @@ public class LiquidInfusion extends CustomMatcherRecipe implements GatedRecipe.P
     }
 
     public void write(JsonObject object) {
-        object.addProperty("fluidInput", this.getLiquidInput().getRegistryName().toString());
-        object.add("input", this.getItemInput().serialize());
+        ResourceLocation fluidId = ForgeRegistries.FLUIDS.getKey(this.getLiquidInput());
+        object.addProperty("fluidInput", fluidId != null ? fluidId.toString() : "minecraft:empty");
+        object.add("input", this.itemInput.toJson()); // serialize -> toJson
         object.add("output", JsonHelper.serializeItemStack(this.output));
         object.addProperty("consumptionChance", this.getConsumptionChance());
         object.addProperty("duration", this.getCraftingTickTime());
@@ -172,8 +174,13 @@ public class LiquidInfusion extends CustomMatcherRecipe implements GatedRecipe.P
     }
 
     @Override
-    public IRecipeType<?> getType() {
+    public RecipeType<?> getType() {
         return RecipeTypesAS.TYPE_INFUSION.getType();
+    }
+
+    @Override
+    public boolean canCraftInDimensions(int width, int height) {
+        return true;
     }
 
     @Override

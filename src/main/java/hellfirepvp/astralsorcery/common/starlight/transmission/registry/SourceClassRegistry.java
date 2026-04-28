@@ -11,7 +11,7 @@ package hellfirepvp.astralsorcery.common.starlight.transmission.registry;
 import hellfirepvp.astralsorcery.common.event.StarlightNetworkEvent;
 import hellfirepvp.astralsorcery.common.starlight.IIndependentStarlightSource;
 import hellfirepvp.astralsorcery.common.starlight.transmission.base.crystal.IndependentCrystalSource;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 
 import javax.annotation.Nonnull;

@@ -16,11 +16,11 @@ public class ASDamageTypes {
             ResourceKey.create(Registries.DAMAGE_TYPE,
                     new ResourceLocation("astralsorcery", "bleed"));
 
-    public static final RegistryObject<DamageType> STELLAR =
-            DAMAGE_TYPES.register("stellar",
-                    () -> new DamageType("astralsorcery.stellar", 0.5F));
+    public static final ResourceKey<DamageType> STELLAR =
+            ResourceKey.create(Registries.DAMAGE_TYPE,
+                    new ResourceLocation("astralsorcery", "stellar"));
 
-    public static final RegistryObject<DamageType> REFLECT =
-            DAMAGE_TYPES.register("reflect",
-                    () -> new DamageType("astralsorcery.reflect", 0.0F));
+    public static final ResourceKey<DamageType> REFLECT =
+            ResourceKey.create(Registries.DAMAGE_TYPE,
+                    new ResourceLocation("astralsorcery", "reflect"));
 }

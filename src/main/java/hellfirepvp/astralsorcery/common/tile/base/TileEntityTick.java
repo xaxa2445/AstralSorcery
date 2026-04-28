@@ -14,10 +14,12 @@ import hellfirepvp.astralsorcery.common.util.log.LogCategory;
 import hellfirepvp.observerlib.api.ChangeSubscriber;
 import hellfirepvp.observerlib.api.ObserverHelper;
 import hellfirepvp.observerlib.common.change.ChangeObserverStructure;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.ITickableTileEntity;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 
@@ -28,7 +30,7 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 02.08.2016 / 17:34
  */
-public abstract class TileEntityTick extends TileEntitySynchronized implements ITickableTileEntity, TileRequiresMultiblock {
+public abstract class TileEntityTick extends TileEntitySynchronized implements TileRequiresMultiblock {
 
     private boolean doesSeeSky = false;
     private int lastUpdateTick = -1;
@@ -38,17 +40,29 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
 
     protected int ticksExisted = 0;
 
-    protected TileEntityTick(TileEntityType<?> tileEntityTypeIn) {
-        super(tileEntityTypeIn);
+    protected TileEntityTick(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
     }
 
-    @Override
-    public void tick() {
-        if (ticksExisted == 0) {
-            onFirstTick();
+    public static <T extends TileEntityTick> void tick(Level level, BlockPos pos, BlockState state, T tile) {
+        if (tile.ticksExisted == 0) {
+            tile.onFirstTick();
         }
+        tile.ticksExisted++;
 
-        ticksExisted++;
+        tile.onTick();
+    }
+
+    protected void onTick() {
+        // Solo ejecutamos lógica pesada en el lado del servidor
+        if (this.getLevel() != null && !this.getLevel().isClientSide()) {
+
+            // Optimizamos: Chequeamos el cielo y la multibloque cada 1 segundo (20 ticks)
+            if (this.ticksExisted % 20 == 0) {
+                this.doesSeeSky();
+                this.hasMultiblock();
+            }
+        }
     }
 
     @Nullable
@@ -70,7 +84,7 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
     }
 
     public boolean doesSeeSky() {
-        if (getWorld().isRemote()) {
+        if (getLevel().isClientSide()) {
             return this.doesSeeSky;
         }
 
@@ -78,7 +92,7 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
             lastUpdateTick = ticksExisted;
 
             boolean prevSky = doesSeeSky;
-            boolean newSky = MiscUtils.canSeeSky(this.getWorld(), this.getPos().up(), true, this.seesSkyInNoSkyWorlds(), this.doesSeeSky);
+            boolean newSky = MiscUtils.canSeeSky(this.getLevel(), this.getBlockPos().above(), true, this.seesSkyInNoSkyWorlds(), this.doesSeeSky);
             if (prevSky != newSky) {
                 this.notifySkyStateUpdate(prevSky, newSky);
                 this.doesSeeSky = newSky;
@@ -89,11 +103,11 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
     }
 
     public boolean hasMultiblock() {
-        if (getWorld().isRemote()) {
+        if (getLevel().isClientSide()) {
             return this.hasMultiblock;
         }
-
-        if (this.getRequiredStructureType() == null) {
+        StructureType struct = this.getRequiredStructureType();
+        if (struct == null) {
             refreshMatcher();
             resetMultiblockState();
             return false;
@@ -101,13 +115,13 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
 
         refreshMatcher();
         if (this.structureMatch == null) {
-            this.structureMatch = this.getRequiredStructureType().observe(getWorld(), getPos());
+            this.structureMatch = struct.observe(this.getLevel(), this.getBlockPos());
         }
         boolean prevFound = this.hasMultiblock;
-        boolean found = this.structureMatch.isValid(getWorld());
+        boolean found = this.structureMatch.isValid(getLevel());
         if (prevFound != found) {
             LogCategory.STRUCTURE_MATCH.info(() ->
-                    "Structure match updated: " + this.getClass().getName() + " at " + this.getPos() +
+                    "Structure match updated: " + this.getClass().getName() + " at " + this.getBlockPos() +
                             " (" + this.hasMultiblock + " -> " + found + ")");
             this.notifyMultiblockStateUpdate(prevFound, found);
             this.hasMultiblock = found;
@@ -122,12 +136,12 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
             //Same registry name as the structure type.
             ResourceLocation key = this.structureMatch.getObserver().getProviderRegistryName();
             if (struct == null || !key.equals(struct.getRegistryName())) {
-                ObserverHelper.getHelper().removeObserver(getWorld(), getPos());
+                ObserverHelper.getHelper().removeObserver(getLevel(), getBlockPos());
                 this.structureMatch = null;
             }
         }
-        if (struct == null && ObserverHelper.getHelper().getSubscriber(getWorld(), getPos()) != null) {
-            ObserverHelper.getHelper().removeObserver(getWorld(), getPos());
+        if (struct == null && ObserverHelper.getHelper().getSubscriber(getLevel(), getBlockPos()) != null) {
+            ObserverHelper.getHelper().removeObserver(getLevel(), getBlockPos());
         }
     }
 
@@ -145,7 +159,7 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
     protected void notifyMultiblockStateUpdate(boolean hadMultiblockPrev, boolean hasMultiblockNow) {}
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
         
         this.ticksExisted = compound.getInt("ticksExisted");
@@ -154,7 +168,7 @@ public abstract class TileEntityTick extends TileEntitySynchronized implements I
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         compound.putInt("ticksExisted", this.ticksExisted);

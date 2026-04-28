@@ -110,13 +110,6 @@ public class CommonProxy {
 
     public static final UUID FAKEPLAYER_UUID = UUID.fromString("b0c3097f-8391-4b4b-a89a-553ef730b13a");
 
-    public static DamageSource DAMAGE_SOURCE_BLEED   = DamageSourceUtil.newType("astralsorcery.bleed")
-            .setDamageBypassesArmor();
-    public static DamageSource DAMAGE_SOURCE_STELLAR = DamageSourceUtil.newType("astralsorcery.stellar")
-            .setDamageBypassesArmor().setMagicDamage();
-    public static DamageSource DAMAGE_SOURCE_REFLECT = DamageSourceUtil.newType("thorns")
-            .setDamageBypassesArmor().setDamageIsAbsolute();
-
     // Creative Tabs
     public static final CreativeModeTab ITEM_GROUP_AS = CreativeModeTab.builder()
             .title(Component.literal("Astral Sorcery"))

@@ -15,9 +15,10 @@ import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.block.tile.fountain.BlockFountainPrime;
 import hellfirepvp.astralsorcery.common.tile.TileFountain;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Vec3i;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -61,16 +62,16 @@ public abstract class FountainEffect<E extends FountainEffect.EffectContext> {
     public abstract void onReplace(TileFountain fountain, E context, @Nullable FountainEffect<?> newEffect, LogicalSide side);
 
     @OnlyIn(Dist.CLIENT)
-    protected void playFountainVortexParticles(Vector3i pos, float chance) {
+    protected void playFountainVortexParticles(Vec3 pos, float chance) {
         Vector3 at = new Vector3(pos).add(0.5, 0.5, 0.5);
         for (int i = 0; i < 18; i++) {
             if (rand.nextFloat() >= chance) {
                 continue;
             }
             Vector3 particlePos = new Vector3(
-                    pos.getX() - 3   + rand.nextFloat() * 7,
-                    pos.getY()       + rand.nextFloat(),
-                    pos.getZ() - 3   + rand.nextFloat() * 7
+                    pos.x() - 3   + rand.nextFloat() * 7,
+                    pos.y()       + rand.nextFloat(),
+                    pos.z() - 3   + rand.nextFloat() * 7
             );
             Vector3 motion = particlePos.clone().vectorFromHereTo(at).normalize().divide(30);
 
@@ -86,7 +87,7 @@ public abstract class FountainEffect<E extends FountainEffect.EffectContext> {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void playFountainArcs(Vector3i pos, float chance) {
+    protected void playFountainArcs(Vec3 pos, float chance) {
         if (rand.nextFloat() < chance && rand.nextInt(8) == 0) {
             Vector3 at = new Vector3(pos).add(0.5, 0.5, 0.5);
 
@@ -147,9 +148,9 @@ public abstract class FountainEffect<E extends FountainEffect.EffectContext> {
 
     public abstract static class EffectContext {
 
-        public abstract void readFromNBT(CompoundNBT compound);
+        public abstract void readFromNBT(CompoundTag compound);
 
-        public abstract void writeToNBT(CompoundNBT compound);
+        public abstract void writeToNBT(CompoundTag compound);
 
     }
 

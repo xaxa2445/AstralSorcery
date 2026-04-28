@@ -10,8 +10,8 @@ package hellfirepvp.astralsorcery.client.screen.journal;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.*;
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
 import hellfirepvp.astralsorcery.client.screen.base.WidthHeightScreen;
 import hellfirepvp.astralsorcery.client.screen.journal.bookmark.BookmarkProvider;
@@ -21,14 +21,15 @@ import hellfirepvp.astralsorcery.client.util.RenderingGuiUtils;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.IReorderingProcessor;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.ITextProperties;
-import net.minecraft.util.text.LanguageMap;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.locale.Language;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
+import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
+
 
 import java.awt.*;
 import java.util.Comparator;
@@ -51,13 +52,19 @@ public class ScreenJournal extends WidthHeightScreen {
 
     protected Map<Rectangle, BookmarkProvider> drawnBookmarks = Maps.newHashMap();
 
-    protected ScreenJournal(ITextComponent titleIn, int bookmarkIndex) {
+    protected ScreenJournal(Component titleIn, int bookmarkIndex) {
         this(titleIn, 270, 420, bookmarkIndex);
     }
 
-    public ScreenJournal(ITextComponent titleIn, int guiHeight, int guiWidth, int bookmarkIndex) {
+    public ScreenJournal(Component titleIn, int guiHeight, int guiWidth, int bookmarkIndex) {
         super(titleIn, guiHeight, guiWidth);
         this.bookmarkIndex = bookmarkIndex;
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
+        this.renderBackground(guiGraphics);
+        super.render(guiGraphics, mouseX, mouseY, partialTicks);
     }
 
     public static boolean addBookmark(BookmarkProvider bookmarkProvider) {
@@ -69,22 +76,25 @@ public class ScreenJournal extends WidthHeightScreen {
         return true;
     }
 
-    protected IReorderingProcessor localize(ITextProperties txt) {
-        return LanguageMap.getInstance().func_241870_a(txt);
+    protected FormattedCharSequence localize(FormattedCharSequence txt) {
+        return txt; // ya no hace falta convertir manualmente
     }
 
-    protected void drawDefault(MatrixStack renderStack, AbstractRenderableTexture texture, int mouseX, int mouseY) {
-        this.setBlitOffset(100);
+    protected void drawDefault(GuiGraphics graphics, AbstractRenderableTexture texture, int mouseX, int mouseY) {
+        PoseStack renderStack = graphics.pose();
+        renderStack.pushPose();
+        renderStack.translate(0, 0, 100);
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
         drawWHRect(renderStack, texture);
         RenderSystem.disableBlend();
 
-        drawBookmarks(renderStack, mouseX, mouseY);
-        this.setBlitOffset(0);
+        drawBookmarks(graphics, mouseX, mouseY);
+        renderStack.popPose();
     }
 
-    private void drawBookmarks(MatrixStack renderStack, int mouseX, int mouseY) {
+    private void drawBookmarks(GuiGraphics graphics, int mouseX, int mouseY) {
+        PoseStack renderStack = graphics.pose();
         drawnBookmarks.clear();
 
         int bookmarkWidth  = 67;
@@ -99,7 +109,7 @@ public class ScreenJournal extends WidthHeightScreen {
         for (BookmarkProvider bookmarkProvider : bookmarks) {
             if (bookmarkProvider.canSee()) {
                 Rectangle r = drawBookmark(
-                        renderStack, offsetX, offsetY,
+                        graphics, offsetX, offsetY,
                         bookmarkWidth, bookmarkHeight,
                         bookmarkWidth + (bookmarkIndex == bookmarkProvider.getIndex() ? 0 : 5),
                         this.getGuiZLevel(),
@@ -111,34 +121,44 @@ public class ScreenJournal extends WidthHeightScreen {
         }
     }
 
-    private Rectangle drawBookmark(MatrixStack renderStack,
+    private Rectangle drawBookmark(GuiGraphics graphics,
                                    float offsetX, float offsetY, int width, int height, int mouseOverWidth,
-                                   float zLevel, IFormattableTextComponent title, int titleRGBColor, int mouseX, int mouseY,
+                                   float zLevel, Component title, int titleRGBColor, int mouseX, int mouseY,
                                    AbstractRenderableTexture texture, AbstractRenderableTexture textureStretched) {
+        PoseStack renderStack = graphics.pose();
         texture.bindTexture();
 
-        Rectangle r = new Rectangle(MathHelper.floor(offsetX), MathHelper.floor(offsetY), MathHelper.floor(width), MathHelper.floor(height));
+        Rectangle r = new Rectangle(Mth.floor(offsetX), Mth.floor(offsetY), Mth.floor(width), Mth.floor(height));
         if (r.contains(mouseX, mouseY)) {
             if (mouseOverWidth > width) {
                 textureStretched.bindTexture();
             }
             width = mouseOverWidth;
-            r = new Rectangle(MathHelper.floor(offsetX), MathHelper.floor(offsetY), MathHelper.floor(width), MathHelper.floor(height));
+            r = new Rectangle(Mth.floor(offsetX), Mth.floor(offsetY), Mth.floor(width), Mth.floor(height));
         }
 
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
         int actualWidth = width;
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, renderStack, offsetX, offsetY, zLevel, actualWidth, height).draw();
-        });
+        Tesselator tessellator = Tesselator.getInstance();
+        BufferBuilder buffer = tessellator.getBuilder();
+
+        buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+
+// 🔥 CLAVE: obtener la matriz
+        Matrix4f matrix = renderStack.last().pose();
+
+// 🔥 CLAVE: usar buffer como VertexConsumer
+        RenderingGuiUtils.rect(buffer, matrix, offsetX, offsetY, zLevel, actualWidth, height);
+
+        tessellator.end();
         RenderSystem.disableBlend();
 
-        renderStack.push();
+        renderStack.pushPose();
         renderStack.translate(offsetX + 2, offsetY + 4, zLevel + 50);
         renderStack.scale(0.7F, 0.7F, 0.7F);
-        RenderingDrawUtils.renderStringAt(null, renderStack, title, titleRGBColor);
-        renderStack.pop();
+        RenderingDrawUtils.renderStringAt(null, graphics, title, titleRGBColor);
+        renderStack.popPose();
         return r;
     }
 
@@ -151,7 +171,7 @@ public class ScreenJournal extends WidthHeightScreen {
             BookmarkProvider provider = drawnBookmarks.get(bookmarkRectangle);
             if (bookmarkIndex != provider.getIndex() && bookmarkRectangle.contains(mouseX, mouseY)) {
                 ScreenJournalProgression.resetJournal();
-                Minecraft.getInstance().displayGuiScreen(provider.getGuiScreen());
+                Minecraft.getInstance().setScreen(provider.getGuiScreen());
                 return true;
             }
         }

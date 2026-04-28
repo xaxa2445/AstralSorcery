@@ -11,11 +11,9 @@ package hellfirepvp.astralsorcery.client.resource;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.client.sky.astral.AstralSkyRenderer;
 import hellfirepvp.astralsorcery.common.util.object.CacheReference;
-import net.minecraft.resources.IResourceManager;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.resource.IResourceType;
-import net.minecraftforge.resource.ISelectiveResourceReloadListener;
-import net.minecraftforge.resource.VanillaResourceType;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -32,7 +30,7 @@ import java.util.function.Supplier;
  * Created by HellFirePvP
  * Date: 09.08.2016 / 11:00
  */
-public class AssetLibrary implements ISelectiveResourceReloadListener {
+public class AssetLibrary implements ResourceManagerReloadListener {
 
     public static AssetLibrary INSTANCE = new AssetLibrary();
     private static boolean reloading = false;
@@ -42,6 +40,9 @@ public class AssetLibrary implements ISelectiveResourceReloadListener {
     private static final List<ReloadableResource> reloadableResources = new ArrayList<>();
 
     private AssetLibrary() {}
+
+    // Los métodos loadReference, loadTexture y loadGeneratedResource se mantienen igual
+    // ya que su lógica interna depende de tus clases AbstractRenderableTexture y ReloadableResource.
 
     public static Supplier<AbstractRenderableTexture> loadReference(AssetLoader.TextureLocation location, String... path) {
         return new CacheReference<>(() -> loadTexture(location, path));
@@ -77,8 +78,8 @@ public class AssetLibrary implements ISelectiveResourceReloadListener {
     }
 
     @Override
-    public void onResourceManagerReload(IResourceManager resourceManager, Predicate<IResourceType> resourcePredicate) {
-        if (reloading || !resourcePredicate.test(VanillaResourceType.TEXTURES)) {
+    public void onResourceManagerReload(ResourceManager resourceManager) {
+        if (reloading)  {
             return;
         }
         reloading = true;

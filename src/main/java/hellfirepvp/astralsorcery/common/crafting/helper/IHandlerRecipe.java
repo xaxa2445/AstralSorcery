@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.crafting.helper;
 
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.world.Container;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.items.IItemHandler;
 
@@ -20,12 +20,15 @@ import net.minecraftforge.items.IItemHandler;
  * Created by HellFirePvP
  * Date: 30.06.2019 / 23:39
  */
-public interface IHandlerRecipe<I extends IItemHandler> extends IRecipe<IInventory> {
+public interface IHandlerRecipe<I extends IItemHandler> extends Recipe<Container> {
 
-    boolean matches(I handler, World world);
+    // World -> Level
+    boolean matches(I handler, Level level);
 
     @Override
-    default boolean matches(IInventory inv, World worldIn) {
+    default boolean matches(Container inv, Level level) {
+        // Forzamos el uso del método con IItemHandler para mantener la
+        // compatibilidad con los TileEntities del mod.
         return false;
     }
 }

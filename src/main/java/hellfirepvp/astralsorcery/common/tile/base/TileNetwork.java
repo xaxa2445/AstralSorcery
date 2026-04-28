@@ -11,8 +11,10 @@ package hellfirepvp.astralsorcery.common.tile.base;
 import hellfirepvp.astralsorcery.common.starlight.WorldNetworkHandler;
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.TransmissionNetworkHelper;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 import java.util.Random;
@@ -32,14 +34,14 @@ public abstract class TileNetwork<T extends IPrismTransmissionNode> extends Tile
     private T cachedNetworkNode = null;
     private boolean needsNetworkSync = false;
 
-    protected TileNetwork(TileEntityType<?> tileEntityTypeIn) {
-        super(tileEntityTypeIn);
+    protected TileNetwork(BlockEntityType<?> tileEntityTypeIn, BlockPos pos, BlockState state) {
+        super(tileEntityTypeIn, pos, state);
     }
 
     @Nullable
     public T getNetworkNode() {
         if (cachedNetworkNode != null) {
-            if (!cachedNetworkNode.getLocationPos().equals(getPos())) {
+            if (!cachedNetworkNode.getLocationPos().equals(getBlockPos())) {
                 cachedNetworkNode = null;
             }
         }
@@ -51,7 +53,7 @@ public abstract class TileNetwork<T extends IPrismTransmissionNode> extends Tile
 
     @Nullable
     private T resolveNode() {
-        IPrismTransmissionNode node = WorldNetworkHandler.getNetworkHandler(getWorld()).getTransmissionNode(getPos());
+        IPrismTransmissionNode node = WorldNetworkHandler.getNetworkHandler(getLevel()).getTransmissionNode(getBlockPos());
         if (node == null) {
             return null;
         }
@@ -59,10 +61,10 @@ public abstract class TileNetwork<T extends IPrismTransmissionNode> extends Tile
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!this.getWorld().isRemote()) {
+        if (!this.getLevel().isClientSide()) {
             if (!this.isNetworkInformed) {
                 if (!TransmissionNetworkHelper.isTileInNetwork(this)) {
                     TransmissionNetworkHelper.informNetworkTilePlacement(this);
@@ -102,10 +104,10 @@ public abstract class TileNetwork<T extends IPrismTransmissionNode> extends Tile
     public void onBreak() {}
 
     @Override
-    public void remove() {
-        super.remove();
+    public void setRemoved() {
+        super.setRemoved();
 
-        if (this.getWorld() == null || this.getWorld().isRemote()) {
+        if (this.getLevel() == null || this.getLevel().isClientSide()) {
             return;
         }
         TransmissionNetworkHelper.informNetworkTileRemoval(this);
@@ -113,14 +115,14 @@ public abstract class TileNetwork<T extends IPrismTransmissionNode> extends Tile
     }
 
     @Override
-    public void writeSaveNBT(CompoundNBT compound) {
+    public void writeSaveNBT(CompoundTag compound) {
         super.writeSaveNBT(compound);
 
         compound.putBoolean("needsNetworkSync", this.needsNetworkSync);
     }
 
     @Override
-    public void readSaveNBT(CompoundNBT compound) {
+    public void readSaveNBT(CompoundTag compound) {
         super.readSaveNBT(compound);
 
         this.needsNetworkSync = compound.getBoolean("needsNetworkSync");

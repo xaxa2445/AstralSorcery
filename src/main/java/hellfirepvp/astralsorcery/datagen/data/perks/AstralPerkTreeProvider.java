@@ -17,8 +17,8 @@ import hellfirepvp.astralsorcery.common.perk.data.builder.PerkDataProvider;
 import hellfirepvp.astralsorcery.common.perk.modifier.AttributeModifierPerk;
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import net.minecraft.data.DataGenerator;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.function.Consumer;
 
@@ -118,7 +118,7 @@ public class AstralPerkTreeProvider extends PerkDataProvider {
                 .build(registrar);
         PerkDataBuilder.ofType(KEY_ADD_ENCHANTMENT)
                 .create(key("evorsio_outer_luck_3"), 10, 19)
-                .modify(perk -> perk.addEnchantment(Enchantments.FORTUNE, 1))
+                .modify(perk -> perk.addEnchantment(Enchantments.BLOCK_FORTUNE, 1))
                 .setName(name("key.luck"))
                 .connect(key("evorsio_outer_luck_2"))
                 .build(registrar);
@@ -1475,7 +1475,7 @@ public class AstralPerkTreeProvider extends PerkDataProvider {
                 .build(registrar);
         PerkDataBuilder.ofType(KEY_ADD_ENCHANTMENT)
                 .create(key("core_infinity_2"), 43, 41)
-                .modify(perk -> perk.addEnchantment(Enchantments.INFINITY, 1))
+                .modify(perk -> perk.addEnchantment(Enchantments.INFINITY_ARROWS, 1))
                 .setName(name("key.endless_munitions"))
                 .connect(key("core_infinity_1"))
                 .build(registrar);

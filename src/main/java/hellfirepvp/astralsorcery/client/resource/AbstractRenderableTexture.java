@@ -37,6 +37,11 @@ public abstract class AbstractRenderableTexture {
      * En 1.20.1 el bindeo manual es menos común debido al sistema de Shards,
      * pero se mantiene por compatibilidad con el sistema de Astral.
      */
+
+    public ResourceLocation getTextureLocation() {
+        return this.key;
+    }
+
     public abstract void bindTexture();
 
     /**

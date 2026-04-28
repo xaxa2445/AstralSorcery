@@ -12,19 +12,19 @@ import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesWood;
 import hellfirepvp.astralsorcery.common.tile.TileFountain;
 import hellfirepvp.astralsorcery.common.util.VoxelUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ContainerBlock;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.IBooleanFunction;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.world.IBlockReader;
-
-import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.level.block.RenderShape;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -33,38 +33,42 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 29.10.2020 / 19:54
  */
-public class BlockFountain extends ContainerBlock implements CustomItemBlock {
+public class BlockFountain extends BaseEntityBlock implements CustomItemBlock {
 
     private final VoxelShape shape;
 
     public BlockFountain() {
+        // Asegúrate de que PropertiesWood.defaultInfusedWood() devuelva BlockBehaviour.Properties
         super(PropertiesWood.defaultInfusedWood());
-
         this.shape = createShape();
     }
 
     protected VoxelShape createShape() {
-        VoxelShape m1 = Block.makeCuboidShape(0, 10, 0, 16, 16, 16);
-        VoxelShape m2 = Block.makeCuboidShape(4, 6, 4, 12, 10, 12);
-        VoxelShape m3 = Block.makeCuboidShape(2, 0, 2, 14, 4, 14);
-        VoxelShape m4 = Block.makeCuboidShape(0, 4, 0, 16, 6, 16);
+        VoxelShape m1 = Block.box(0, 10, 0, 16, 16, 16);
+        VoxelShape m2 = Block.box(4, 6, 4, 12, 10, 12);
+        VoxelShape m3 = Block.box(2, 0, 2, 14, 4, 14);
+        VoxelShape m4 = Block.box(0, 4, 0, 16, 6, 16);
 
-        return VoxelUtils.combineAll(IBooleanFunction.OR, m1, m2, m3, m4);
+        VoxelShape combined = Shapes.join(m1, m2, BooleanOp.OR);
+        combined = Shapes.join(combined, m3, BooleanOp.OR);
+        combined = Shapes.join(combined, m4, BooleanOp.OR);
+
+        return combined.optimize();
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext     context) {
         return shape;
     }
-
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderType (BlockState state){
+        return RenderShape.MODEL;
     }
 
-    @Override
     @Nullable
-    public TileEntity createNewTileEntity(IBlockReader world) {
-        return new TileFountain();
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        // En 1.20.1, el constructor de la TileEntity suele requerir pos y state
+        return new TileFountain(pos, state);
     }
 }

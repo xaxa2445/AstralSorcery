@@ -9,9 +9,8 @@
 package hellfirepvp.astralsorcery.common.block.properties;
 
 import hellfirepvp.astralsorcery.common.lib.MaterialsAS;
-import net.minecraft.block.Block;
-import net.minecraft.block.SoundType;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -22,10 +21,12 @@ import net.minecraftforge.common.ToolType;
  */
 public class PropertiesWood {
 
-    public static Block.Properties defaultInfusedWood() {
-        return Block.Properties.create(MaterialsAS.INFUSED_WOOD)
-                .hardnessAndResistance(2.5F, 7F)
-                .harvestTool(ToolType.AXE)
+    public static BlockBehaviour.Properties defaultInfusedWood() {
+        // 1. Block.Properties.create -> BlockBehaviour.Properties.of()
+        // Nota: Si MaterialsAS.INFUSED_WOOD ya no existe, usa MapColor y PushReaction directamente.
+        return BlockBehaviour.Properties.of()
+                .mapColor(net.minecraft.world.level.material.MapColor.WOOD)
+                .strength(2.5F, 7.0F) // hardnessAndResistance -> strength
                 .sound(SoundType.WOOD);
     }
 

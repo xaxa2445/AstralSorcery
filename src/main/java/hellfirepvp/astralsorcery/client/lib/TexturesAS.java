@@ -9,6 +9,7 @@
 package hellfirepvp.astralsorcery.client.lib;
 
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -149,5 +150,7 @@ public class TexturesAS {
     public static AbstractRenderableTexture TEX_MODEL_CELESTIAL_WINGS;
 
     public static AbstractRenderableTexture TEX_STARLIGHT_STORE;
+
+
 
 }

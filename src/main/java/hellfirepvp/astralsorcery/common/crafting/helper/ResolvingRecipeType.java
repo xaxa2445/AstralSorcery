@@ -11,12 +11,13 @@ package hellfirepvp.astralsorcery.common.crafting.helper;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.RecipeHelper;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.item.crafting.IRecipeType;
-import net.minecraft.item.crafting.RecipeManager;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.Container;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraftforge.items.IItemHandler;
 
 import javax.annotation.Nonnull;
@@ -36,12 +37,12 @@ import java.util.stream.Collectors;
  * Created by HellFirePvP
  * Date: 30.06.2019 / 23:52
  */
-public class ResolvingRecipeType<C extends IItemHandler, T extends IHandlerRecipe<C>, R extends RecipeCraftingContext<T, C>> {
+public class ResolvingRecipeType<C extends IItemHandler, T extends Recipe<Container> & IHandlerRecipe<C>, R extends RecipeCraftingContext<T, C>> {
 
     private final ResourceLocation id;
     private final Class<T> baseClass;
     private final BiPredicate<T, R> matchFct;
-    private final IRecipeType<T> type;
+    private final RecipeType<T> type;
 
     public ResolvingRecipeType(String name, Class<T> baseClass, BiPredicate<T, R> matchFct) {
         this(AstralSorcery.key(name), baseClass, matchFct);
@@ -51,13 +52,13 @@ public class ResolvingRecipeType<C extends IItemHandler, T extends IHandlerRecip
         this.id = id;
         this.baseClass = baseClass;
         this.matchFct = matchFct;
-        this.type = new IRecipeType<T>() {
+        this.type = new RecipeType<T>() {
             @Override
             public String toString() {
                 return ResolvingRecipeType.this.id.getPath();
             }
         };
-        Registry.register(Registry.RECIPE_TYPE, this.getRegistryName(), this.getType());
+        Registry.register(BuiltInRegistries.RECIPE_TYPE, this.getRegistryName(), this.getType());
     }
 
     @Nonnull
@@ -66,11 +67,16 @@ public class ResolvingRecipeType<C extends IItemHandler, T extends IHandlerRecip
         if (mgr == null) {
             return Collections.emptyList();
         }
-        Collection<IRecipe<IInventory>> recipeSet = mgr.getRecipes(this.type).values();
-        List<T> recipes = new ArrayList<>(recipeSet.size());
-        for (IRecipe<IInventory> rec : recipeSet) {
-            recipes.add((T) rec);
+
+        List<T> recipeSet = (List<T>) (List<?>) mgr.getAllRecipesFor(this.type);
+        List<T> recipes = new ArrayList<>();
+
+        for (T rec : recipeSet) {
+            if (baseClass.isInstance(rec)) {
+                recipes.add(baseClass.cast(rec));
+            }
         }
+
         return recipes;
     }
 
@@ -85,7 +91,7 @@ public class ResolvingRecipeType<C extends IItemHandler, T extends IHandlerRecip
         return baseClass;
     }
 
-    public IRecipeType<T> getType() {
+    public RecipeType<T> getType() {
         return type;
     }
 

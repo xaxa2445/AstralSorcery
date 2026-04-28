@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.client.screen.journal;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.*;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.screen.base.NavigationArrowScreen;
@@ -22,12 +22,13 @@ import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Matrix4f;
-import net.minecraft.util.text.ITextProperties;
-import net.minecraft.util.text.TranslationTextComponent;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Pose;
+import org.joml.Matrix4f;
 
 import java.awt.*;
 import java.util.List;
@@ -55,7 +56,7 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
     private Rectangle rectPrev, rectNext;
 
     private ScreenJournalConstellationOverview(int pageId, List<IConstellation> constellations) {
-        super(new TranslationTextComponent("screen.astralsorcery.tome.constellations"), 20);
+        super(Component.translatable("screen.astralsorcery.tome.constellations"), 20);
         this.constellations = constellations;
         this.pageId = pageId;
     }
@@ -74,40 +75,46 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
-        drawConstellationBackground(renderStack);
-        drawDefault(renderStack, TexturesAS.TEX_GUI_BOOK_FRAME_FULL, mouseX, mouseY);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        PoseStack poseStack = graphics.pose();
 
-        this.setBlitOffset(250);
-        drawNavArrows(renderStack, pTicks, mouseX, mouseY);
-        drawConstellations(renderStack, pTicks, mouseX, mouseY);
-        this.setBlitOffset(0);
+        drawConstellationBackground(poseStack);
+        drawDefault(poseStack, TexturesAS.TEX_GUI_BOOK_FRAME_FULL, mouseX, mouseY);
+
+        // 🔥 equivalente a setBlitOffset(250)
+        poseStack.pushPose();
+        poseStack.translate(0, 0, 250);
+
+        drawNavArrows(poseStack, partialTicks, mouseX, mouseY);
+        drawConstellations(poseStack, partialTicks, mouseX, mouseY);
+
+        poseStack.popPose();
     }
 
-    private void drawConstellationBackground(MatrixStack renderStack) {
+    private void drawConstellationBackground(PoseStack renderStack) {
         TexturesAS.TEX_BLACK.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            Matrix4f offset = renderStack.getLast().getMatrix();
-            buf.pos(offset, guiLeft + 15,            guiTop + guiHeight - 10, this.getGuiZLevel()).color(1F, 1F, 1F, 1F).tex(0, 1).endVertex();
-            buf.pos(offset, guiLeft + guiWidth - 15, guiTop + guiHeight - 10, this.getGuiZLevel()).color(1F, 1F, 1F, 1F).tex(1, 1).endVertex();
-            buf.pos(offset, guiLeft + guiWidth - 15, guiTop + 10,             this.getGuiZLevel()).color(1F, 1F, 1F, 1F).tex(1, 0).endVertex();
-            buf.pos(offset, guiLeft + 15,            guiTop + 10,             this.getGuiZLevel()).color(1F, 1F, 1F, 1F).tex(0, 0).endVertex();
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            Matrix4f offset = renderStack.last().pose();
+            buf.vertex(offset, guiLeft + 15,            guiTop + guiHeight - 10, this.getGuiZLevel()).color(1F, 1F, 1F, 1F).uv(0, 1).endVertex();
+            buf.vertex(offset, guiLeft + guiWidth - 15, guiTop + guiHeight - 10, this.getGuiZLevel()).color(1F, 1F, 1F, 1F).uv(1, 1).endVertex();
+            buf.vertex(offset, guiLeft + guiWidth - 15, guiTop + 10,             this.getGuiZLevel()).color(1F, 1F, 1F, 1F).uv(1, 0).endVertex();
+            buf.vertex(offset, guiLeft + 15,            guiTop + 10,             this.getGuiZLevel()).color(1F, 1F, 1F, 1F).uv(0, 0).endVertex();
         });
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         TexturesAS.TEX_GUI_BACKGROUND_CONSTELLATIONS.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            Matrix4f offset = renderStack.getLast().getMatrix();
-            buf.pos(offset, guiLeft + 15,            guiTop + guiHeight - 10, this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).tex(0.1F, 0.9F).endVertex();
-            buf.pos(offset, guiLeft + guiWidth - 15, guiTop + guiHeight - 10, this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).tex(0.9F, 0.9F).endVertex();
-            buf.pos(offset, guiLeft + guiWidth - 15, guiTop + 10,             this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).tex(0.9F, 0.1F).endVertex();
-            buf.pos(offset, guiLeft + 15,            guiTop + 10,             this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).tex(0.1F, 0.1F).endVertex();
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            Matrix4f offset = renderStack.last().pose();
+            buf.vertex(offset, guiLeft + 15,            guiTop + guiHeight - 10, this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).uv(0.1F, 0.9F).endVertex();
+            buf.vertex(offset, guiLeft + guiWidth - 15, guiTop + guiHeight - 10, this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).uv(0.9F, 0.9F).endVertex();
+            buf.vertex(offset, guiLeft + guiWidth - 15, guiTop + 10,             this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).uv(0.9F, 0.1F).endVertex();
+            buf.vertex(offset, guiLeft + 15,            guiTop + 10,             this.getGuiZLevel()).color(0.8F, 0.8F, 1F, 0.7F).uv(0.1F, 0.1F).endVertex();
         });
         RenderSystem.disableBlend();
     }
 
-    private void drawConstellations(MatrixStack renderStack, float partial, int mouseX, int mouseY) {
+    private void drawConstellations(PoseStack renderStack, float partial, int mouseX, int mouseY) {
         this.rectCRenderMap.clear();
         List<IConstellation> cs = constellations.subList(pageId * CONSTELLATIONS_PER_PAGE, Math.min((pageId + 1) * CONSTELLATIONS_PER_PAGE, constellations.size()));
         for (int i = 0; i < cs.size(); i++) {
@@ -118,10 +125,10 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
         }
     }
 
-    private Rectangle drawConstellation(MatrixStack renderStack, IConstellation display, double offsetX, double offsetY, float zLevel, float partial, int mouseX, int mouseY) {
-        Rectangle rect = new Rectangle(MathHelper.floor(offsetX), MathHelper.floor(offsetY), width, height);
+    private Rectangle drawConstellation(PoseStack renderStack, IConstellation display, double offsetX, double offsetY, float zLevel, float partial, int mouseX, int mouseY) {
+        Rectangle rect = new Rectangle(Mth.floor(offsetX), Mth.floor(offsetY), width, height);
 
-        renderStack.push();
+        renderStack.pushPose();
         renderStack.translate(offsetX + (width / 2F), offsetY + (width / 2F), zLevel);
         if (rect.contains(mouseX, mouseY)) {
             renderStack.scale(1.1F, 1.1F, 1F);
@@ -141,17 +148,17 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
 
         RenderSystem.disableBlend();
 
-        ITextProperties cstName = display.getConstellationName();
-        float fullLength = (width / 2F) - (font.getStringPropertyWidth(cstName) / 2F);
+        Component cstName = display.getConstellationName();
+        float fullLength = (width / 2F) - (font.width(cstName) / 2F);
 
         renderStack.translate(fullLength, 90, 10);
-        RenderingDrawUtils.renderStringAt(cstName, renderStack, font, 0xBBDDDDDD, false);
+        RenderingDrawUtils.renderStringAt(font, renderStack, cstName, 0xBBDDDDDD);
 
-        renderStack.pop();
+        renderStack.popPose();
         return rect;
     }
 
-    private void drawNavArrows(MatrixStack renderStack, float partialTicks, int mouseX, int mouseY) {
+    private void drawNavArrows(PoseStack renderStack, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
 
@@ -185,15 +192,15 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
         for (Rectangle r : rectCRenderMap.keySet()) {
             if (r.contains(mouseX, mouseY)) {
                 IConstellation c = rectCRenderMap.get(r);
-                Minecraft.getInstance().displayGuiScreen(new ScreenJournalConstellationDetail(this, c));
+                Minecraft.getInstance().setScreen(new ScreenJournalConstellationDetail(this, c));
             }
         }
         if (rectPrev != null && rectPrev.contains(mouseX, mouseY)) {
-            Minecraft.getInstance().displayGuiScreen(new ScreenJournalConstellationOverview(pageId - 1, constellations));
+            Minecraft.getInstance().setScreen(new ScreenJournalConstellationOverview(pageId - 1, constellations));
             return true;
         }
         if (rectNext != null && rectNext.contains(mouseX, mouseY)) {
-            Minecraft.getInstance().displayGuiScreen(new ScreenJournalConstellationOverview(pageId + 1, constellations));
+            Minecraft.getInstance().setScreen(new ScreenJournalConstellationOverview(pageId + 1, constellations));
             return true;
         }
         return false;

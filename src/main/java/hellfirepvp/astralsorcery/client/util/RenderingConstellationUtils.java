@@ -8,8 +8,7 @@
 
 package hellfirepvp.astralsorcery.client.util;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
+import com.mojang.blaze3d.vertex.*;
 import hellfirepvp.astralsorcery.client.constellation.ConstellationBackgroundInfo;
 import hellfirepvp.astralsorcery.client.constellation.ConstellationRenderInfos;
 import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
@@ -21,12 +20,9 @@ import hellfirepvp.astralsorcery.common.constellation.world.ActiveCelestialsHand
 import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Matrix4f;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.util.Mth;
+import org.joml.Matrix4f;
 
 import java.awt.*;
 import java.util.HashMap;
@@ -42,8 +38,8 @@ import java.util.function.Supplier;
  */
 public class RenderingConstellationUtils {
 
-    public static void renderConstellationSky(IConstellation c, MatrixStack renderStack, ActiveCelestialsHandler.RenderPosition renderPos, Supplier<Float> brightnessFn) {
-        Matrix4f matr = renderStack.getLast().getMatrix();
+    public static void renderConstellationSky(IConstellation c, PoseStack renderStack, ActiveCelestialsHandler.RenderPosition renderPos, Supplier<Float> brightnessFn) {
+        Matrix4f matr = renderStack.last().pose();
 
         Vector3 renderOffset = renderPos.offset;
         Color rC = c.getTierRenderColor();
@@ -60,23 +56,23 @@ public class RenderingConstellationUtils {
         if (backgroundInfo != null) {
             backgroundInfo.getBackgroundTexture().bindTexture();
 
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
                 int bgScale = IConstellation.STAR_GRID_WIDTH_HEIGHT;
                 Vector3 ofStar = renderOffset.clone().add(dirU.clone()).add(dirV.clone());
                 for (int i = 0; i < 4; i++) {
                     int u = ((i + 1) & 2) >> 1;
                     int v = ((i + 2) & 2) >> 1;
                     Vector3 pos = ofStar.clone().add(dirU.clone().multiply(u << 1).multiply(bgScale / 2)).add(dirV.clone().multiply(v << 1).multiply(bgScale / 2));
-                    buf.pos(matr, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
-                            .color(r, g, b, MathHelper.clamp((int) (brightnessFn.get() * 255 * 0.5), 0, 255))
-                            .tex(u, v)
+                    buf.vertex(matr, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
+                            .color(r, g, b, Mth.clamp((int) (brightnessFn.get() * 255 * 0.5), 0, 255))
+                            .uv(u, v)
                             .endVertex();
                 }
             });
         }
 
         TexturesAS.TEX_STAR_CONNECTION.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
             for (int j = 0; j < 2; j++) {
                 for (StarConnection con : c.getStarConnections()) {
                     Vector3 vecA = renderOffset.clone().add(dirU.clone().multiply(con.from.x + 1)).add(dirV.clone().multiply(con.from.y + 1));
@@ -89,9 +85,9 @@ public class RenderingConstellationUtils {
 
                     for (int i = 0; i < 4; i++) {
                         Vector3 pos = offset00.clone().add(vecU.clone().multiply(((i + 1) & 2) >> 1)).add(vecCV.clone().multiply(((i + 2) & 2) >> 1));
-                        buf.pos(matr, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
-                                .color(r, g, b, MathHelper.clamp((int) (brightnessFn.get() * 255), 0, 255))
-                                .tex(((i + 2) & 2) >> 1, ((i + 3) & 2) >> 1)
+                        buf.vertex(matr, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
+                                .color(r, g, b, Mth.clamp((int) (brightnessFn.get() * 255), 0, 255))
+                                .uv(((i + 2) & 2) >> 1, ((i + 3) & 2) >> 1)
                                 .endVertex();
                     }
                 }
@@ -99,7 +95,7 @@ public class RenderingConstellationUtils {
         });
 
         TexturesAS.TEX_STAR_1.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
             for (StarLocation star : c.getStars()) {
                 int x = star.x;
                 int y = star.y;
@@ -108,27 +104,60 @@ public class RenderingConstellationUtils {
                     int u = ((i + 1) & 2) >> 1;
                     int v = ((i + 2) & 2) >> 1;
                     Vector3 pos = ofStar.clone().add(dirU.clone().multiply(u << 1)).add(dirV.clone().multiply(v << 1));
-                    buf.pos(matr, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
-                            .color(r, g, b, MathHelper.clamp((int) (brightnessFn.get() * 255), 0, 255))
-                            .tex(u, v)
+                    buf.vertex(matr, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
+                            .color(r, g, b, Mth.clamp((int) (brightnessFn.get() * 255), 0, 255))
+                            .uv(u, v)
                             .endVertex();
                 }
             }
         });
     }
 
-    public static void renderConstellationIntoWorldFlat(IConstellation c, MatrixStack renderStack, IRenderTypeBuffer buffer, Vector3 offset, double scale, double line, float brightness) {
-        renderConstellationIntoWorldFlat(c.getConstellationColor(), c, renderStack, buffer, offset, scale, line, brightness);
+    public static void renderConstellationIntoWorldFlat(IConstellation c,
+                                                        PoseStack poseStack,
+                                                        MultiBufferSource buffer,
+                                                        Vector3 offset,
+                                                        double scale,
+                                                        double line,
+                                                        float brightness) {
+        renderConstellationIntoWorldFlat(
+                c.getConstellationColor(),
+                c,
+                poseStack,
+                buffer,
+                offset,
+                scale,
+                line,
+                brightness
+        );
     }
 
-    public static void renderConstellationIntoWorldFlat(Color color, IConstellation c, MatrixStack renderStack, Vector3 offset, double scale, double line, float brightness) {
-        IRenderTypeBuffer.Impl drawBuffers = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
-        renderConstellationIntoWorldFlat(color, c, renderStack, drawBuffers, offset, scale, line, brightness);
-        drawBuffers.finish();
+    public static void renderConstellationIntoWorldFlat(Color color,
+                                                        IConstellation c,
+                                                        PoseStack poseStack,
+                                                        Vector3 offset,
+                                                        double scale,
+                                                        double line,
+                                                        float brightness) {
+
+        MultiBufferSource.BufferSource bufferSource = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+
+        renderConstellationIntoWorldFlat(
+                color,
+                c,
+                poseStack,
+                bufferSource,
+                offset,
+                scale,
+                line,
+                brightness
+        );
+
+        bufferSource.endBatch();
     }
 
-    public static void renderConstellationIntoWorldFlat(Color color, IConstellation c, MatrixStack renderStack, IRenderTypeBuffer buffer, Vector3 offset, double scale, double line, float brightness) {
-        Matrix4f matr = renderStack.getLast().getMatrix();
+    public static void renderConstellationIntoWorldFlat(Color color, IConstellation c, PoseStack renderStack, MultiBufferSource buffer, Vector3 offset, double scale, double line, float brightness) {
+        Matrix4f matr = renderStack.last().pose();
         Vector3 thisOffset = offset.clone();
         double starSize = 1D / ((double) IConstellation.STAR_GRID_WIDTH_HEIGHT) * scale;
         int r = color.getRed();
@@ -141,7 +170,7 @@ public class RenderingConstellationUtils {
         Vector3 drawOffset = new Vector3(-15.5D * starSize, 0, -15.5D * starSize);
         Vector3 dirU = new Vector3(scale, 0, 0);
         Vector3 dirV = new Vector3(0, 0, scale);
-        IVertexBuilder buf;
+        VertexConsumer buf;
 
         ConstellationBackgroundInfo backgroundInfo = ConstellationRenderInfos.getBackgroundRenderInfo(c);
         if (backgroundInfo != null) {
@@ -149,13 +178,13 @@ public class RenderingConstellationUtils {
             Vector3 offsetRender = thisOffset.clone().add(0, 0.005, 0);
             offsetRender = offsetRender.add(drawOffset);
             Vector3 pos2 = offsetRender.clone().add(dirU.clone().multiply(0)).add(dirV.clone().multiply(1));
-            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).tex(0, 1).endVertex();
+            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).uv(0, 1).endVertex();
             pos2 =         offsetRender.clone().add(dirU.clone().multiply(1)).add(dirV.clone().multiply(1));
-            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).tex(1, 1).endVertex();
+            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).uv(1, 1).endVertex();
             pos2 =         offsetRender.clone().add(dirU.clone().multiply(1)).add(dirV.clone().multiply(0));
-            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).tex(1, 0).endVertex();
+            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).uv(1, 0).endVertex();
             pos2 =         offsetRender.clone().add(dirU.clone().multiply(0)).add(dirV.clone().multiply(0));
-            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).tex(0, 0).endVertex();
+            pos2.drawPos(matr, buf).color(r, g, b, outlineAlpha).uv(0, 0).endVertex();
         }
 
         buf = buffer.getBuffer(RenderTypesAS.CONSTELLATION_WORLD_CONNECTION);
@@ -170,16 +199,16 @@ public class RenderingConstellationUtils {
             offsetRender.add(drawOffset);
 
             Vector3 pos = offsetRender.clone().add(dirU.clone().multiply(0)).add(dirV.clone().multiply(1));
-            pos.drawPos(matr, buf).color(r, g, b, connAlpha).tex(1, 0).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, connAlpha).uv(1, 0).endVertex();
 
             pos =         offsetRender.clone().add(dirU.clone().multiply(1)).add(dirV.clone().multiply(1));
-            pos.drawPos(matr, buf).color(r, g, b, connAlpha).tex(0, 0).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, connAlpha).uv(0, 0).endVertex();
 
             pos =         offsetRender.clone().add(dirU.clone().multiply(1)).add(dirV.clone().multiply(0));
-            pos.drawPos(matr, buf).color(r, g, b, connAlpha).tex(0, 1).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, connAlpha).uv(0, 1).endVertex();
 
             pos =         offsetRender.clone().add(dirU.clone().multiply(0)).add(dirV.clone().multiply(0));
-            pos.drawPos(matr, buf).color(r, g, b, connAlpha).tex(1, 1).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, connAlpha).uv(1, 1).endVertex();
         }
 
         dirU = new Vector3(starSize * 2, 0, 0);
@@ -191,17 +220,17 @@ public class RenderingConstellationUtils {
             offsetRender.add(drawOffset);
 
             Vector3 pos = offsetRender.clone().add(dirU.clone().multiply(0)).add(dirV.clone().multiply(1));
-            pos.drawPos(matr, buf).color(r, g, b, starAlpha).tex(1, 0).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, starAlpha).uv(1, 0).endVertex();
             pos =         offsetRender.clone().add(dirU.clone().multiply(1)).add(dirV.clone().multiply(1));
-            pos.drawPos(matr, buf).color(r, g, b, starAlpha).tex(0, 0).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, starAlpha).uv(0, 0).endVertex();
             pos =         offsetRender.clone().add(dirU.clone().multiply(1)).add(dirV.clone().multiply(0));
-            pos.drawPos(matr, buf).color(r, g, b, starAlpha).tex(0, 1).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, starAlpha).uv(0, 1).endVertex();
             pos =         offsetRender.clone().add(dirU.clone().multiply(0)).add(dirV.clone().multiply(0));
-            pos.drawPos(matr, buf).color(r, g, b, starAlpha).tex(1, 1).endVertex();
+            pos.drawPos(matr, buf).color(r, g, b, starAlpha).uv(1, 1).endVertex();
         }
     }
 
-    public static Map<StarLocation, Rectangle.Float> renderConstellationIntoGUI(IConstellation c, MatrixStack renderStack,
+    public static Map<StarLocation, Rectangle.Float> renderConstellationIntoGUI(IConstellation c, PoseStack renderStack,
                                                                                 float offsetX, float offsetY, float zLevel,
                                                                                 float width, float height, double linebreadth,
                                                                                 Supplier<Float> brightnessFn,
@@ -209,12 +238,12 @@ public class RenderingConstellationUtils {
         return renderConstellationIntoGUI(c.getTierRenderColor(), c, renderStack, offsetX, offsetY, zLevel, width, height, linebreadth, brightnessFn, isKnown, applyStarBrightness);
     }
 
-    public static Map<StarLocation, Rectangle.Float> renderConstellationIntoGUI(Color col, IConstellation c, MatrixStack renderStack,
+    public static Map<StarLocation, Rectangle.Float> renderConstellationIntoGUI(Color col, IConstellation c, PoseStack renderStack,
                                                                                 float offsetX, float offsetY, float zLevel,
                                                                                 float width, float height, double linebreadth,
                                                                                 Supplier<Float> brightnessFn,
                                                                                 boolean isKnown, boolean applyStarBrightness) {
-        Matrix4f offset = renderStack.getLast().getMatrix();
+        Matrix4f offset = renderStack.last().pose();
         float ulength = width / IConstellation.STAR_GRID_WIDTH_HEIGHT;
         float vlength = height / IConstellation.STAR_GRID_WIDTH_HEIGHT;
 
@@ -223,8 +252,8 @@ public class RenderingConstellationUtils {
         int b = col.getBlue();
 
         float starBrightness = 1F;
-        if (applyStarBrightness && Minecraft.getInstance().world != null) {
-            starBrightness = Minecraft.getInstance().world.getStarBrightness(1.0F);
+        if (applyStarBrightness && Minecraft.getInstance().level != null) {
+            starBrightness = Minecraft.getInstance().level.getStarBrightness(1.0F);
             if (starBrightness <= 0.23F) {
                 return new HashMap<>();
             }
@@ -237,27 +266,27 @@ public class RenderingConstellationUtils {
             if (backgroundInfo != null) {
                 backgroundInfo.getBackgroundTexture().bindTexture();
 
-                RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-                    int alpha = MathHelper.clamp((int) (brightnessFn.get() * brightness * 0.5 * 255F), 0, 255);
+                RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+                    int alpha = Mth.clamp((int) (brightnessFn.get() * brightness * 0.5 * 255F), 0, 255);
                     Vector3 bgVec = new Vector3(offsetX, offsetY, zLevel);
                     for (int i = 0; i < 4; i++) {
                         int u = ((i + 1) & 2) >> 1;
                         int v = ((i + 2) & 2) >> 1;
 
                         Vector3 pos = bgVec.clone().addX(width * u).addY(height * v);
-                        buf.pos(offset, offsetX + width * u, offsetY + height * v, zLevel)
-                                .color(r, g, b, MathHelper.clamp((int) (alpha * 1.2F + 0.2F), 0, 255))
-                                .tex(u, v)
+                        buf.vertex(offset, offsetX + width * u, offsetY + height * v, zLevel)
+                                .color(r, g, b, Mth.clamp((int) (alpha * 1.2F + 0.2F), 0, 255))
+                                .uv(u, v)
                                 .endVertex();
                     }
                 });
             }
 
             TexturesAS.TEX_STAR_CONNECTION.bindTexture();
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
                 for (int j = 0; j < 2; j++) {
                     for (StarConnection sc : c.getStarConnections()) {
-                        int alpha = MathHelper.clamp((int) (brightnessFn.get() * brightness * 255F), 0, 255);
+                        int alpha = Mth.clamp((int) (brightnessFn.get() * brightness * 255F), 0, 255);
 
                         Vector3 fromStar = new Vector3(offsetX + sc.from.x * ulength, offsetY + sc.from.y * vlength, zLevel);
                         Vector3 toStar   = new Vector3(offsetX + sc.to.x   * ulength, offsetY + sc.to.y * vlength,   zLevel);
@@ -273,9 +302,9 @@ public class RenderingConstellationUtils {
                             int v = ((i + 2) & 2) >> 1;
 
                             Vector3 pos = vec00.clone().add(dir.clone().multiply(u)).add(vecV.clone().multiply(v));
-                            buf.pos(offset, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
+                            buf.vertex(offset, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
                                     .color(r, g, b, alpha)
-                                    .tex(u, v)
+                                    .uv(u, v)
                                     .endVertex();
                         }
                     }
@@ -286,9 +315,9 @@ public class RenderingConstellationUtils {
         Map<StarLocation, Rectangle.Float> starRectangles = new HashMap<>();
 
         TexturesAS.TEX_STAR_1.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
             for (StarLocation sl : c.getStars()) {
-                int alpha = MathHelper.clamp((int) (brightnessFn.get() * brightness * 255F), 0, 255);
+                int alpha = Mth.clamp((int) (brightnessFn.get() * brightness * 255F), 0, 255);
 
                 int starX = sl.x;
                 int starY = sl.y;
@@ -301,12 +330,12 @@ public class RenderingConstellationUtils {
                     int v = ((i + 2) & 2) >> 1;
 
                     Vector3 pos = starVec.clone().addX(ulength * u * 2).addY(vlength * v * 2);
-                    buf.pos(offset, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
+                    buf.vertex(offset, (float) pos.getX(), (float) pos.getY(), (float) pos.getZ())
                             .color(isKnown ? r : alpha,
                                     isKnown ? g : alpha,
                                     isKnown ? b : alpha,
-                                    MathHelper.clamp((int) (alpha * 1.2F + 0.2F), 0, 255))
-                            .tex(u, v)
+                                    Mth.clamp((int) (alpha * 1.2F + 0.2F), 0, 255))
+                            .uv(u, v)
                             .endVertex();
                 }
 
@@ -327,7 +356,7 @@ public class RenderingConstellationUtils {
 
     private static float flickerSin(long wtime, float partialTicks, double divisor, float div, float move) {
         double rad = ((wtime % (GeneralConfig.CONFIG.dayLength.get() / 2)) + partialTicks) / divisor;
-        float sin = MathHelper.sin((float) rad);
+        float sin = Mth.sin((float) rad);
         return (sin / div) + move;
     }
 }

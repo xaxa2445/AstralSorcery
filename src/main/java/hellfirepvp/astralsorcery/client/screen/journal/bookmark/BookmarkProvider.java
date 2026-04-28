@@ -10,9 +10,8 @@ package hellfirepvp.astralsorcery.client.screen.journal.bookmark;
 
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -30,13 +29,13 @@ public class BookmarkProvider {
 
     private final Supplier<Screen> provider;
     private final int index;
-    private final IFormattableTextComponent unlocName;
+    private final Component unlocName;
     private final Supplier<Boolean> canSeeTest;
 
     public BookmarkProvider(String unlocName, int bookmarkIndex,
                             Supplier<Screen> guiProvider,
                             Supplier<Boolean> canSeeTest) {
-        this.unlocName = new TranslationTextComponent(unlocName);
+        this.unlocName = Component.translatable(unlocName);
         this.index = bookmarkIndex;
         this.provider = guiProvider;
         this.canSeeTest = canSeeTest;
@@ -54,7 +53,7 @@ public class BookmarkProvider {
         return index;
     }
 
-    public IFormattableTextComponent getUnlocalizedName() {
+    public Component getUnlocalizedName() {
         return unlocName;
     }
 

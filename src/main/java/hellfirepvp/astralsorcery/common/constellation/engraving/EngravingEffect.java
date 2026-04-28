@@ -245,8 +245,8 @@ public class EngravingEffect {
                 MobEffectInstance effectInstance = new MobEffectInstance(this.effect.get(), dur, amp, true, false, true);
                 existing.add(effectInstance);
             }
-            if (!MiscUtils.contains(existing, e -> e.getEffect().equals(EffectsAS.EFFECT_CHEAT_DEATH.get())) && rand.nextInt(30) == 0) {
-                existing.add(new MobEffectInstance(EffectsAS.EFFECT_CHEAT_DEATH.get(), 3600, 0, true, false, true));
+            if (!MiscUtils.contains(existing, e -> e.getEffect().equals(EffectsAS.EFFECT_CHEAT_DEATH)) && rand.nextInt(30) == 0) {
+                existing.add(new MobEffectInstance(EffectsAS.EFFECT_CHEAT_DEATH, 3600, 0, true, false, true));
             }
             PotionUtils.setCustomEffects(stack, existing);
             stack.getTag().putInt("CustomPotionColor", ColorsAS.DYE_ORANGE.getRGB());

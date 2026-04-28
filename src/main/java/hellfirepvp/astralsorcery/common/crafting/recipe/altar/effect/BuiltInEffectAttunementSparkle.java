@@ -27,7 +27,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  * Created by HellFirePvP
  * Date: 24.09.2019 / 06:34
  */
-public class BuiltInEffectAttunementSparkle extends AltarRecipeEffect {
+public class  BuiltInEffectAttunementSparkle extends AltarRecipeEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)

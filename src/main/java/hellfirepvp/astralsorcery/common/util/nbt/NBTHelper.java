@@ -26,6 +26,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.nbt.Tag; // O usa Tag.TAG_COMPOUND
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.apache.commons.lang3.ObjectUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -241,6 +242,16 @@ public class NBTHelper {
             writer.accept(subTag, value);
             tag.put(key, subTag);
         }
+    }
+
+    public static ItemStack getStack(CompoundTag compound, String tag) {
+        // En 1.20.1, ItemStack::of es el encargado de reconstruir el item desde el NBT
+        return ObjectUtils.firstNonNull(readFromSubTag(compound, tag, ItemStack::of), ItemStack.EMPTY);
+    }
+
+    public static void setStack(CompoundTag compound, String tag, ItemStack stack) {
+        // En 1.20.1, usamos el método 'save' de ItemStack para persistir los datos
+        setAsSubTag(compound, tag, stack::save);
     }
 
     @Nullable

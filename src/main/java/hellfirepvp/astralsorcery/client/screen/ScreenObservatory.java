@@ -123,8 +123,8 @@ public class ScreenObservatory extends TileConstellationDiscoveryScreen<TileObse
 
     @Override
     public void closeScreen() {
-        super.closeScreen();
-        EventFlags.GUI_CLOSING.executeWithFlag(() -> Minecraft.getInstance().player.closeScreen());
+        super.onClose();
+        EventFlags.GUI_CLOSING.executeWithFlag(() -> Minecraft.getInstance().player.onClose());
     }
 
     @Override

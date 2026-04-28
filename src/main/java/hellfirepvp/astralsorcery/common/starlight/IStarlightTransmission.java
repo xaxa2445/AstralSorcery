@@ -9,7 +9,7 @@
 package hellfirepvp.astralsorcery.common.starlight;
 
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 
 import javax.annotation.Nonnull;
@@ -34,7 +34,7 @@ public interface IStarlightTransmission<T extends IPrismTransmissionNode> {
     public BlockPos getTrPos();
 
     @Nonnull
-    public World getTrWorld();
+    public Level getTrWorld();
 
     @Nonnull
     public T provideTransmissionNode(BlockPos at);

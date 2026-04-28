@@ -8,7 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.crafting.helper;
 
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.items.IItemHandler;
 
 import java.util.Objects;
@@ -36,11 +36,6 @@ public abstract class BaseHandlerRecipe<I extends IItemHandler> implements IHand
     @Override
     public String getGroup() {
         return group;
-    }
-
-    @Override
-    public boolean isDynamic() {
-        return true;
     }
 
     @Override

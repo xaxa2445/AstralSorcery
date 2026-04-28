@@ -56,7 +56,8 @@ public class RenderingDrawUtils {
     private static final Random rand = new Random();
     private static final PoseStack EMPTY = new PoseStack();
 
-    public static void renderStringCentered(@Nullable Font fr, PoseStack renderStack, FormattedText text, int x, int y, float scale, int color) {
+    public static void renderStringCentered(@Nullable Font fr, GuiGraphics guiGraphics, FormattedText text, int x, int y, float scale, int color) {
+        PoseStack renderStack = guiGraphics.pose();
         if (fr == null) {
             fr = Minecraft.getInstance().font;
         }
@@ -67,50 +68,61 @@ public class RenderingDrawUtils {
         renderStack.pushPose();
         renderStack.translate(offsetLeft, y, 0);
         renderStack.scale(scale, scale, scale);
-        renderStringAt(fr, renderStack, text, color);
+        renderStringAt(fr, guiGraphics, text, color);
         renderStack.popPose();
     }
 
-    public static float renderString(FormattedText text) {
-        return renderStringAt(null, EMPTY, text, Color.WHITE.getRGB());
+    // Versión para FormattedText (Component)
+    public static float renderString(GuiGraphics graphics, FormattedText text) {
+        return renderStringAt(null, graphics, text, 0xFFFFFF); // Blanco opaco
     }
 
-    public static float renderString(FormattedText text, int color) {
-        return renderStringAt(null, EMPTY, text, color);
+    public static float renderString(GuiGraphics graphics, FormattedText text, int color) {
+        return renderStringAt(null, graphics, text, color);
     }
 
-    // Versión para FormattedCharSequence (antiguo IReorderingProcessor)
-    public static float renderString(FormattedCharSequence text) {
-        return renderStringAt(null, EMPTY, text, Color.WHITE.getRGB());
+    // Versión para FormattedCharSequence (Lo que devuelve font.split o el procesamiento de texto)
+    public static float renderString(GuiGraphics graphics, FormattedCharSequence text) {
+        return renderStringAt(null, graphics, text, 0xFFFFFF);
     }
 
-    public static float renderString(FormattedCharSequence text, int color) {
-        return renderStringAt(null, EMPTY, text, color);
+    public static float renderString(GuiGraphics graphics, FormattedCharSequence text, int color) {
+        return renderStringAt(null, graphics, text, color);
     }
 
-    public static float renderStringAt(@Nullable Font fr, PoseStack renderStack, FormattedCharSequence text, int color) {
+    public static float renderStringAt(@Nullable Font fr, GuiGraphics graphics, FormattedCharSequence text, int color) {
         if (fr == null) {
             fr = Minecraft.getInstance().font;
         }
         // IRenderTypeBuffer.Impl -> MultiBufferSource.BufferSource
         MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
-
+        Matrix4f matrix = graphics.pose().last().pose();
         // fr.func_238416_a_ -> fr.drawInBatch
-        float length = fr.drawInBatch(text, 0, 0, color, false,
-                renderStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0,
-                LightmapUtil.getPackedFullbrightCoords());
+        float length = fr.drawInBatch(
+                text,
+                0, 0,           // Posición local (ya que hiciste el translate antes)
+                color,
+                false,          // dropShadow
+                matrix,
+                buffer,
+                Font.DisplayMode.NORMAL,
+                0,              // backgroundColor
+                15728880        // LightmapUtil.getPackedFullbrightCoords() suele ser este valor constante
+        );
 
-        buffer.endBatch(); // Reemplaza a buffer.finish()
+        // 4. Finalizamos el renderizado de este lote
+        buffer.endBatch();
+
         return length;
     }
 
     // Método puente para FormattedText
-    public static float renderStringAt(@Nullable Font fr, PoseStack renderStack, FormattedText text, int color) {
+    public static float renderStringAt(@Nullable Font fr, GuiGraphics graphics, FormattedText text, int color) {
         if (fr == null) {
             fr = Minecraft.getInstance().font;
         }
         // Convertimos FormattedText a FormattedCharSequence (lo que el motor prefiere renderizar)
-        return renderStringAt(fr, renderStack, Language.getInstance().getVisualOrder(text), color);
+        return renderStringAt(fr, graphics, Language.getInstance().getVisualOrder(text), color);
     }
 
     public static Rectangle drawInfoStar(PoseStack renderStack, IDrawRenderTypeBuffer buffer, float widthHeightBase, float pTicks) {
@@ -253,7 +265,7 @@ public class RenderingDrawUtils {
                 for (FormattedCharSequence text : toolTip.getB()) {
                     renderStack.pushPose();
                     renderStack.translate(offset, 0, zLevel);
-                    renderStringAt(font, renderStack, text, strColor.getRGB());
+                    renderStringAt(font, graphics, text, strColor.getRGB());
                     renderStack.popPose();
 
                     renderStack.translate(0, 10, 0);

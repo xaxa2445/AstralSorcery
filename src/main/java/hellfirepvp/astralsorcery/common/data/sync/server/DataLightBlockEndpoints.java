@@ -12,14 +12,14 @@ import hellfirepvp.astralsorcery.common.data.sync.base.AbstractData;
 import hellfirepvp.astralsorcery.common.data.sync.base.AbstractDataProvider;
 import hellfirepvp.astralsorcery.common.data.sync.base.ClientDataReader;
 import hellfirepvp.astralsorcery.common.data.sync.client.ClientLightBlockEndpoints;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.StringNBT;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.nbt.ListTag;     // ListNBT -> ListTag
+import net.minecraft.nbt.StringTag;   // StringNBT -> StringTag
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.level.Level;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;   // Actualizado
+import net.minecraft.world.level.Level; // World -> Level
 
 import java.util.*;
 
@@ -32,16 +32,16 @@ import java.util.*;
  */
 public class DataLightBlockEndpoints extends AbstractData {
 
-    private final Map<RegistryKey<World>, Set<BlockPos>> serverPositions = new HashMap<>();
+    private final Map<ResourceKey<Level>, Set<BlockPos>> serverPositions = new HashMap<>();
 
-    private final Map<RegistryKey<World>, Map<BlockPos, Boolean>> serverChangeBuffer = new HashMap<>();
-    private final Set<RegistryKey<World>> dimensionClearBuffer = new HashSet<>();
+    private final Map<ResourceKey<Level>, Map<BlockPos, Boolean>> serverChangeBuffer = new HashMap<>();
+    private final Set<ResourceKey<Level>> dimensionClearBuffer = new HashSet<>();
 
     private DataLightBlockEndpoints(ResourceLocation key) {
         super(key);
     }
 
-    public void updateNewEndpoint(RegistryKey<World> dim, BlockPos pos) {
+    public void updateNewEndpoint(ResourceKey<Level> dim, BlockPos pos) {
         Map<BlockPos, Boolean> posMap = serverChangeBuffer.computeIfAbsent(dim, k -> new HashMap<>());
         posMap.put(pos, true);
 
@@ -50,7 +50,7 @@ public class DataLightBlockEndpoints extends AbstractData {
         markDirty();
     }
 
-    public void updateNewEndpoints(RegistryKey<World> dim, Collection<BlockPos> newPositions) {
+    public void updateNewEndpoints(ResourceKey<Level> dim, Collection<BlockPos> newPositions) {
         Map<BlockPos, Boolean> posMap = serverChangeBuffer.computeIfAbsent(dim, k -> new HashMap<>());
         for (BlockPos pos : newPositions) {
             posMap.put(pos, true);
@@ -61,7 +61,7 @@ public class DataLightBlockEndpoints extends AbstractData {
         markDirty();
     }
 
-    public void removeEndpoints(RegistryKey<World> dim, Collection<BlockPos> positions) {
+    public void removeEndpoints(ResourceKey<Level> dim, Collection<BlockPos> positions) {
         Map<BlockPos, Boolean> posMap = serverChangeBuffer.computeIfAbsent(dim, k -> new HashMap<>());
         for (BlockPos pos : positions) {
             posMap.put(pos, false);
@@ -73,12 +73,12 @@ public class DataLightBlockEndpoints extends AbstractData {
         }
     }
 
-    public boolean doesPositionReceiveStarlightServer(World world, BlockPos pos) {
-        return this.serverPositions.getOrDefault(world.getDimensionKey(), Collections.emptySet()).contains(pos);
+    public boolean doesPositionReceiveStarlightServer(Level world, BlockPos pos) {
+        return this.serverPositions.getOrDefault(world.dimension(), Collections.emptySet()).contains(pos);
     }
 
     @Override
-    public void clear(RegistryKey<World> dim) {
+    public void clear(ResourceKey<Level> dim) {
         if (this.serverPositions.remove(dim) != null) {
             this.serverChangeBuffer.remove(dim);
             this.dimensionClearBuffer.add(dim);
@@ -94,45 +94,45 @@ public class DataLightBlockEndpoints extends AbstractData {
     }
 
     @Override
-    public void writeAllDataToPacket(CompoundNBT compound) {
-        for (RegistryKey<World> dim : serverPositions.keySet()) {
+    public void writeAllDataToPacket(CompoundTag compound) {
+        for (ResourceKey<Level> dim : serverPositions.keySet()) {
             Set<BlockPos> dat = serverPositions.get(dim);
 
-            ListNBT dataList = new ListNBT();
+            ListTag dataList = new ListTag();
             for (BlockPos pos : dat) {
-                CompoundNBT cmp = new CompoundNBT();
-                cmp.putLong("pos", pos.toLong());
+                CompoundTag cmp = new CompoundTag();
+                cmp.putLong("pos", pos.asLong());
                 dataList.add(cmp);
             }
 
-            compound.put(dim.getLocation().toString(), dataList);
+            compound.put(dim.location().toString(), dataList);
         }
     }
 
     @Override
-    public void writeDiffDataToPacket(CompoundNBT compound) {
-        ListNBT clearList = new ListNBT();
-        for (RegistryKey<World> dim : this.dimensionClearBuffer) {
-            clearList.add(StringNBT.valueOf(dim.getLocation().toString()));
+    public void writeDiffDataToPacket(CompoundTag compound) {
+        ListTag clearList = new ListTag();
+        for (ResourceKey<Level> dim : this.dimensionClearBuffer) {
+            clearList.add(StringTag.valueOf(dim.location().toString()));
         }
         compound.put("clear", clearList);
 
-        for (RegistryKey<World> dim : this.serverChangeBuffer.keySet()) {
+        for (ResourceKey<Level> dim : this.serverChangeBuffer.keySet()) {
             if (this.dimensionClearBuffer.contains(dim)) {
                 continue;
             }
 
             Map<BlockPos, Boolean> data = this.serverChangeBuffer.get(dim);
 
-            ListNBT dataList = new ListNBT();
+            ListTag dataList = new ListTag();
             for (BlockPos pos : data.keySet()) {
-                CompoundNBT cmp = new CompoundNBT();
-                cmp.putLong("pos", pos.toLong());
+                CompoundTag cmp = new CompoundTag();
+                cmp.putLong("pos", pos.asLong());
                 cmp.putBoolean("add", data.get(pos));
                 dataList.add(cmp);
             }
 
-            compound.put(dim.getLocation().toString(), dataList);
+            compound.put(dim.location().toString(), dataList);
         }
 
         this.dimensionClearBuffer.clear();

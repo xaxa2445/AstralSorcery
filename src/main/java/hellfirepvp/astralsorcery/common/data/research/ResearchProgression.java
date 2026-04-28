@@ -10,8 +10,7 @@ package hellfirepvp.astralsorcery.common.data.research;
 
 import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.AstralSorcery;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.network.chat.Component;
 import net.minecraftforge.common.IExtensibleEnum;
 
 import javax.annotation.Nonnull;
@@ -94,8 +93,8 @@ public enum ResearchProgression implements IExtensibleEnum {
         return Collections.unmodifiableList(preConditions);
     }
 
-    public ITextComponent getName() {
-        return new TranslationTextComponent(this.unlocName);
+    public Component getName() {
+        return Component.translatable(this.unlocName);
     }
 
     @Nullable

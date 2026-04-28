@@ -36,4 +36,12 @@ public class DamageHelper {
                 indirect
         );
     }
+
+    public static DamageSource stellar(Level level) {
+        return new DamageSource(
+                level.registryAccess()
+                        .registryOrThrow(Registries.DAMAGE_TYPE)
+                        .getHolderOrThrow(ASDamageTypes.STELLAR)
+        );
+    }
 }

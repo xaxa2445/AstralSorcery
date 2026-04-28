@@ -19,14 +19,16 @@ import hellfirepvp.astralsorcery.common.starlight.WorldNetworkHandler;
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.ITransmissionReceiver;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerLevel; // ServerWorld -> ServerLevel
+import net.minecraft.util.RandomSource; // Reemplaza a java.util.Random
 import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level; // World -> Level
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.*;
 
@@ -56,13 +58,13 @@ public class TransmissionWorldHandler {
     //Contains a list of source positions whose sources currently calculate their network.
     private final Set<BlockPos> sourcePosBuilding = new HashSet<>();
 
-    private final RegistryKey<World> dim;
+    private final ResourceKey<Level> dim;
 
-    public TransmissionWorldHandler(RegistryKey<World> dimKey) {
+    public TransmissionWorldHandler(ResourceKey<Level> dimKey) {
         this.dim = dimKey;
     }
 
-    public void tick(ServerWorld world) {
+    public void tick(ServerLevel world) {
         WorldNetworkHandler handler = WorldNetworkHandler.getNetworkHandler(world);
 
         for (Tuple<BlockPos, IIndependentStarlightSource> sourceTuple : handler.getAllSources()) {
@@ -130,11 +132,11 @@ public class TransmissionWorldHandler {
         }
     }
 
-    private void buildNetworkChain(World world, IIndependentStarlightSource source, WorldNetworkHandler handler, BlockPos sourcePos) {
+    private void buildNetworkChain(Level world, IIndependentStarlightSource source, WorldNetworkHandler handler, BlockPos sourcePos) {
         TransmissionChain.buildNetworkChain(world, this, source, handler, sourcePos);
     }
 
-    void updateNetworkChainData(World world, TransmissionChain chain, IIndependentStarlightSource source, WorldNetworkHandler handle, BlockPos sourcePos) {
+    void updateNetworkChainData(Level world, TransmissionChain chain, IIndependentStarlightSource source, WorldNetworkHandler handle, BlockPos sourcePos) {
         sourcePosBuilding.remove(sourcePos);
 
         cachedSourceChain.put(source, chain);

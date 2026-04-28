@@ -12,16 +12,15 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries; // Reemplaza ForgeRegistries para acceso directo
+import net.minecraft.network.FriendlyByteBuf; // PacketBuffer -> FriendlyByteBuf
+import net.minecraft.resources.ResourceLocation; // net.minecraft.util -> net.minecraft.resources
+import net.minecraft.util.GsonHelper; // JSONUtils -> GsonHelper
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobSpawnType; // Útil para spawns correctos
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.registries.ForgeRegistries;
 
 /**
@@ -40,8 +39,8 @@ public class ResultSpawnEntity extends InteractionResult {
     }
 
     public static ResultSpawnEntity spawnEntity(EntityType<?> type) {
-        if (!type.isSummonable()) {
-            throw new IllegalArgumentException("EntityType " + type.getRegistryName() + " is not summonable!");
+        if (!type.canSummon()) {
+            throw new IllegalArgumentException("EntityType " + EntityType.getKey(type) + " is not summonable!");
         }
         ResultSpawnEntity drop = new ResultSpawnEntity();
         drop.entityType = type;
@@ -53,19 +52,26 @@ public class ResultSpawnEntity extends InteractionResult {
     }
 
     @Override
-    public void doResult(World world, Vector3 at) {
+    public void doResult(Level world, Vector3 at) { // World -> Level
+        if (this.entityType == null) return;
+
         Entity e = this.entityType.create(world);
-        if (!(e instanceof LivingEntity)) {
+        if (!(e instanceof LivingEntity living)) { // Pattern Matching (Java moderno)
             return;
         }
-        e.setLocationAndAngles(at.getX(), at.getY(), at.getZ(), world.rand.nextFloat() * 360.0F, 0.0F);
-        world.addEntity(e);
+
+        // setLocationAndAngles -> moveTo (Nomenclatura moderna de 1.20.1)
+        // world.rand -> world.random
+        living.moveTo(at.getX(), at.getY(), at.getZ(), world.random.nextFloat() * 360.0F, 0.0F);
+
+        // addEntity -> addFreshEntity (Asegura que la entidad no exista previamente)
+        world.addFreshEntity(living);
     }
 
     @Override
     public void read(JsonObject json) throws JsonParseException {
-        ResourceLocation key = new ResourceLocation(JSONUtils.getString(json, "entityType"));
-        EntityType<?> type = ForgeRegistries.ENTITIES.getValue(key);
+        ResourceLocation key = new ResourceLocation(GsonHelper.getAsString(json, "entityType"));
+        EntityType<?> type = ForgeRegistries.ENTITY_TYPES.getValue(key);
         if (type == null) {
             throw new JsonParseException("Unknown entity type: " + key);
         }
@@ -74,16 +80,17 @@ public class ResultSpawnEntity extends InteractionResult {
 
     @Override
     public void write(JsonObject json) {
-        json.addProperty("entityType", this.entityType.getRegistryName().toString());
+        // getRegistryName() desapareció de los objetos. Ahora se usa el registro o EntityType.getKey()
+        json.addProperty("entityType", EntityType.getKey(this.entityType).toString());
     }
 
     @Override
-    public void read(PacketBuffer buf) {
+    public void read(FriendlyByteBuf buf) {
         this.entityType = ByteBufUtils.readRegistryEntry(buf);
     }
 
     @Override
-    public void write(PacketBuffer buf) {
+    public void write(FriendlyByteBuf buf) {
         ByteBufUtils.writeRegistryEntry(buf, this.entityType);
     }
 }

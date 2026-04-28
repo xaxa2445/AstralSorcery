@@ -15,12 +15,11 @@ import hellfirepvp.astralsorcery.common.perk.modifier.PerkAttributeModifier;
 import hellfirepvp.astralsorcery.common.perk.node.MajorPerk;
 import hellfirepvp.astralsorcery.common.perk.tree.PerkTreeGem;
 import hellfirepvp.astralsorcery.common.perk.tree.PerkTreePoint;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -48,17 +47,19 @@ public class GemSocketMajorPerk extends MajorPerk implements GemSocketPerk {
     }
 
     @Override
-    public Collection<PerkAttributeModifier> getModifiers(PlayerEntity player, LogicalSide side, boolean ignoreRequirements) {
+    public Collection<PerkAttributeModifier> getModifiers(Player player, LogicalSide side, boolean ignoreRequirements) {
         Collection<PerkAttributeModifier> mods = super.getModifiers(player, side, ignoreRequirements);
         ItemStack contained = getContainedItem(player, side);
-        if (!contained.isEmpty() && contained.getItem() instanceof GemSocketItem) {
-            mods.addAll(((GemSocketItem) contained.getItem()).getModifiers(contained, this, player, side));
+
+        // Uso de Pattern Matching para limpiar el casting de GemSocketItem
+        if (!contained.isEmpty() && contained.getItem() instanceof GemSocketItem gemItem) {
+            mods.addAll(gemItem.getModifiers(contained, this, player, side));
         }
         return mods;
     }
 
     @Override
-    public void onRemovePerkServer(PlayerEntity player, PerkAllocationType allocationType, PlayerProgress progress, CompoundNBT dataStorage) {
+    public void onRemovePerkServer(Player player, PerkAllocationType allocationType, PlayerProgress progress, CompoundTag dataStorage) {
         super.onRemovePerkServer(player, allocationType, progress, dataStorage);
 
         // Will be removed?
@@ -69,10 +70,11 @@ public class GemSocketMajorPerk extends MajorPerk implements GemSocketPerk {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean addLocalizedTooltip(Collection<IFormattableTextComponent> tooltip) {
+    public boolean addLocalizedTooltip(Collection<Component> tooltip) {
         if (super.addLocalizedTooltip(tooltip)) {
-            tooltip.add(new StringTextComponent(""));
+            tooltip.add(Component.literal(""));
         }
+        // Verificamos si el jugador tiene visibilidad del nodo antes de mostrar los datos de la gema
         if (canSeeClient()) {
             this.addTooltipInfo(tooltip);
         }

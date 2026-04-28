@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.client.screen.journal;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.screen.base.NavigationArrowScreen;
 import hellfirepvp.astralsorcery.client.screen.journal.page.RenderablePage;
@@ -21,7 +21,9 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchNode;
 import hellfirepvp.astralsorcery.common.lib.SoundsAS;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -104,8 +106,10 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
-        super.render(renderStack, mouseX, mouseY, pTicks);
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float pTicks) {
+        super.render(guiGraphics, mouseX, mouseY, pTicks);
+
+        PoseStack renderStack = guiGraphics.pose(); // 🔥 clave
 
         if (origin != null) {
             drawDefault(renderStack, TexturesAS.TEX_GUI_BOOK_BLANK, mouseX, mouseY);
@@ -116,59 +120,80 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
             RenderSystem.disableBlend();
         }
 
-        this.setBlitOffset(100);
+        renderStack.pushPose();
+        renderStack.translate(0, 0, 100);
+
         int pageYOffset = 20;
 
-        //Headline
+        // Headline
         if (this.currentPageOffset == 0) {
-            int width = font.getStringPropertyWidth(this.getTitle());
+            int width = font.width(this.getTitle());
 
-            renderStack.push();
+            renderStack.pushPose();
             renderStack.translate(guiLeft + 117, guiTop + 22, this.getGuiZLevel());
             renderStack.scale(1.3F, 1.3F, 1F);
             renderStack.translate(-width / 2F, 0, 0);
+
             RenderingDrawUtils.renderStringAt(font, renderStack, this.getTitle(), 0x00DDDDDD);
-            renderStack.pop();
+
+            renderStack.popPose();
 
             RenderSystem.enableBlend();
             Blending.DEFAULT.apply();
             TexturesAS.TEX_GUI_BOOK_UNDERLINE.bindTexture();
-            RenderingGuiUtils.drawRect(renderStack, guiLeft + 30, guiTop + 35, this.getGuiZLevel(), 175, 6);
+
+            // 🔴 IMPORTANTE: usa matrix, no PoseStack
+            RenderingGuiUtils.drawRect(
+                    renderStack.last().pose(),
+                    guiLeft + 30, guiTop + 35,
+                    this.getGuiZLevel(),
+                    175, 6
+            );
+
             RenderSystem.disableBlend();
 
             pageYOffset += 30;
         }
 
         int index = currentPageOffset * 2;
+
         if (pages.size() > index) {
-            RenderablePage page = pages.get(index);
-            page.render(renderStack, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
-        }
-        index = index + 1;
-        if (pages.size() > index) {
-            RenderablePage page = pages.get(index);
-            page.render(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+            pages.get(index).render(renderStack, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
         }
 
-        this.setBlitOffset(120);
+        index++;
+
+        if (pages.size() > index) {
+            pages.get(index).render(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+        }
+
+        renderStack.popPose();
+
+        // 🔥 Z = 120
+        renderStack.pushPose();
+        renderStack.translate(0, 0, 120);
         drawNavArrows(renderStack, pTicks, mouseX, mouseY);
-        this.setBlitOffset(100);
+        renderStack.popPose();
+
+        renderStack.pushPose();
+        renderStack.translate(0, 0, 100);
 
         index = currentPageOffset * 2;
+
         if (pages.size() > index) {
-            RenderablePage page = pages.get(index);
-            page.postRender(renderStack, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
-        }
-        index = index + 1;
-        if (pages.size() > index) {
-            RenderablePage page = pages.get(index);
-            page.postRender(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+            pages.get(index).postRender(renderStack, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
         }
 
-        this.setBlitOffset(0);
+        index++;
+
+        if (pages.size() > index) {
+            pages.get(index).postRender(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+        }
+
+        renderStack.popPose();
     }
 
-    private void drawNavArrows(MatrixStack renderStack, float partialTicks, int mouseX, int mouseY) {
+    private void drawNavArrows(PoseStack renderStack, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
 
@@ -200,22 +225,22 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
     }
 
     @Override
-    public void closeScreen() {
+    public void onClose() {
         if (origin != null) {
             if (saveSite) {
                 openGuiInstance = this;
                 ScreenJournalProgression.getJournalInstance().preventRefresh();
-                Minecraft.getInstance().displayGuiScreen(null);
+                Minecraft.getInstance().setScreen(null);
             } else {
                 saveSite = true;
                 openGuiInstance = null;
-                Minecraft.getInstance().displayGuiScreen(origin);
+                Minecraft.getInstance().setScreen(origin);
             }
         } else {
             if (previous != null && informPreviousClose) {
-                previous.closeScreen();
+                previous.onClose();
             }
-            Minecraft.getInstance().displayGuiScreen(previous);
+            Minecraft.getInstance().setScreen(previous);
         }
     }
 
@@ -263,22 +288,22 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
             if (origin != null) {
                 origin.expectReInit();
                 saveSite = false;
-                this.closeScreen();
+                this.onClose();
                 return true;
             } else {
                 informPreviousClose = false;
-                this.closeScreen();
+                this.onClose();
                 return true;
             }
         }
         if (rectPrev != null && rectPrev.contains(mouseX, mouseY)) {
             this.currentPageOffset -= 1;
-            SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE, 1F, 1F);
+            SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE.getSoundEvent(), 1F, 1F);
             return true;
         }
         if (rectNext != null && rectNext.contains(mouseX, mouseY)) {
             this.currentPageOffset += 1;
-            SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE, 1F, 1F);
+            SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE.getSoundEvent(), 1F, 1F);
             return true;
         }
 

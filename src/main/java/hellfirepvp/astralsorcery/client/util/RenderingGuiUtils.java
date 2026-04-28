@@ -14,6 +14,7 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
 import hellfirepvp.astralsorcery.client.resource.SpriteSheetResource;
 import hellfirepvp.astralsorcery.client.screen.base.WidthHeightScreen;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.Tuple;
 import org.joml.Matrix4f;
@@ -58,39 +59,43 @@ public class RenderingGuiUtils {
         });
     }
 
-    public static void drawTexturedRect(Matrix4f renderStack, float offsetX, float offsetY, float zLevel, float width, float height, AbstractRenderableTexture tex) {
-        drawTexturedRect(renderStack, offsetX, offsetY, zLevel, width, height, tex.getUOffset(), tex.getVOffset(), tex.getUWidth(), tex.getVWidth());
+    public static void drawTexturedRect(GuiGraphics guiGraphics, float offsetX, float offsetY, float zLevel, float width, float height, AbstractRenderableTexture tex) {
+        Matrix4f matrix = guiGraphics.pose().last().pose();
+        drawTexturedRect(matrix, offsetX, offsetY, zLevel, width, height, tex.getUOffset(), tex.getVOffset(), tex.getUWidth(), tex.getVWidth());
     }
 
-    @Deprecated
     public static void drawTexturedRect(float offsetX, float offsetY, float zLevel, float width, float height, float uFrom, float vFrom, float uWidth, float vWidth) {
         drawTexturedRect(EMPTY, offsetX, offsetY, zLevel, width, height, uFrom, vFrom, uWidth, vWidth);
     }
 
-    public static void drawTexturedRect(Matrix4f renderStack, float width, float height, float uFrom, float vFrom, float uWidth, float vWidth) {
-        drawTexturedRect(renderStack, 0, 0, 0, width, height, uFrom, vFrom, uWidth, vWidth);
+    public static void drawTexturedRect(GuiGraphics guiGraphics, float width, float height, float uFrom, float vFrom, float uWidth, float vWidth) {
+        Matrix4f matrix = guiGraphics.pose().last().pose();
+        drawTexturedRect(matrix, 0, 0, 0, width, height, uFrom, vFrom, uWidth, vWidth);
     }
 
-    public static void drawTexturedRect(Matrix4f renderStack, float offsetX, float offsetY, float zLevel, float width, float height, float uFrom, float vFrom, float uWidth, float vWidth) {
+    public static void drawTexturedRect(Matrix4f matrix, float offsetX, float offsetY, float zLevel, float width, float height, float uFrom, float vFrom, float uWidth, float vWidth) {
         RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
-            rect(buf, renderStack, offsetX, offsetY, zLevel, width, height)
+            rect(buf, matrix, offsetX, offsetY, zLevel, width, height)
                     .tex(uFrom, vFrom, uWidth, vWidth)
                     .draw();
         });
     }
 
-    @Deprecated
-    public static DrawBuilder rect(VertexConsumer buf, WidthHeightScreen screen) {
-        return rect(buf, screen.getGuiLeft(), screen.getGuiTop(), screen.getGuiZLevel(), screen.getGuiWidth(), screen.getGuiHeight());
+    public static DrawBuilder rect(VertexConsumer buf, GuiGraphics graphic , WidthHeightScreen screen) {
+        return rect(buf, graphic.pose().last().pose(),
+                (float) screen.getGuiLeft(),
+                (float) screen.getGuiTop(),
+                (float) screen.getGuiZLevel(),
+                (float) screen.getGuiWidth(),
+                (float) screen.getGuiHeight());
     }
 
     public static DrawBuilder rect(VertexConsumer buf, Matrix4f renderStack, WidthHeightScreen screen) {
         return rect(buf, renderStack, screen.getGuiLeft(), screen.getGuiTop(), screen.getGuiZLevel(), screen.getGuiWidth(), screen.getGuiHeight());
     }
 
-    @Deprecated
-    public static DrawBuilder rect(VertexConsumer buf, float offsetX, float offsetY, float offsetZ, float width, float height) {
-        return rect(buf, EMPTY, offsetX, offsetY, offsetZ, width, height);
+    public static DrawBuilder rect(VertexConsumer buf, GuiGraphics graphics, float offsetX, float offsetY, float offsetZ, float width, float height) {
+        return rect(buf, graphics.pose().last().pose(), offsetX, offsetY, offsetZ, width, height);
     }
 
     public static DrawBuilder rect(VertexConsumer buf, Matrix4f renderStack, float offsetX, float offsetY, float offsetZ, float width, float height) {
