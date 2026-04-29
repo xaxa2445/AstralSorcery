@@ -45,17 +45,20 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundCategory;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -91,15 +94,15 @@ public class TileAttunementAltar extends TileEntityTick {
     public int prevActivationTick = 0;
     public boolean animate = false, tesrLocked = true;
 
-    public TileAttunementAltar() {
-        super(TileEntityTypesAS.ATTUNEMENT_ALTAR);
+    public TileAttunementAltar(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.ATTUNEMENT_ALTAR, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!getWorld().isRemote()) {
+        if (!getLevel().isClientSide()) {
             if (!doesSeeSky() || !hasMultiblock()) {
 
                 if (this.activeConstellation != null) {
@@ -152,9 +155,9 @@ public class TileAttunementAltar extends TileEntityTick {
 
             if (this.activeConstellation != null) {
                 for (BlockPos pos : this.getConstellationPositions(this.activeConstellation)) {
-                    TileSpectralRelay relay = MiscUtils.getTileAt(getWorld(), pos, TileSpectralRelay.class, false);
+                    TileSpectralRelay relay = MiscUtils.getTileAt(getLevel(), pos, TileSpectralRelay.class, false);
                     if (relay != null && !relay.getInventory().getStackInSlot(0).isEmpty()) {
-                        ItemUtils.dropInventory(relay.getInventory(), getWorld(), pos.up());
+                        ItemUtils.dropInventory(relay.getInventory(), getLevel(), pos.above());
                         relay.getInventory().clearInventory();
                     }
                 }
@@ -169,8 +172,8 @@ public class TileAttunementAltar extends TileEntityTick {
             this.currentRecipe = null;
             this.markForUpdate();
 
-            EntityFlare.spawnAmbientFlare(getWorld(), getPos().add(-5 + rand.nextInt(11), 1 + rand.nextInt(3), -5 + rand.nextInt(11)));
-            EntityFlare.spawnAmbientFlare(getWorld(), getPos().add(-5 + rand.nextInt(11), 1 + rand.nextInt(3), -5 + rand.nextInt(11)));
+            EntityFlare.spawnAmbientFlare(getLevel(), getBlockPos().offset(-5 + rand.nextInt(11), 1 + rand.nextInt(3), -5 + rand.nextInt(11)));
+            EntityFlare.spawnAmbientFlare(getLevel(), getBlockPos().offset(-5 + rand.nextInt(11), 1 + rand.nextInt(3), -5 + rand.nextInt(11)));
         }
     }
 
@@ -210,7 +213,7 @@ public class TileAttunementAltar extends TileEntityTick {
                     }
                 }
             }
-            float night = DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+            float night = DayTimeHelper.getCurrentDaytimeDistribution(getLevel());
             for (BlockPos key : positions) {
                 if (!this.activeStarSprites.containsKey(key)) {
                     FXFacingSprite sprite = EffectHelper.of(EffectTemplatesAS.FACING_SPRITE)
@@ -245,19 +248,19 @@ public class TileAttunementAltar extends TileEntityTick {
 
     @OnlyIn(Dist.CLIENT)
     private void tickSoundIdle() {
-        if (SoundHelper.getSoundVolume(SoundCategory.BLOCKS) <= 0) {
+        if (SoundHelper.getSoundVolume(SoundSource.BLOCKS) <= 0) {
             this.attunementAltarIdleSound = null;
             return;
         }
 
         if (this.attunementAltarIdleSound == null || ((PositionedLoopSound) this.attunementAltarIdleSound).hasStoppedPlaying()) {
-            this.attunementAltarIdleSound = SoundHelper.playSoundLoopFadeInClient(SoundsAS.ATTUNEMENT_ATLAR_IDLE,
+            this.attunementAltarIdleSound = SoundHelper.playSoundLoopFadeInClient(SoundsAS.ATTUNEMENT_ATLAR_IDLE.getSoundEvent(),
                     new Vector3(this).add(0.5, 1, 0.5),
                     0.4F,
                     1F,
                     false,
                     (s) -> !this.canPlayConstellationActiveEffects() ||
-                            SoundHelper.getSoundVolume(SoundCategory.BLOCKS) <= 0 ||
+                            SoundHelper.getSoundVolume(SoundSource.BLOCKS) <= 0 ||
                             this.getActiveRecipe() != null)
                     .setFadeInTicks(20)
                     .setFadeOutTicks(20);
@@ -322,15 +325,15 @@ public class TileAttunementAltar extends TileEntityTick {
 
     @OnlyIn(Dist.CLIENT)
     public boolean canPlayConstellationActiveEffects() {
-        WorldContext ctx = SkyHandler.getContext(getWorld(), LogicalSide.CLIENT);
+        WorldContext ctx = SkyHandler.getContext(getLevel(), LogicalSide.CLIENT);
 
         return ctx != null &&
                 !this.isRemoved() &&
                 this.hasMultiblock() &&
                 this.doesSeeSky() &&
                 this.getActiveConstellation() != null &&
-                DayTimeHelper.isNight(getWorld()) &&
-                ctx.getConstellationHandler().isActiveCurrently(getActiveConstellation(), MoonPhase.fromWorld(getWorld()));
+                DayTimeHelper.isNight(getLevel()) &&
+                ctx.getConstellationHandler().isActiveCurrently(getActiveConstellation(), MoonPhase.fromWorld(getLevel()));
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -354,21 +357,21 @@ public class TileAttunementAltar extends TileEntityTick {
         if (this.canPlayConstellationActiveEffects()) {
             return;
         }
-        WorldContext ctx = SkyHandler.getContext(getWorld(), LogicalSide.CLIENT);
+        WorldContext ctx = SkyHandler.getContext(getLevel(), LogicalSide.CLIENT);
         if (ctx == null) {
             return;
         }
 
-        PlayerEntity player = Minecraft.getInstance().player;
-        if (player == null || player.getDistanceSq(Vector3d.copyCentered(getPos())) >= 256) {
+        Player player = Minecraft.getInstance().player;
+        if (player == null || player.distanceToSqr(Vec3.atCenterOf(getBlockPos())) >= 256) {
             return;
         }
-        Tuple<Hand, ItemStack> heldTpl = MiscUtils.getMainOrOffHand(player, stack -> stack.getItem() instanceof ItemConstellationPaper);
+        Tuple<InteractionHand, ItemStack> heldTpl = MiscUtils.getMainOrOffHand(player, stack -> stack.getItem() instanceof ItemConstellationPaper);
         if (heldTpl != null) {
             ItemStack cstPaper = heldTpl.getB();
             IConstellation cst = ((ItemConstellationPaper) cstPaper.getItem()).getConstellation(cstPaper);
             if (cst != null && ResearchHelper.getClientProgress().hasConstellationDiscovered(cst)) {
-                float night = DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+                float night = DayTimeHelper.getCurrentDaytimeDistribution(getLevel());
                 if (night >= 0.1F) {
                     for (BlockPos pos : this.getConstellationPositions(cst)) {
                         this.playConstellationHighlightParticles(cst, pos, night);
@@ -406,7 +409,7 @@ public class TileAttunementAltar extends TileEntityTick {
 
     @OnlyIn(Dist.CLIENT)
     private void playAltarConstellationHighlightParticles(IConstellation cst, float nightPercent) {
-        Vector3 at = new Vector3(getPos())
+        Vector3 at = new Vector3(getBlockPos())
                 .add(0.5, 0, 0.5)
                 .add(Vector3.random().setY(0).multiply(0.65F));
 
@@ -460,7 +463,7 @@ public class TileAttunementAltar extends TileEntityTick {
 
     @Nullable
     private IConstellation searchActiveConstellation() {
-        WorldContext ctx = SkyHandler.getContext(getWorld());
+        WorldContext ctx = SkyHandler.getContext(getLevel());
         if (ctx == null) {
             return null;
         }
@@ -469,11 +472,11 @@ public class TileAttunementAltar extends TileEntityTick {
         for (IConstellation cst : RegistriesAS.REGISTRY_CONSTELLATIONS.getValues()) {
             boolean isValid = true;
             for (BlockPos expectedRelayPos : getConstellationPositions(cst)) {
-                if (expectedRelayPos.equals(this.getPos())) {
+                if (expectedRelayPos.equals(this.getBlockPos())) {
                     continue;
                 }
 
-                TileEntity tile = MiscUtils.getTileAt(getWorld(), expectedRelayPos, TileEntity.class, true);
+                BlockEntity tile = MiscUtils.getTileAt(getLevel(), expectedRelayPos, BlockEntity.class, true);
                 if (!(tile instanceof TileSpectralRelay) && !(tile instanceof TileAttunementAltar)) {
                     isValid = false;
                     break;
@@ -484,7 +487,7 @@ public class TileAttunementAltar extends TileEntityTick {
                 break;
             }
         }
-        if (match != null && cstHandler.isActiveCurrently(match, MoonPhase.fromWorld(getWorld()))) {
+        if (match != null && cstHandler.isActiveCurrently(match, MoonPhase.fromWorld(getLevel()))) {
             return match;
         }
         return null;
@@ -495,7 +498,7 @@ public class TileAttunementAltar extends TileEntityTick {
         for (StarLocation sl : cst.getStars()) {
             int x = sl.x / 2;
             int z = sl.y / 2;
-            offsetPositions.add(new BlockPos(x - 7, 0, z - 7).add(getPos()));
+            offsetPositions.add(new BlockPos(x - 7, 0, z - 7).offset(getBlockPos()));
         }
         return offsetPositions;
     }
@@ -510,8 +513,8 @@ public class TileAttunementAltar extends TileEntityTick {
             int tX = to.x / 2;
             int tZ = to.y / 2;
             offsetPositions.add(
-                    new Tuple<>(new BlockPos(fX - 7, 0, fZ - 7).add(getPos()),
-                            new BlockPos(tX - 7, 0, tZ - 7).add(getPos()))
+                    new Tuple<>(new BlockPos(fX - 7, 0, fZ - 7).offset(getBlockPos()),
+                            new BlockPos(tX - 7, 0, tZ - 7).offset(getBlockPos()))
             );
         }
         return offsetPositions;
@@ -519,12 +522,12 @@ public class TileAttunementAltar extends TileEntityTick {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public AxisAlignedBB getRenderBoundingBox() {
-        return super.getRenderBoundingBox().expand(3.5, 2, 3.5);
+    public AABB getRenderBoundingBox() {
+        return super.getRenderBoundingBox().inflate(3.5, 2, 3.5);
     }
 
     @Override
-    public void writeNetNBT(CompoundNBT compound) {
+    public void writeNetNBT(CompoundTag compound) {
         super.writeNetNBT(compound);
 
         if (this.activeConstellation != null) {
@@ -532,7 +535,7 @@ public class TileAttunementAltar extends TileEntityTick {
         }
 
         if (this.currentRecipe != null) {
-            CompoundNBT nbt = new CompoundNBT();
+            CompoundTag nbt = new CompoundTag();
             nbt.putString("recipe", this.currentRecipe.getRecipe().getKey().toString());
             this.currentRecipe.writeToNBT(nbt);
             compound.put("currentRecipe", nbt);
@@ -540,7 +543,7 @@ public class TileAttunementAltar extends TileEntityTick {
     }
 
     @Override
-    public void readNetNBT(CompoundNBT compound) {
+    public void readNetNBT(CompoundTag compound) {
         super.readNetNBT(compound);
 
         if (compound.contains("activeConstellation")) {
@@ -550,7 +553,7 @@ public class TileAttunementAltar extends TileEntityTick {
         }
 
         if (compound.contains("currentRecipe")) {
-            CompoundNBT nbt = compound.getCompound("currentRecipe");
+            CompoundTag nbt = compound.getCompound("currentRecipe");
             AttunementRecipe recipe = AttunementCraftingRegistry.INSTANCE.getRecipe(new ResourceLocation(nbt.getString("recipe")));
             if (recipe != null) {
                 this.currentRecipe = recipe.deserialize(this, nbt, this.currentRecipe);

@@ -31,13 +31,13 @@ public class InfuserRecipeProvider {
 
     public static void registerInfuserRecipes(Consumer<IFinishedRecipe> registrar) {
         LiquidInfusionBuilder.builder(ItemsAS.AQUAMARINE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.AQUAMARINE)
                 .setOutput(ItemsAS.RESONATING_GEM)
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.GLASS_PANE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.GLASS_PANES)
                 .setOutput(ItemsAS.GLASS_LENS)
                 .multiplyDuration(0.5F)
@@ -45,7 +45,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Blocks.NETHER_GOLD_ORE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.NETHER_GOLD_ORE)
                 .setOutput(new ItemStack(Items.GOLD_NUGGET, 21))
                 .multiplyDuration(0.6F)
@@ -53,7 +53,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Blocks.ANCIENT_DEBRIS)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.ANCIENT_DEBRIS)
                 .setOutput(new ItemStack(Items.NETHERITE_SCRAP, 2))
                 .multiplyDuration(0.6F)
@@ -62,7 +62,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.SAND)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.SAND)
                 .setOutput(Items.CLAY)
                 .multiplyDuration(0.5F)
@@ -70,7 +70,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Blocks.DIRT)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.DIRT)
                 .setOutput(Items.GRASS_BLOCK)
                 .multiplyDuration(0.5F)
@@ -78,7 +78,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.GUNPOWDER)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.GUNPOWDER)
                 .setOutput(Items.GLOWSTONE_DUST)
                 .multiplyDuration(0.5F)
@@ -86,7 +86,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.ENDER_PEARL)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ENDER_PEARLS)
                 .setOutput(Items.ENDER_EYE)
                 .multiplyDuration(0.5F)
@@ -94,7 +94,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.REDSTONE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.DUSTS_REDSTONE)
                 .setOutput(Items.GUNPOWDER)
                 .multiplyDuration(0.5F)
@@ -102,7 +102,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.BONE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.BONES)
                 .setOutput(new ItemStack(Items.BONE_MEAL, 4))
                 .multiplyDuration(0.5F)
@@ -110,7 +110,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.BLAZE_ROD)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.RODS_BLAZE)
                 .setOutput(new ItemStack(Items.BLAZE_POWDER, 4))
                 .multiplyDuration(0.5F)
@@ -118,7 +118,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.SLIME_BALL)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.SLIMEBALLS)
                 .setOutput(Items.MAGMA_CREAM)
                 .multiplyDuration(0.5F)
@@ -126,7 +126,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.CARROT)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.CROPS_CARROT)
                 .setOutput(Items.GOLDEN_CARROT)
                 .multiplyDuration(0.5F)
@@ -134,7 +134,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.MELON_SLICE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Items.MELON_SLICE)
                 .setOutput(Items.GLISTERING_MELON_SLICE)
                 .multiplyDuration(0.5F)
@@ -142,7 +142,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.IRON_ORE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_IRON)
                 .setOutput(new ItemStack(Items.IRON_INGOT, 3))
                 .multiplyDuration(0.5F)
@@ -150,7 +150,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.GOLD_ORE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.GOLD_ORE)
                 .setOutput(new ItemStack(Items.GOLD_INGOT, 3))
                 .multiplyDuration(0.5F)
@@ -158,7 +158,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.LAPIS_ORE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_LAPIS)
                 .setOutput(Items.LAPIS_BLOCK)
                 .multiplyDuration(0.5F)
@@ -166,7 +166,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.REDSTONE_ORE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_REDSTONE)
                 .setOutput(Items.REDSTONE_BLOCK)
                 .multiplyDuration(0.5F)
@@ -174,7 +174,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.DIAMOND_ORE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_DIAMOND)
                 .setOutput(new ItemStack(Items.DIAMOND, 5))
                 .multiplyDuration(0.5F)
@@ -182,7 +182,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.EMERALD_ORE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_EMERALD)
                 .setOutput(new ItemStack(Items.EMERALD, 5))
                 .multiplyDuration(0.5F)
@@ -190,7 +190,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(Items.GLASS)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.GLASS)
                 .setOutput(Items.ICE)
                 .multiplyDuration(0.5F)
@@ -198,7 +198,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(BlocksAS.INFUSED_WOOD)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(BlocksAS.INFUSED_WOOD)
                 .setOutput(BlocksAS.INFUSED_WOOD_INFUSED)
                 .multiplyDuration(0.5F)
@@ -206,7 +206,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_AXE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_AXE)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_AXE)
                 .setConsumeMultipleFluids(true)
@@ -216,7 +216,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_PICKAXE)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_PICKAXE)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_PICKAXE)
                 .setConsumeMultipleFluids(true)
@@ -226,7 +226,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_SHOVEL)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_SHOVEL)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_SHOVEL)
                 .setConsumeMultipleFluids(true)
@@ -236,7 +236,7 @@ public class InfuserRecipeProvider {
                 .build(registrar);
 
         LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_SWORD)
-                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_SWORD)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_SWORD)
                 .setConsumeMultipleFluids(true)

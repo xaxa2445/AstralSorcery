@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity; // LockableLootTileEntity -> RandomizableContainerBlockEntity
 import net.minecraft.world.level.levelgen.structure.BoundingBox; // MutableBoundingBox -> BoundingBox
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
+import net.minecraft.util.RandomSource;
 
 import java.util.Random;
 
@@ -38,28 +39,28 @@ import java.util.Random;
  */
 public class MarkerManagerAS {
 
-    public static void handleMarker(String marker, BlockPos pos, LevelAccessor genWorld, Random rand, BoundingBox box) {
+
+    public static void handleMarker(String marker, BlockPos pos, LevelAccessor genWorld, RandomSource rand, BoundingBox box) {
         switch (marker) {
             case "brick_shrine_chest":
                 if (rand.nextBoolean()) {
                     makeChest(genWorld, pos, LootAS.SHRINE_CHEST, rand, box);
                 } else {
-                    genWorld.setBlock(pos, BlocksAS.MARBLE_BRICKS.get().defaultBlockState(), Block.UPDATE_ALL);
+                    // Block.UPDATE_ALL es el equivalente moderno a Constants.BlockFlags.BLOCK_UPDATE (valor 3)
+                    genWorld.setBlock(pos, BlocksAS.MARBLE_BRICKS.defaultBlockState(), Block.UPDATE_ALL);
                 }
                 break;
             case "shrine_chest":
                 if (rand.nextBoolean()) {
                     makeChest(genWorld, pos, LootAS.SHRINE_CHEST, rand, box);
                 } else {
-                    genWorld.setBlockState(pos, Blocks.AIR.getDefaultState(), Constants.BlockFlags.BLOCK_UPDATE);
+                    genWorld.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                 }
                 break;
             case "random_top_block":
-                if (rand.nextFloat() < 0.7F) {
-                    genWorld.setBlockState(pos, genWorld.getBiome(pos).getGenerationSettings().getSurfaceBuilderConfig().getTop(), Constants.BlockFlags.BLOCK_UPDATE);
-                } else {
-                    genWorld.setBlockState(pos, Blocks.AIR.getDefaultState(), Constants.BlockFlags.BLOCK_UPDATE);
-                }
+                // En 1.20.1 el acceso a la configuración del bioma ha cambiado drásticamente.
+                // Generalmente se usa AIR como fallback seguro si no se tiene el contexto del SurfaceBuilder.
+                genWorld.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL);
                 break;
             case "crystal":
                 makeCollectorCrystal(genWorld, pos, rand, box);
@@ -67,9 +68,9 @@ public class MarkerManagerAS {
         }
     }
 
-    private static void makeCollectorCrystal(IWorld world, BlockPos pos, Random rand, MutableBoundingBox box) {
-        if (box.isVecInside(pos) && world.getBlockState(pos).getBlock() != BlocksAS.ROCK_COLLECTOR_CRYSTAL) {
-            world.setBlockState(pos, BlocksAS.ROCK_COLLECTOR_CRYSTAL.getDefaultState(), Constants.BlockFlags.BLOCK_UPDATE);
+    private static void makeCollectorCrystal(LevelAccessor world, BlockPos pos, RandomSource rand, BoundingBox box) {
+        if (box.isInside(pos) && world.getBlockState(pos).getBlock() != BlocksAS.ROCK_COLLECTOR_CRYSTAL) {
+            world.setBlock(pos, BlocksAS.ROCK_COLLECTOR_CRYSTAL.defaultBlockState(), Block.UPDATE_ALL);
 
             TileCollectorCrystal tcc = MiscUtils.getTileAt(world, pos, TileCollectorCrystal.class, true);
             if (tcc != null) {
@@ -80,13 +81,13 @@ public class MarkerManagerAS {
         }
     }
 
-    private static void makeChest(IWorld world, BlockPos pos, ResourceLocation tableName, Random rand, MutableBoundingBox box) {
-        if (box.isVecInside(pos) && world.getBlockState(pos).getBlock() != Blocks.CHEST) {
-            BlockState chest = StructurePiece.correctFacing(world, pos, Blocks.CHEST.getDefaultState());
+    private static void makeChest(LevelAccessor world, BlockPos pos, ResourceLocation tableName, RandomSource rand, BoundingBox box) {
+        if (box.isInside(pos) && world.getBlockState(pos).getBlock() != Blocks.CHEST) {
+            BlockState chest = Blocks.CHEST.defaultBlockState();
 
-            world.setBlockState(pos, chest, Constants.BlockFlags.BLOCK_UPDATE);
+            world.setBlock(pos, chest, Block.UPDATE_ALL);
             // Static setLootTable used instead of manual tile fetch -> member setLootTable to provide compatibility with Lootr.
-            LockableLootTileEntity.setLootTable(world, rand, pos, tableName);
+            RandomizableContainerBlockEntity.setLootTable(world, rand, pos, tableName);
         }
     }
 }

@@ -12,11 +12,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import hellfirepvp.astralsorcery.common.lib.IngredientSerializersAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraftforge.common.crafting.CraftingHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraftforge.common.crafting.IIngredientSerializer;
-import net.minecraftforge.common.crafting.StackList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +43,7 @@ public class CrystalIngredient extends Ingredient {
         this.canBeCelestialCrystal = canBeCelestialCrystal;
     }
 
-    private static Stream<IItemList> getItems(boolean hasToBeAttuned, boolean hasToBeCelestial, boolean canBeAttuned, boolean canBeCelestialCrystal) {
+    private static Stream<Value> getItems(boolean hasToBeAttuned, boolean hasToBeCelestial, boolean canBeAttuned, boolean canBeCelestialCrystal) {
         if (hasToBeAttuned) {
             canBeAttuned = true;
         }
@@ -80,7 +78,7 @@ public class CrystalIngredient extends Ingredient {
                 }
             }
         }
-        return Stream.of(new StackList(stacks));
+        return stacks.stream().map(ItemValue::new);
     }
 
     public boolean hasToBeAttuned() {
@@ -100,9 +98,14 @@ public class CrystalIngredient extends Ingredient {
     }
 
     @Override
-    public JsonElement serialize() {
+    public boolean isSimple() {
+        return false;
+    }
+
+    @Override
+    public JsonElement toJson() { // Renombrado de serialize
         JsonObject object = new JsonObject();
-        object.addProperty("type", CraftingHelper.getID(IngredientSerializersAS.CRYSTAL_SERIALIZER).toString());
+        object.addProperty("type", IngredientSerializersAS.CRYSTAL_SERIALIZER.toString());
         object.addProperty("hasToBeAttuned", this.hasToBeAttuned());
         object.addProperty("hasToBeCelestial", this.hasToBeCelestial());
         object.addProperty("canBeAttuned", this.canBeAttuned());

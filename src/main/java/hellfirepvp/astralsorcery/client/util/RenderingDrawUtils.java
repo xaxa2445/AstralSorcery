@@ -320,7 +320,7 @@ public class RenderingDrawUtils {
 
         // 2. Configuración del estado del RenderSystem
         RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+        Blending.DEFAULT.apply();
         // CRÍTICO: En 1.20.1 DEBES decirle qué shader usar, o no se verá nada.
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
 

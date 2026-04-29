@@ -56,7 +56,7 @@ public class ConstellationHandler {
         return lastRecordedDay;
     }
 
-    public void tick(World world) {
+    public void tick(Level world) {
         if (activeMap.isEmpty()) {
             initialize();
         }
@@ -70,7 +70,7 @@ public class ConstellationHandler {
         }
     }
 
-    private void updateActiveConstellations(World world) {
+    private void updateActiveConstellations(Level world) {
         this.visibleSpecialConstellations.clear();
         MoonPhase ph = MoonPhase.fromWorld(world);
 

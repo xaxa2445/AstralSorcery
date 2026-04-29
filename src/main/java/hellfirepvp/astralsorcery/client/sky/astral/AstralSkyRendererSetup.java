@@ -9,6 +9,7 @@
 package hellfirepvp.astralsorcery.client.sky.astral;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.util.Mth; // Reemplaza a Math
@@ -39,15 +40,17 @@ class AstralSkyRendererSetup {
         int scale = 64;
         int segments = 6;
         int width = segments * scale;
+
         buf.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
         for (int x = -width; x <= width; x += scale) {
             for (int z = -width; z <= width; z += scale) {
-                float x0 = (float)  x;
-                float x1 = (float) (x + scale);
+                float x0 = x;
+                float x1 = x + scale;
+
                 if (flip) {
-                    x1 = (float)  x;
-                    x0 = (float) (x + scale);
+                    x1 = x;
+                    x0 = x + scale;
                 }
 
                 buf.vertex(x0, offsetY, z).endVertex();
@@ -56,6 +59,8 @@ class AstralSkyRendererSetup {
                 buf.vertex(x0, offsetY, z + scale).endVertex();
             }
         }
+
+        BufferUploader.drawWithShader(buf.end()); // 🔥 CLAVE
     }
 
     static void generateStars(BufferBuilder starBuffer, int amount, float sizeMultiplier) {
@@ -115,5 +120,6 @@ class AstralSkyRendererSetup {
                 }
             }
         }
+        BufferUploader.drawWithShader(starBuffer.end()); // 🔥 CLAVE
     }
 }

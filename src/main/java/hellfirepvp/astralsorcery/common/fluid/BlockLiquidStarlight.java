@@ -8,6 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.fluid;
 
+import static net.minecraft.world.level.block.state.properties.BlockStateProperties.LEVEL;
 import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
@@ -17,26 +18,30 @@ import hellfirepvp.astralsorcery.common.data.config.entry.CraftingConfig;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.FlowingFluidBlock;
-import net.minecraft.block.material.Material;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.fluid.EmptyFluid;
-import net.minecraft.fluid.FlowingFluid;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.material.EmptyFluid;
+import net.minecraft.world.level.material.FlowingFluid;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.ForgeEventFactory;
+import net.minecraftforge.fluids.FluidType;
 
 import java.util.Random;
 import java.util.function.Supplier;
@@ -48,93 +53,106 @@ import java.util.function.Supplier;
  * Created by HellFirePvP
  * Date: 20.09.2019 / 21:21
  */
-public class BlockLiquidStarlight extends FlowingFluidBlock {
+public class BlockLiquidStarlight extends LiquidBlock {
 
     public BlockLiquidStarlight(Supplier<? extends FlowingFluid> fluidSupplier) {
-        super(fluidSupplier, Block.Properties.create(Material.WATER)
-                .doesNotBlockMovement()
-                .setLightLevel(state -> 15)
-                .hardnessAndResistance(100.0F)
-                .noDrops());
+        // En 1.20 ya no existe Material.WATER. Se definen las propiedades directamente.
+        super(fluidSupplier, BlockBehaviour.Properties.of()
+                .mapColor(net.minecraft.world.level.material.MapColor.WATER)
+                .noCollission()
+                .strength(100.0F)
+                .lightLevel(state -> 15)
+                .noLootTable());
     }
 
     @Override
-    public void onEntityCollision(BlockState state, World world, BlockPos pos, Entity entity) {
-        super.onEntityCollision(state, world, pos, entity);
+    public void entityInside(BlockState state, Level world, BlockPos pos, Entity entity) {
+        super.entityInside(state, world, pos, entity);
 
-        if (state.get(LEVEL) != 0) {
+        if (state.getValue(LEVEL) != 0) {
             return;
         }
 
         if (entity instanceof LivingEntity) {
-            ((LivingEntity) entity).addPotionEffect(new EffectInstance(Effects.NIGHT_VISION, 300, 0, true, true));
+            ((LivingEntity) entity).addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 300, 0, true, true));
         } else if (entity instanceof ItemEntity) {
             LiquidStarlightCraftingRegistry.tryCraft((ItemEntity) entity, pos);
 
-            if (!world.isRemote() &&((ItemEntity) entity).getItem().isEmpty()) {
-                entity.remove();
+            if (!world.isClientSide() &&((ItemEntity) entity).getItem().isEmpty()) {
+                entity.discard();
             }
         }
     }
 
-    public void onBlockAdded(BlockState state, World worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {
+    public void onPlace(BlockState state, Level worldIn, BlockPos pos, BlockState oldState, boolean isMoving) {
         if (this.reactWithNeighbors(worldIn, pos, state)) {
-            worldIn.getPendingFluidTicks().scheduleTick(pos, state.getFluidState().getFluid(), this.getFluid().getTickRate(worldIn));
+            worldIn.scheduleTick(
+                    pos,
+                    state.getFluidState().getType(),
+                    ((FlowingFluid) state.getFluidState().getType()).getTickDelay(worldIn)
+            );
         }
     }
 
-    public void neighborChanged(BlockState state, World worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {
+    public void neighborChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {
         if (this.reactWithNeighbors(worldIn, pos, state)) {
-            worldIn.getPendingFluidTicks().scheduleTick(pos, state.getFluidState().getFluid(), this.getFluid().getTickRate(worldIn));
+            worldIn.scheduleTick(
+                    pos,
+                    state.getFluidState().getType(),
+                    ((FlowingFluid) state.getFluidState().getType()).getTickDelay(worldIn)
+            );
         }
     }
 
-    private boolean reactWithNeighbors(World world, BlockPos pos, BlockState state) {
+    private boolean reactWithNeighbors(Level world, BlockPos pos, BlockState state) {
         for (Direction dir : Direction.values()) {
-            FluidState otherState = world.getFluidState(pos.offset(dir));
-            Fluid otherFluid = otherState.getFluid();
+            BlockPos offsetPos = pos.relative(dir);
+            FluidState otherState = world.getFluidState(offsetPos);
+            Fluid otherFluid = otherState.getType();
             if (otherFluid instanceof FlowingFluid) {
-                otherFluid = ((FlowingFluid) otherFluid).getStillFluid();
+                otherFluid = ((FlowingFluid) otherFluid).getSource();
             }
-            if (otherFluid instanceof EmptyFluid || otherFluid.equals(this.getFluid())) {
+            if (otherState.isEmpty() || otherFluid.equals(this.getFluid())) {
                 continue;
             }
 
             BlockState generate;
-            boolean isHot = otherFluid.getAttributes().getTemperature(world, pos.offset(dir)) > 600;
+            FluidType type = otherFluid.getFluidType();
+            boolean isHot = type.getTemperature() > 600;
             if (isHot) {
                 if (CraftingConfig.CONFIG.liquidStarlightInteractionSand.get()) {
-                    generate = Blocks.SAND.getDefaultState();
-                    if (CraftingConfig.CONFIG.liquidStarlightInteractionAquamarine.get() && world.rand.nextInt(800) == 0) {
-                        generate = BlocksAS.AQUAMARINE_SAND_ORE.getDefaultState();
+                    generate = Blocks.SAND.defaultBlockState();
+                    if (CraftingConfig.CONFIG.liquidStarlightInteractionAquamarine.get() && world.random.nextInt(800) == 0) {
+                        generate = BlocksAS.AQUAMARINE_SAND_ORE.defaultBlockState();
                     }
                 } else {
-                    generate = Blocks.COBBLESTONE.getDefaultState();
+                    generate = Blocks.COBBLESTONE.defaultBlockState();
                 }
             } else {
                 if (CraftingConfig.CONFIG.liquidStarlightInteractionIce.get()) {
-                    generate = Blocks.PACKED_ICE.getDefaultState();
+                    generate = Blocks.PACKED_ICE.defaultBlockState();
                 } else {
-                    generate = Blocks.COBBLESTONE.getDefaultState();
+                    generate = Blocks.COBBLESTONE.defaultBlockState();
                 }
             }
-
-            world.setBlockState(pos, ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos, pos, generate));
+            BlockState finalState = ForgeEventFactory.fireFluidPlaceBlockEvent(world, pos, pos, generate);
+            world.setBlockAndUpdate(pos, finalState);
+            return false; // Detenemos la propagación si ya reaccionó
         }
         return true;
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, World world, BlockPos pos, Random rand) {
-        Integer level = state.get(LEVEL);
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource rand) {
+        int level = state.getValue(LEVEL);
         double percHeight = 1D - (((double) level + 1) / 8D);
         playLiquidStarlightBlockEffect(rand, new Vector3(pos).addY(percHeight * rand.nextFloat()), 1F);
         playLiquidStarlightBlockEffect(rand, new Vector3(pos).addY(percHeight * rand.nextFloat()), 1F);
     }
 
     @OnlyIn(Dist.CLIENT)
-    public static void playLiquidStarlightBlockEffect(Random rand, Vector3 at, float blockSize) {
+    public static void playLiquidStarlightBlockEffect(RandomSource rand, Vector3 at, float blockSize) {
         if (rand.nextInt(3) == 0) {
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(at.clone().add(

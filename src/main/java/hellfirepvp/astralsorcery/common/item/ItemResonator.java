@@ -30,39 +30,40 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.astralsorcery.common.util.world.SkyCollectionHelper;
 import hellfirepvp.astralsorcery.common.util.world.WorldSeedCache;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.IntNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Hand;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.IChunk;
-import net.minecraft.world.gen.Heightmap;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.common.util.TriPredicate;
+import net.minecraftforge.common.util.LogicalSidedProvider;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.common.thread.EffectiveSide;
+import net.minecraftforge.fml.util.thread.EffectiveSide;
+import net.minecraftforge.common.util.TriPredicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -78,61 +79,46 @@ import java.util.List;
 public class ItemResonator extends Item implements OverrideInteractItem {
 
     public ItemResonator() {
-        super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
-    }
-
-    @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {
-        if (this.isInGroup(group)) {
-            ItemStack resonator = new ItemStack(this);
-            setUpgradeUnlocked(resonator, ResonatorUpgrade.STARLIGHT);
-            items.add(resonator);
-
-            ItemStack upgradedResonator = new ItemStack(this);
-            setUpgradeUnlocked(upgradedResonator, ResonatorUpgrade.values());
-            items.add(upgradedResonator);
-        }
+        super(new Properties().stacksTo(1));
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World world, List<ITextComponent> tooltip, ITooltipFlag extended) {
+    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag extended) {
         ResonatorUpgrade current = getCurrentUpgrade(Minecraft.getInstance().player, stack);
         for (ResonatorUpgrade upgrade : getUpgrades(stack)) {
-            TextFormatting color = upgrade.equals(current) ? TextFormatting.GOLD : TextFormatting.BLUE;
-            tooltip.add(new TranslationTextComponent(upgrade.getUnlocalizedTypeName()).mergeStyle(color));
+            ChatFormatting color = upgrade.equals(current) ? ChatFormatting.GOLD : ChatFormatting.BLUE;
+            tooltip.add(Component.translatable(upgrade.getUnlocalizedTypeName()).withStyle(color));
         }
     }
 
     @Override
-    public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
+    public void inventoryTick(ItemStack stack, Level world, Entity entity, int slot, boolean selected) {
         if (!selected) {
-            selected = entity instanceof LivingEntity && ((LivingEntity) entity).getHeldItemOffhand() == stack;
+            selected = entity instanceof LivingEntity && ((LivingEntity) entity).getOffhandItem() == stack;
         }
 
-        if (!world.isRemote()) {
-            if (selected && entity instanceof ServerPlayerEntity) {
-                ServerPlayerEntity player = (ServerPlayerEntity) entity;
+        if (!world.isClientSide) {
+            if (selected && entity instanceof ServerPlayer) {
+                ServerPlayer player = (ServerPlayer) entity;
                 if (getCurrentUpgrade(player, stack) == ResonatorUpgrade.FLUID_FIELDS) {
                     float distribution = DayTimeHelper.getCurrentDaytimeDistribution(world);
                     if (distribution <= 1E-4) {
                         return;
                     }
-                    if (random.nextFloat() < distribution && random.nextInt(12) == 0) {
-                        int offsetX = random.nextInt(30) * (random.nextBoolean() ? 1 : -1);
-                        int offsetZ = random.nextInt(30) * (random.nextBoolean() ? 1 : -1);
+                    if (world.random.nextFloat() < distribution && world.random.nextInt(12) == 0) {
+                        int offsetX = world.random.nextInt(30) * (world.random.nextBoolean() ? 1 : -1);
+                        int offsetZ = world.random.nextInt(30) * (world.random.nextBoolean() ? 1 : -1);
 
-                        BlockPos pos = world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES,
-                                new BlockPos(entity.getPosition()).add(offsetX, 0, offsetZ));
-                        if (pos.distanceSq(entity.getPosition()) > 5625) { // 75 blocks away
+                        BlockPos pos = world.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                entity.blockPosition().offset(offsetX, 0, offsetZ));
+                        if (pos.distSqr(entity.blockPosition()) > 5625) { // 75 blocks away
                             return;
                         }
 
-                        IChunk ch = world.getChunk(pos);
-                        if (ch instanceof Chunk) {
-                            ((Chunk) ch).getCapability(CapabilitiesAS.CHUNK_FLUID).ifPresent(entry -> {
+                        ChunkAccess ch = world.getChunk(pos);
+                        if (ch instanceof LevelChunk levelChunk) {
+                            levelChunk.getCapability(CapabilitiesAS.CHUNK_FLUID).ifPresent(entry -> {
                                 FluidStack display = entry.drain(1, IFluidHandler.FluidAction.SIMULATE);
                                 if (!display.isEmpty()) {
                                     PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.LIQUID_FOUNTAIN).addData(buf -> {
@@ -152,46 +138,44 @@ public class ItemResonator extends Item implements OverrideInteractItem {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void clientInventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
-        if (!(entity instanceof PlayerEntity)) {
+    private void clientInventoryTick(ItemStack stack, Level world, Entity entity, int slot, boolean selected) {
+        if (!(entity instanceof Player player)) {
             return;
         }
-        PlayerEntity player = (PlayerEntity) entity;
-
         if (selected &&
                 getCurrentUpgrade(player, stack) == ResonatorUpgrade.STARLIGHT &&
-                WorldSeedCache.getSeedIfPresent(world.getDimensionKey()).isPresent()) {
+                WorldSeedCache.getSeedIfPresent(world.dimension()).isPresent()) {
 
             float distribution = DayTimeHelper.getCurrentDaytimeDistribution(world);
             if (distribution <= 1E-4) {
                 return;
             }
-            BlockPos center = player.getPosition();
+            BlockPos center = player.blockPosition();
             int offsetX = center.getX();
             int offsetZ = center.getZ();
-            BlockPos.Mutable mPos = new BlockPos.Mutable();
+            BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos();
             int minY = RenderingConfig.CONFIG.minYFosicDisplay.get();
 
             for (int xx = -48; xx <= 48; xx++) {
                 for (int zz = -48; zz <= 48; zz++) {
-                    mPos.setPos(world.getHeight(Heightmap.Type.WORLD_SURFACE, mPos.setPos(offsetX + xx, 0, offsetZ + zz)));
+                    mPos.set(center.getX() + xx, 0, center.getZ() + zz);
                     mPos.setY(Math.max(mPos.getY(), minY));
 
-                    float perc = SkyCollectionHelper.getSkyNoiseDistributionClient(world.getDimensionKey(), mPos).get();
+                    float perc = SkyCollectionHelper.getSkyNoiseDistributionClient(world.dimension(), mPos).get();
 
                     float fPerc = (float) Math.pow((perc - 0.4F) * 1.65F, 2);
-                    if (perc >= 0.4F && random.nextFloat() <= fPerc) {
-                        if (random.nextFloat() <= fPerc && random.nextInt(6) == 0) {
+                    if (perc >= 0.4F && world.random.nextFloat() <= fPerc) {
+                        if (world.random.nextFloat() <= fPerc && world.random.nextInt(6) == 0) {
 
                             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                                    .spawn(new Vector3(mPos).add(random.nextFloat(), 0.15, random.nextFloat()))
+                                    .spawn(new Vector3(mPos).add(world.random.nextFloat(), 0.15, world.random.nextFloat()))
                                     .color(VFXColorFunction.constant(ColorsAS.RESONATOR_STARFIELD))
                                     .setScaleMultiplier(4F)
                                     .setAlphaMultiplier(distribution * fPerc);
-                            if (perc >= 0.8F && random.nextInt(3) == 0) {
+                            if (perc >= 0.8F && world.random.nextInt(3) == 0) {
 
                                 EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                                        .spawn(new Vector3(mPos).add(random.nextFloat(), 0.15, random.nextFloat()))
+                                        .spawn(new Vector3(mPos).add(world.random.nextFloat(), 0.15, world.random.nextFloat()))
                                         .setScaleMultiplier(0.3F)
                                         .color(VFXColorFunction.WHITE)
                                         .setGravityStrength(-0.001F)
@@ -205,16 +189,16 @@ public class ItemResonator extends Item implements OverrideInteractItem {
     }
 
     @Override
-    public boolean shouldInterceptBlockInteract(LogicalSide side, PlayerEntity player, Hand hand, BlockPos pos, Direction face) {
-        ResonatorUpgrade upgrade = getCurrentUpgrade(player, player.getHeldItem(hand));
-        return upgrade == ResonatorUpgrade.AREA_SIZE && MiscUtils.getTileAt(player.getEntityWorld(), pos, TileAreaOfInfluence.class, false) != null;
+    public boolean shouldInterceptBlockInteract(LogicalSide side, Player player, InteractionHand hand, BlockPos pos, Direction face) {
+        ResonatorUpgrade upgrade = getCurrentUpgrade(player, player.getItemInHand(hand));
+        return upgrade == ResonatorUpgrade.AREA_SIZE && MiscUtils.getTileAt(player.level(), pos, TileAreaOfInfluence.class, false) != null;
     }
 
     @Override
-    public boolean doBlockInteract(LogicalSide side, PlayerEntity player, Hand hand, BlockPos pos, Direction face) {
-        ResonatorUpgrade upgrade = getCurrentUpgrade(player, player.getHeldItem(hand));
-        if (upgrade == ResonatorUpgrade.AREA_SIZE && player.getEntityWorld().isRemote()) {
-            TileAreaOfInfluence aoeTile = MiscUtils.getTileAt(player.getEntityWorld(), pos, TileAreaOfInfluence.class, false);
+    public boolean doBlockInteract(LogicalSide side, Player player, InteractionHand hand, BlockPos pos, Direction face) {
+        ResonatorUpgrade upgrade = getCurrentUpgrade(player, player.getItemInHand(hand));
+        if (upgrade == ResonatorUpgrade.AREA_SIZE && player.level().isClientSide()) {
+            TileAreaOfInfluence aoeTile = MiscUtils.getTileAt(player.level(), pos, TileAreaOfInfluence.class, false);
             if (aoeTile != null) {
                 playAreaOfInfluenceEffect(aoeTile);
             }
@@ -228,23 +212,23 @@ public class ItemResonator extends Item implements OverrideInteractItem {
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, PlayerEntity player, Hand hand) {
-        if (!world.isRemote() && player.isSneaking()) {
-            if (cycleUpgrade(player, player.getHeldItem(hand))) {
-                return ActionResult.resultSuccess(player.getHeldItem(hand));
+    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+        if (!world.isClientSide() && player.isShiftKeyDown()) {
+            if (cycleUpgrade(player, player.getItemInHand(hand))) {
+                return InteractionResultHolder.success(player.getItemInHand(hand));
             }
         }
-        return ActionResult.resultPass(player.getHeldItem(hand));
+        return InteractionResultHolder.pass(player.getItemInHand(hand));
     }
 
-    public static boolean cycleUpgrade(@Nonnull PlayerEntity player, ItemStack stack) {
+    public static boolean cycleUpgrade(@Nonnull Player player, ItemStack stack) {
         ResonatorUpgrade current = getCurrentUpgrade(player, stack);
         ResonatorUpgrade next = getNextSelectableUpgrade(player, stack);
         return next != null && !next.equals(current) && setCurrentUpgrade(player, stack, next);
     }
 
     @Nullable
-    public static ResonatorUpgrade getNextSelectableUpgrade(@Nonnull PlayerEntity viewing, ItemStack stack) {
+    public static ResonatorUpgrade getNextSelectableUpgrade(@Nonnull Player viewing, ItemStack stack) {
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemResonator)) {
             return null;
         }
@@ -262,7 +246,7 @@ public class ItemResonator extends Item implements OverrideInteractItem {
         return null;
     }
 
-    public static boolean setCurrentUpgrade(PlayerEntity setting, ItemStack stack, ResonatorUpgrade upgrade) {
+    public static boolean setCurrentUpgrade(Player setting, ItemStack stack, ResonatorUpgrade upgrade) {
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemResonator)) {
             return false;
         }
@@ -282,13 +266,13 @@ public class ItemResonator extends Item implements OverrideInteractItem {
     }
 
     @Nonnull
-    public static ResonatorUpgrade getCurrentUpgrade(@Nullable PlayerEntity viewing, ItemStack stack) {
+    public static ResonatorUpgrade getCurrentUpgrade(@Nullable Player viewing, ItemStack stack) {
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemResonator)) {
             return ResonatorUpgrade.STARLIGHT; //Fallback
         }
-        CompoundNBT cmp = NBTHelper.getPersistentData(stack);
+        CompoundTag cmp = NBTHelper.getPersistentData(stack);
         int current = cmp.getInt("selected_upgrade");
-        ResonatorUpgrade upgrade = ResonatorUpgrade.values()[MathHelper.clamp(current, 0, ResonatorUpgrade.values().length - 1)];
+        ResonatorUpgrade upgrade = ResonatorUpgrade.values()[Mth.clamp(current, 0, ResonatorUpgrade.values().length - 1)];
         if (viewing != null) {
             if (!upgrade.canSwitchTo(viewing, stack)) {
                 return ResonatorUpgrade.STARLIGHT;
@@ -328,7 +312,7 @@ public class ItemResonator extends Item implements OverrideInteractItem {
     }
 
     @Override
-    public String getTranslationKey(ItemStack stack) {
+    public String getDescriptionId(ItemStack stack) {
         return getCurrentUpgrade(null, stack).getUnlocalizedItemName();
     }
 
@@ -341,10 +325,10 @@ public class ItemResonator extends Item implements OverrideInteractItem {
         AREA_SIZE("structure",
                 (player, side, stack) -> ResearchHelper.getProgress(player, side).getTierReached().isThisLaterOrEqual(ProgressionTier.ATTUNEMENT));
 
-        private final TriPredicate<PlayerEntity, LogicalSide, ItemStack> check;
+        private final TriPredicate<Player, LogicalSide, ItemStack> check;
         private final String appendixUpgrade;
 
-        private ResonatorUpgrade(String appendixUpgrade, TriPredicate<PlayerEntity, LogicalSide, ItemStack> check) {
+        private ResonatorUpgrade(String appendixUpgrade, TriPredicate<Player, LogicalSide, ItemStack> check) {
             this.check = check;
             this.appendixUpgrade = appendixUpgrade;
         }
@@ -363,9 +347,9 @@ public class ItemResonator extends Item implements OverrideInteractItem {
 
         public boolean hasUpgrade(ItemStack stack) {
             int id = ordinal();
-            CompoundNBT cmp = NBTHelper.getPersistentData(stack);
-            if (cmp.contains("upgrades", Constants.NBT.TAG_LIST)) {
-                ListNBT list = cmp.getList("upgrades", Constants.NBT.TAG_INT);
+            CompoundTag cmp = NBTHelper.getPersistentData(stack);
+            if (cmp.contains("upgrades", Tag.TAG_LIST)) {
+                ListTag list = cmp.getList("upgrades", Tag.TAG_INT);
                 for (int i = 0; i < list.size(); i++) {
                     if (list.getInt(i) == id) {
                         return true;
@@ -375,19 +359,19 @@ public class ItemResonator extends Item implements OverrideInteractItem {
             return false;
         }
 
-        public boolean canSwitchTo(@Nonnull PlayerEntity player, ItemStack stack) {
+        public boolean canSwitchTo(@Nonnull Player player, ItemStack stack) {
             return hasUpgrade(stack) && check.test(player, EffectiveSide.get(), stack);
         }
 
         public void applyUpgrade(ItemStack stack) {
             if (hasUpgrade(stack)) return;
 
-            CompoundNBT cmp = NBTHelper.getPersistentData(stack);
-            if (!cmp.contains("upgrades", Constants.NBT.TAG_LIST)) {
-                cmp.put("upgrades", new ListNBT());
+            CompoundTag cmp = NBTHelper.getPersistentData(stack);
+            if (!cmp.contains("upgrades", Tag.TAG_LIST)) {
+                cmp.put("upgrades", new ListTag());
             }
-            ListNBT list = cmp.getList("upgrades", Constants.NBT.TAG_INT);
-            list.add(IntNBT.valueOf(ordinal()));
+            ListTag list = cmp.getList("upgrades", Tag.TAG_INT);
+            list.add(IntTag.valueOf(ordinal()));
         }
     }
 }

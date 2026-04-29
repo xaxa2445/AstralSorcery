@@ -9,21 +9,23 @@
 package hellfirepvp.astralsorcery.common.world;
 
 import hellfirepvp.astralsorcery.common.world.marker.MarkerManagerAS;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MutableBoundingBox;
-import net.minecraft.world.ISeedReader;
-import net.minecraft.world.IServerWorld;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.feature.structure.IStructurePieceType;
-import net.minecraft.world.gen.feature.structure.StructureManager;
-import net.minecraft.world.gen.feature.structure.TemplateStructurePiece;
-import net.minecraft.world.gen.feature.template.BlockIgnoreStructureProcessor;
-import net.minecraft.world.gen.feature.template.PlacementSettings;
-import net.minecraft.world.gen.feature.template.Template;
-import net.minecraft.world.gen.feature.template.TemplateManager;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.TemplateStructurePiece;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+import net.minecraft.world.level.levelgen.structure.templatesystem.BlockIgnoreProcessor;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 import java.util.Random;
 
@@ -38,23 +40,38 @@ public abstract class TemplateStructure extends TemplateStructurePiece {
 
     private int yOffset = 0;
 
-    public TemplateStructure(IStructurePieceType structurePieceTypeIn, TemplateManager mgr, BlockPos templatePosition) {
-        super(structurePieceTypeIn, 0);
+    public TemplateStructure(StructurePieceType structurePieceTypeIn, StructureTemplateManager mgr, BlockPos templatePosition) {
+        super(structurePieceTypeIn, 0, mgr, null, "", new StructurePlaceSettings(), templatePosition); // Inicialización base
         this.templatePosition = templatePosition;
         this.loadTemplate(mgr);
     }
 
-    public TemplateStructure(IStructurePieceType structurePieceTypeIn, TemplateManager mgr, CompoundNBT nbt) {
-        super(structurePieceTypeIn, nbt);
+    public TemplateStructure(StructurePieceType structurePieceTypeIn, StructureTemplateManager mgr, CompoundTag nbt) {
+        super(structurePieceTypeIn, nbt, mgr, (res) -> {
+            return new StructurePlaceSettings()
+                    .setIgnoreEntities(true)
+                    .addProcessor(BlockIgnoreProcessor.STRUCTURE_BLOCK);
+        });
         this.loadTemplate(mgr);
+        if (nbt.contains("yOffset")) {
+            this.yOffset = nbt.getInt("yOffset");
+        }
     }
 
-    private void loadTemplate(TemplateManager mgr) {
-        Template tpl = mgr.getTemplateDefaulted(this.getStructureName());
-        PlacementSettings settings = new PlacementSettings()
+    @Override
+    protected void addAdditionalSaveData(StructurePieceSerializationContext world, CompoundTag nbt) {
+        super.addAdditionalSaveData(world, nbt);
+        nbt.putInt("yOffset", this.yOffset);
+    }
+
+    private void loadTemplate(StructureTemplateManager mgr) {
+        StructureTemplate tpl = mgr.getOrCreate(this.getStructureName());
+        StructurePlaceSettings settings = new StructurePlaceSettings()
                 .setIgnoreEntities(true)
-                .addProcessor(BlockIgnoreStructureProcessor.STRUCTURE_BLOCK);
-        this.setup(tpl, this.templatePosition, settings);
+                .addProcessor(BlockIgnoreProcessor.STRUCTURE_BLOCK);
+        this.template = tpl;
+        this.placeSettings = settings;
+        this.boundingBox = tpl.getBoundingBox(settings, this.templatePosition);
     }
 
     public <T extends TemplateStructure> T setYOffset(int yOffset) {
@@ -65,24 +82,24 @@ public abstract class TemplateStructure extends TemplateStructurePiece {
     public abstract ResourceLocation getStructureName();
 
     @Override
-    public boolean func_230383_a_(ISeedReader world, StructureManager mgr, ChunkGenerator gen, Random rand, MutableBoundingBox box, ChunkPos chunkPos, BlockPos structCenter) {
-        MutableBoundingBox genBox = new MutableBoundingBox(box);
-        genBox.offset(0, this.yOffset, 0);
+    public void postProcess(WorldGenLevel world, StructureManager mgr, ChunkGenerator gen, RandomSource rand, BoundingBox box, ChunkPos chunkPos, BlockPos structCenter) {
+        BoundingBox genBox = new BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ());
+        genBox.move(0, this.yOffset, 0);
 
         BlockPos original = this.templatePosition;
-        this.templatePosition = original.up(this.yOffset);
+        this.templatePosition = original.above(this.yOffset);
         try {
-            return super.func_230383_a_(world, mgr, gen, rand, genBox, chunkPos, structCenter.up(yOffset));
+            super.postProcess(world, mgr, gen, rand, genBox, chunkPos, structCenter.above(this.yOffset));
         } finally {
             this.templatePosition = original;
             this.placeSettings.setBoundingBox(box);
-            this.boundingBox = this.template.getMutableBoundingBox(this.placeSettings, this.templatePosition);
+            this.boundingBox = this.template.getBoundingBox(this.placeSettings, this.templatePosition);
         }
     }
 
     @Override
-    protected void handleDataMarker(String function, BlockPos pos, IServerWorld worldIn, Random rand, MutableBoundingBox sbb) {
-        if (sbb.isVecInside(pos)) {
+    protected void handleDataMarker(String function, BlockPos pos, ServerLevelAccessor worldIn, RandomSource rand, BoundingBox sbb) {
+        if (sbb.isInside(pos)) {
             MarkerManagerAS.handleMarker(function, pos, worldIn, rand, boundingBox);
         }
     }

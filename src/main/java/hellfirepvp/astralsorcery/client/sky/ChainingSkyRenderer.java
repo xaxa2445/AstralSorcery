@@ -8,19 +8,19 @@
 
 package hellfirepvp.astralsorcery.client.sky;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import hellfirepvp.astralsorcery.client.data.config.entry.RenderingConfig;
 import hellfirepvp.astralsorcery.client.sky.astral.AstralSkyRenderer;
 import hellfirepvp.astralsorcery.client.util.Blending;
 import hellfirepvp.astralsorcery.common.event.EventFlags;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.world.DimensionRenderInfo;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.DimensionSpecialEffects;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.world.level.Level;
-import net.minecraftforge.client.ISkyRenderHandler;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -29,62 +29,46 @@ import net.minecraftforge.client.ISkyRenderHandler;
  * Created by HellFirePvP
  * Date: 13.01.2020 / 19:48
  */
-public class ChainingSkyRenderer implements ISkyRenderHandler {
+public class ChainingSkyRenderer {
 
-    private final ISkyRenderHandler existingSkyRenderer;
+    private final DimensionSpecialEffects effects;
 
-    public ChainingSkyRenderer(ISkyRenderHandler existingSkyRenderer) {
-        this.existingSkyRenderer = existingSkyRenderer;
+    public ChainingSkyRenderer(DimensionSpecialEffects effects) {
+        this.effects = effects;
     }
 
-    @Override
-    public void render(int ticks, float partialTicks, MatrixStack renderStack, ClientWorld world, Minecraft mc) {
-        EventFlags.SKY_RENDERING.executeWithFlag(() -> {
-            RegistryKey<World> dim = world.getDimensionKey();
-            if (world.func_239132_a_().func_241683_c_() == DimensionRenderInfo.FogType.NORMAL) {
-                if (RenderingConfig.CONFIG.dimensionsWithOnlyConstellationRendering.get().contains(dim.getLocation())) {
-                    if (existingSkyRenderer != null) {
-                        existingSkyRenderer.render(ticks, partialTicks, renderStack, world, mc);
-                    } else {
-                        ISkyRenderHandler existing = world.func_239132_a_().getSkyRenderHandler();
-                        world.func_239132_a_().setSkyRenderHandler(null);
-                        Minecraft.getInstance().worldRenderer.renderSky(renderStack, partialTicks);
-                        world.func_239132_a_().setSkyRenderHandler(existing);
-                    }
+    public void render(LevelRenderer renderer, PoseStack poseStack, float partialTicks, ClientLevel level, Minecraft mc) {
 
-                    this.renderConstellations(world, renderStack, partialTicks);
-                } else {
-                    AstralSkyRenderer.INSTANCE.render(ticks, partialTicks, renderStack, world, mc);
-                }
-            } else {
-                ISkyRenderHandler existing = world.func_239132_a_().getSkyRenderHandler();
-                world.func_239132_a_().setSkyRenderHandler(null);
-                //Actually ends up calling renderEndSky
-                Minecraft.getInstance().worldRenderer.renderSky(renderStack, partialTicks);
-                world.func_239132_a_().setSkyRenderHandler(existing);
-            }
+        EventFlags.SKY_RENDERING.executeWithFlag(() -> {
+
+            // ❌ NO llamar renderSky
+
+            // ✔ Solo render Astral encima
+            renderConstellations(level, poseStack, partialTicks);
         });
     }
 
-    private void renderConstellations(ClientWorld world, MatrixStack renderStack, float pTicks) {
-        RenderSystem.disableAlphaTest();
+    private void renderConstellations(ClientLevel level, PoseStack poseStack, float partialTicks) {
         RenderSystem.enableBlend();
         Blending.ADDITIVE_ALPHA.apply();
-        RenderSystem.enableTexture();
         RenderSystem.depthMask(false);
-        float alphaSubRain = 1.0F - world.getRainStrength(pTicks);
-        RenderSystem.color4f(1.0F, 1.0F, 1.0F, alphaSubRain);
+        RenderSystem.disableDepthTest();
 
-        renderStack.push();
-        renderStack.rotate(Vector3f.XP.rotationDegrees(180));
-        AstralSkyRenderer.renderConstellationsSky(world, renderStack, pTicks);
-        renderStack.pop();
+        RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
 
-        RenderSystem.color4f(1F, 1F, 1F, 1F);
+        float alpha = 1.0F - level.getRainLevel(partialTicks);
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.XP.rotationDegrees(180));
+
+        AstralSkyRenderer.renderConstellationsSky(level, poseStack, partialTicks);
+
+        poseStack.popPose();
+
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.depthMask(true);
-        RenderSystem.disableTexture();
-        Blending.DEFAULT.apply();
+        RenderSystem.enableDepthTest();
+        Blending.DEFAULT.apply(); // Volver al blending normal
         RenderSystem.disableBlend();
-        RenderSystem.enableAlphaTest();
     }
 }

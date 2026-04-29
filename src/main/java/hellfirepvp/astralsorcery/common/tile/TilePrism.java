@@ -13,12 +13,12 @@ import hellfirepvp.astralsorcery.common.item.lens.LensColorType;
 import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.tile.network.StarlightTransmissionPrism;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,8 +32,8 @@ import javax.annotation.Nullable;
  */
 public class TilePrism extends TileLens {
 
-    public TilePrism() {
-        super(TileEntityTypesAS.PRISM);
+    public TilePrism(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.PRISM, pos, state);
     }
 
     @Override
@@ -44,23 +44,30 @@ public class TilePrism extends TileLens {
     @Override
     public LensColorType setColorType(@Nullable LensColorType colorType) {
         LensColorType returned = super.setColorType(colorType);
-        BlockState thisState = getWorld().getBlockState(getPos());
+        if (this.getLevel() == null) return returned;
 
-        if (thisState.get(BlockPrism.HAS_COLORED_LENS) && colorType == null && returned != null) {
-            getWorld().setBlockState(getPos(), thisState.with(BlockPrism.HAS_COLORED_LENS, false), Constants.BlockFlags.DEFAULT_AND_RERENDER);
-        } else if (!thisState.get(BlockPrism.HAS_COLORED_LENS) && colorType != null && returned == null) {
-            getWorld().setBlockState(getPos(), thisState.with(BlockPrism.HAS_COLORED_LENS, true), Constants.BlockFlags.DEFAULT_AND_RERENDER);
+        BlockState thisState = this.getBlockState();
+
+        if (thisState.hasProperty(BlockPrism.HAS_COLORED_LENS)) {
+            boolean hasLens = thisState.getValue(BlockPrism.HAS_COLORED_LENS);
+
+            // Lógica de actualización de estado visual del bloque
+            if (hasLens && colorType == null && returned != null) {
+                this.getLevel().setBlock(this.getBlockPos(), thisState.setValue(BlockPrism.HAS_COLORED_LENS, false), Block.UPDATE_ALL);
+            } else if (!hasLens && colorType != null && returned == null) {
+                this.getLevel().setBlock(this.getBlockPos(), thisState.setValue(BlockPrism.HAS_COLORED_LENS, true), Block.UPDATE_ALL);
+            }
         }
         return returned;
     }
 
     @Override
     public Direction getPlacedAgainst() {
-        BlockState state = world.getBlockState(getPos());
+        BlockState state = level.getBlockState(getBlockPos());
         if (!(state.getBlock() instanceof BlockPrism)) {
             return Direction.DOWN;
         }
-        return state.get(BlockPrism.PLACED_AGAINST);
+        return state.getValue(BlockPrism.PLACED_AGAINST);
     }
 
     @Override
@@ -68,7 +75,7 @@ public class TilePrism extends TileLens {
     protected void onDataReceived() {
         super.onDataReceived();
 
-        getWorld().notifyBlockUpdate(getPos(), getBlockState(), getBlockState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
+        getLevel().sendBlockUpdated(getBlockPos(), getBlockState(), getBlockState(), Block.UPDATE_ALL);
     }
 
     @Nonnull

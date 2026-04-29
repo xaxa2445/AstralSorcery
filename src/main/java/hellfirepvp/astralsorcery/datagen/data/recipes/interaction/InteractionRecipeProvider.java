@@ -61,14 +61,14 @@ public class InteractionRecipeProvider {
 
         // LS/Water
         LiquidInteractionBuilder.builder(AstralSorcery.key("liquidstarlight_water_ice"))
-                .setReactant1(new FluidStack(FluidsAS.LIQUID_STARLIGHT_SOURCE, 10))
+                .setReactant1(new FluidStack(FluidsAS.LIQUID_STARLIGHT_SOURCE.get(), 10))
                 .setReactant2(new FluidStack(Fluids.WATER, 10))
                 .setResult(ResultDropItem.dropItem(new ItemStack(Items.ICE)))
                 .build(registrar);
 
         // LS/Lava
         LiquidInteractionBuilder.builder(AstralSorcery.key("liquidstarlight_lava_sand"))
-                .setReactant1(new FluidStack(FluidsAS.LIQUID_STARLIGHT_SOURCE, 10))
+                .setReactant1(new FluidStack(FluidsAS.LIQUID_STARLIGHT_SOURCE.get(), 10))
                 .setChanceConsumeReactant1(0.15F)
                 .setReactant2(new FluidStack(Fluids.LAVA, 10))
                 .setChanceConsumeReactant2(0.15F)
@@ -76,7 +76,7 @@ public class InteractionRecipeProvider {
                 .setResult(ResultDropItem.dropItem(new ItemStack(Items.SAND)))
                 .build(registrar);
         LiquidInteractionBuilder.builder(AstralSorcery.key("liquidstarlight_lava_aquamarine"))
-                .setReactant1(new FluidStack(FluidsAS.LIQUID_STARLIGHT_SOURCE, 10))
+                .setReactant1(new FluidStack(FluidsAS.LIQUID_STARLIGHT_SOURCE.get(), 10))
                 .setChanceConsumeReactant1(0.5F)
                 .setReactant2(new FluidStack(Fluids.LAVA, 10))
                 .setChanceConsumeReactant2(0.5F)

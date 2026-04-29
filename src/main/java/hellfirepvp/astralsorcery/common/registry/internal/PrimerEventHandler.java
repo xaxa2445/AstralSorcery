@@ -65,7 +65,6 @@ public class PrimerEventHandler {
             RegistryItems.registerItems();
             RegistryItems.registerItemBlocks();
             RegistryItems.registerFluidContainerItems();
-            RegistryItems.registerDispenseBehaviors();
 
             fillRegistry(helper, Item.class);
 
@@ -74,7 +73,6 @@ public class PrimerEventHandler {
 
         // BLOCKS
         event.register(ForgeRegistries.Keys.BLOCKS, helper -> {
-            RegistryFluids.registerFluids();
             RegistryBlocks.registerBlocks();
             RegistryBlocks.registerFluidBlocks();
 
@@ -159,8 +157,8 @@ public class PrimerEventHandler {
         RegistryPerkAttributeReaders.init();
     }
 
-
-    private <T> void fillRegistry(RegisterEvent.RegisterHelper<T> helper, Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+    private <T> void fillRegistry(RegisterEvent.RegisterHelper<? super T> helper, Class<T> clazz) {
         registry.getEntries(clazz).forEach(e -> {
             ResourceLocation id = extractId(e);
             helper.register(id, (T) e);

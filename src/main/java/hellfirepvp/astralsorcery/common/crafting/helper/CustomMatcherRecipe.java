@@ -29,7 +29,7 @@ public abstract class CustomMatcherRecipe extends BaseHandlerRecipe<IItemHandler
     }
 
     @Override
-    public final boolean canFit(int width, int height) {
+    public boolean canCraftInDimensions(int width, int height) {
         // En 1.20.1 se mantiene igual para recetas que no son de rejilla fija
         return false;
     }

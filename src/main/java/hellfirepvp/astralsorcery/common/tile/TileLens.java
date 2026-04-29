@@ -60,17 +60,18 @@ public class TileLens extends TileTransmissionBase<IPrismTransmissionNode> imple
     //So we can tell the client to render beams eventhough the actual connection doesn't exist.
     private List<BlockPos> occupiedConnections = new LinkedList<>();
 
-    protected TileLens(BlockEntityType<?> type) {
-        super(type);
+    protected TileLens(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
     }
 
-    public TileLens() {
-        super(TileEntityTypesAS.LENS);
+    // Constructor público para el registro de Astral Sorcery
+    public TileLens(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.LENS, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
         if (colorType != null) {
             if (level.isClientSide()) {

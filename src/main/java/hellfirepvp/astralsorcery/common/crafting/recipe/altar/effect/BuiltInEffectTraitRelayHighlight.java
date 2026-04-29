@@ -8,7 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
@@ -24,9 +24,10 @@ import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.tile.TileSpectralRelay;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -42,6 +43,10 @@ import java.util.List;
  */
 public class BuiltInEffectTraitRelayHighlight extends AltarRecipeEffect {
 
+    public BuiltInEffectTraitRelayHighlight(ResourceLocation id) {
+        super(id);
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public void onTick(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state) {
@@ -54,7 +59,7 @@ public class BuiltInEffectTraitRelayHighlight extends AltarRecipeEffect {
                 }
                 WrappedIngredient match = additionalIngredients.get(stack.getStackIndex());
 
-                TileSpectralRelay relay = MiscUtils.getTileAt(altar.getWorld(), stack.getRealPosition(), TileSpectralRelay.class, false);
+                TileSpectralRelay relay = MiscUtils.getTileAt(altar.getLevel(), stack.getRealPosition(), TileSpectralRelay.class, false);
                 if (relay != null) {
                     ItemStack in = relay.getInventory().getStackInSlot(0);
                     if (!in.isEmpty() && match.getIngredient().test(in)) {
@@ -117,7 +122,7 @@ public class BuiltInEffectTraitRelayHighlight extends AltarRecipeEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, MatrixStack renderStack, IRenderTypeBuffer buffer, float pTicks, int combinedLight) {
+    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, PoseStack renderStack, MultiBufferSource buffer, float pTicks, int combinedLight) {
         ActiveSimpleAltarRecipe activeRecipe = altar.getActiveRecipe();
         if (activeRecipe != null) {
             List<WrappedIngredient> additionalIngredients = activeRecipe.getRecipeToCraft().getRelayInputs();
@@ -128,16 +133,16 @@ public class BuiltInEffectTraitRelayHighlight extends AltarRecipeEffect {
                 }
 
                 WrappedIngredient match = additionalIngredients.get(stack.getStackIndex());
-                BlockPos offset = stack.getRealPosition().subtract(altar.getPos());
+                BlockPos offset = stack.getRealPosition().subtract(altar.getBlockPos());
 
-                TileSpectralRelay relay = MiscUtils.getTileAt(altar.getWorld(), stack.getRealPosition(), TileSpectralRelay.class, false);
+                TileSpectralRelay relay = MiscUtils.getTileAt(altar.getLevel(), stack.getRealPosition(), TileSpectralRelay.class, false);
 
                 if (relay == null || (!match.getIngredient().test(relay.getInventory().getStackInSlot(0)))) {
                     ItemStack potential = match.getRandomMatchingStack(getClientTick());
-                    renderStack.push();
+                    renderStack.pushPose();
                     renderStack.translate(0.5 + offset.getX(), 0.35 + offset.getY(), 0.5  + offset.getZ());
                     RenderingUtils.renderTranslucentItemStack(potential, renderStack, pTicks);
-                    renderStack.pop();
+                    renderStack.popPose();
                 }
             }
         }

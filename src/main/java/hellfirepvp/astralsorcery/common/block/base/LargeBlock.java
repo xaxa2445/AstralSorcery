@@ -8,11 +8,11 @@
 
 package hellfirepvp.astralsorcery.common.block.base;
 
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -23,19 +23,19 @@ import net.minecraft.world.level.Level;
  */
 public interface LargeBlock {
 
-    public AxisAlignedBB getBlockSpace();
+    public AABB getBlockSpace();
 
-    default public boolean canPlaceAt(BlockItemUseContext ctx) {
-        BlockPos pos = ctx.getPos();
-        World world = ctx.getWorld();
-        AxisAlignedBB box = this.getBlockSpace();
+    default public boolean canPlaceAt(BlockPlaceContext ctx) {
+        BlockPos pos = ctx.getClickedPos();
+        Level world = ctx.getLevel();
+        AABB box = this.getBlockSpace();
 
-        BlockPos.Mutable mPos = new BlockPos.Mutable();
+        BlockPos.MutableBlockPos mPos = new BlockPos.MutableBlockPos();
         for (int xx = (int) box.minX; xx <= box.maxX; xx++) {
             for (int yy = (int) box.minY; yy <= box.maxY; yy++) {
                 for (int zz = (int) box.minZ; zz <= box.maxZ; zz++) {
-                    mPos.setPos(pos.getX() + xx, pos.getY() + yy, pos.getZ() + zz);
-                    if (!world.isAirBlock(mPos) && !world.getBlockState(mPos).isReplaceable(BlockItemUseContext.func_221536_a(ctx, mPos, Direction.DOWN))) {
+                    mPos.set(pos.getX() + xx, pos.getY() + yy, pos.getZ() + zz);
+                    if (!world.isEmptyBlock(mPos) && !world.getBlockState(mPos).canBeReplaced(BlockPlaceContext.at(ctx, mPos, Direction.DOWN))) {
                         return false;
                     }
                 }

@@ -17,12 +17,12 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.event.TickEvent;
 
 import javax.annotation.Nullable;
@@ -44,7 +44,7 @@ public class AreaOfInfluencePreview implements ITickHandler {
     private static final float alphaTick = 1F / MAX_LIFE;
     private static final float sizeCube1 = 1.25F, sizeCube2 = 1.35F;
 
-    private RegistryKey<World> tileDimension = null;
+    private ResourceKey<Level> tileDimension = null;
     private BlockPos tilePosition = null;
     private FXCube effect1 = null, effect2 = null;
 
@@ -59,7 +59,7 @@ public class AreaOfInfluencePreview implements ITickHandler {
     }
 
     public void show(TileAreaOfInfluence aoeTile) {
-        if (!(aoeTile instanceof TileEntity)) {
+        if (!(aoeTile instanceof BlockEntity)) {
             return;
         }
         this.tileDimension = aoeTile.getDimension();
@@ -77,13 +77,13 @@ public class AreaOfInfluencePreview implements ITickHandler {
             this.removeEffects();
             return;
         }
-        World clientWorld = Minecraft.getInstance().world;
+        Level clientWorld = Minecraft.getInstance().level;
         if (clientWorld == null) {
             this.clearClient();
             this.removeEffects();
             return;
         }
-        RegistryKey<World> clientDimType = clientWorld.getDimensionKey();
+        ResourceKey<Level> clientDimType = clientWorld.dimension();
         if (!clientDimType.equals(this.tileDimension)) {
             this.clearClient();
             this.removeEffects();
@@ -123,7 +123,7 @@ public class AreaOfInfluencePreview implements ITickHandler {
             if (aoeTile != null) {
                 updateEffect(cube, sizeMultiplier, aoeTile);
             }
-            cube.setAlphaMultiplier(MathHelper.clamp(cube.getAlphaMultiplier() - alphaTick, 0F, 0.75F));
+            cube.setAlphaMultiplier(Mth.clamp(cube.getAlphaMultiplier() - alphaTick, 0F, 0.75F));
             if (!this.canRefresh(cube)) {
                 cube = null;
             }
@@ -136,7 +136,7 @@ public class AreaOfInfluencePreview implements ITickHandler {
             if (cube.isRemoved()) {
                 EffectHelper.refresh(cube, EffectTemplatesAS.CUBE_AREA_OF_EFFECT);
             }
-            cube.setAlphaMultiplier(MathHelper.clamp(cube.getAlphaMultiplier() + alphaTick, 0F, 0.75F));
+            cube.setAlphaMultiplier(Mth.clamp(cube.getAlphaMultiplier() + alphaTick, 0F, 0.75F));
             updateEffect(cube, sizeMultiplier, aoeTile);
         } else {
             cube = createCube(sizeMultiplier, aoeTile);

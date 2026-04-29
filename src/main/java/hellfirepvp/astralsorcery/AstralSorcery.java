@@ -10,6 +10,8 @@ package hellfirepvp.astralsorcery;
 
 import hellfirepvp.astralsorcery.client.ClientProxy;
 import hellfirepvp.astralsorcery.common.CommonProxy;
+import hellfirepvp.astralsorcery.common.fluid.ASFluidTypes;
+import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
 import hellfirepvp.astralsorcery.common.registry.RegistryItems;
 import hellfirepvp.astralsorcery.common.registry.internal.PrimerEventHandler;
 import net.minecraft.resources.ResourceLocation; // CORRECCIÓN: Nuevo paquete en 1.20.1
@@ -51,6 +53,12 @@ public class AstralSorcery {
 
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
+        // FluidTypes (texturas, propiedades físicas)
+        ASFluidTypes.FLUID_TYPES.register(modEventBus);
+
+        // Fluidos, bloques y buckets
+        RegistryFluids.register(modEventBus);
+
         // 🔹 Mantienes proxy SOLO para cosas internas (como registryPrimer)
         this.proxy = new CommonProxy();
 
@@ -73,6 +81,7 @@ public class AstralSorcery {
     private void clientSetup(final FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
             RegistryItems.registerItemProperties();
+            //RegistryItems.registerDispenseBehaviors();
         });
     }
 

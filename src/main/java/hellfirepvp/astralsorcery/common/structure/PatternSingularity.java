@@ -14,8 +14,8 @@ import hellfirepvp.astralsorcery.common.lib.StructureTypesAS;
 import hellfirepvp.observerlib.api.block.MatchableState;
 import hellfirepvp.observerlib.api.block.SimpleMatchableBlock;
 import hellfirepvp.observerlib.api.util.PatternBlockArray;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
 
@@ -35,10 +35,10 @@ public class PatternSingularity extends PatternBlockArray {
     }
 
     private void makeStructure() {
-        BlockState runed = BlocksAS.MARBLE_RUNED.getDefaultState();
-        BlockState engraved = BlocksAS.MARBLE_ENGRAVED.getDefaultState();
-        BlockState chiseled = BlocksAS.MARBLE_CHISELED.getDefaultState();
-        BlockState sooty = BlocksAS.BLACK_MARBLE_RAW.getDefaultState();
+        BlockState runed = BlocksAS.MARBLE_RUNED.defaultBlockState();
+        BlockState engraved = BlocksAS.MARBLE_ENGRAVED.defaultBlockState();
+        BlockState chiseled = BlocksAS.MARBLE_CHISELED.defaultBlockState();
+        BlockState sooty = BlocksAS.BLACK_MARBLE_RAW.defaultBlockState();
 
         addBlockCube(runed, -4, -4, -4,  4, -4,  4);
         addBlockCube(sooty, -3, -4, -3,  3, -4,  3);
@@ -52,10 +52,10 @@ public class PatternSingularity extends PatternBlockArray {
         addBlock(sooty, -3, -5,  3);
         addBlock(sooty,  3, -5, -3);
         addBlock(sooty,  3, -5,  3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.getDefaultState(), -3, -4, -3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.getDefaultState(), -3, -4,  3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.getDefaultState(),  3, -4, -3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.getDefaultState(),  3, -4,  3);
+        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(), -3, -4, -3);
+        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(), -3, -4,  3);
+        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(),  3, -4, -3);
+        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(),  3, -4,  3);
 
         addBlock(engraved, -4, -4, -4);
         addBlock(engraved, -4, -4,  4);
@@ -103,7 +103,7 @@ public class PatternSingularity extends PatternBlockArray {
             @Nonnull
             @Override
             public BlockState getDescriptiveState(long tick) {
-                return BlocksAS.MARBLE_PILLAR.getDefaultState().with(BlockMarblePillar.PILLAR_TYPE, type);
+                return BlocksAS.MARBLE_PILLAR.defaultBlockState().setValue(BlockMarblePillar.PILLAR_TYPE, type);
             }
         };
     }

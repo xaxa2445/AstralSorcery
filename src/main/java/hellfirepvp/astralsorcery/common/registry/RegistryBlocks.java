@@ -129,9 +129,9 @@ public class RegistryBlocks {
         STRUCTURAL          = registerBlock(new BlockStructural());
     }
 
-    public static void registerFluidBlocks() {
-        RegistryFluids.FLUID_BLOCKS.forEach(RegistryBlocks::registerBlock);
-    }
+    //public static void registerFluidBlocks() {
+        //RegistryFluids.FLUID_BLOCKS.forEach(RegistryBlocks::registerBlock);
+    //}
 
     @OnlyIn(Dist.CLIENT)
     public static void registerColors(RegisterColorHandlersEvent.Block event) {

@@ -11,16 +11,22 @@ package hellfirepvp.astralsorcery.common.registry;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.fluid.BlockLiquidStarlight;
 import hellfirepvp.astralsorcery.common.fluid.FluidLiquidStarlight;
-import hellfirepvp.astralsorcery.common.fluid.ItemLiquidStarlightBucket;
+import hellfirepvp.astralsorcery.common.fluid.ASFluidTypes;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
-import net.minecraft.block.Block;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.Item;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.FluidAttributes;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.material.FlowingFluid;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fluids.ForgeFlowingFluid;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -38,52 +44,51 @@ import static hellfirepvp.astralsorcery.common.lib.FluidsAS.*;
  */
 public class RegistryFluids {
 
-    static final List<Block> FLUID_BLOCKS = new LinkedList<>();
-    static final List<Item> FLUID_HOLDER_ITEMS = new LinkedList<>();
+    public static final DeferredRegister<Fluid> FLUIDS =
+            DeferredRegister.create(ForgeRegistries.FLUIDS, AstralSorcery.MODID);
 
-    private RegistryFluids() {}
+    public static final DeferredRegister<Block> BLOCKS =
+            DeferredRegister.create(ForgeRegistries.BLOCKS, AstralSorcery.MODID);
 
-    public static void registerFluids() {
-        makeProperties();
+    public static final DeferredRegister<Item> ITEMS =
+            DeferredRegister.create(ForgeRegistries.ITEMS, AstralSorcery.MODID);
 
-        LIQUID_STARLIGHT_SOURCE = registerFluid(new FluidLiquidStarlight.Source(LIQUID_STARLIGHT_PROPERTIES));
-        LIQUID_STARLIGHT_FLOWING = registerFluid(new FluidLiquidStarlight.Flowing(LIQUID_STARLIGHT_PROPERTIES));
+    public static RegistryObject<Fluid> LIQUID_STARLIGHT_SOURCE;
+    public static RegistryObject<Fluid> LIQUID_STARLIGHT_FLOWING;
 
-        FLUID_BLOCKS.add(BlocksAS.FLUID_LIQUID_STARLIGHT = new BlockLiquidStarlight(() -> LIQUID_STARLIGHT_SOURCE));
-        FLUID_HOLDER_ITEMS.add(ItemsAS.BUCKET_LIQUID_STARLIGHT = new ItemLiquidStarlightBucket(() -> LIQUID_STARLIGHT_SOURCE));
+    public static RegistryObject<LiquidBlock> LIQUID_STARLIGHT_BLOCK;
+    public static RegistryObject<Item> LIQUID_STARLIGHT_BUCKET;
+
+    public static void register(IEventBus bus) {
+        FLUIDS.register(bus);
+        BLOCKS.register(bus);
+        ITEMS.register(bus);
+
+        registerStarlight();
     }
 
-    private static void makeProperties() {
-        LIQUID_STARLIGHT_PROPERTIES = makeProperties(FluidLiquidStarlight.class, FluidLiquidStarlight::addAttributes,
-                () -> LIQUID_STARLIGHT_SOURCE, () -> LIQUID_STARLIGHT_FLOWING)
-                .block(() -> BlocksAS.FLUID_LIQUID_STARLIGHT)
-                .bucket(() -> ItemsAS.BUCKET_LIQUID_STARLIGHT);
-    }
+    private static void registerStarlight() {
 
-    private static ForgeFlowingFluid.Properties makeProperties(Class<? extends ForgeFlowingFluid> fluidClass,
-                                                               Function<FluidAttributes.Builder, FluidAttributes.Builder> postProcess,
-                                                               Supplier<ForgeFlowingFluid> stillFluidSupplier,
-                                                               Supplier<ForgeFlowingFluid> flowingFluidSupplier) {
-        String name = NameUtil.fromClass(fluidClass, "Fluid").getPath();
-        return new ForgeFlowingFluid.Properties(
-                stillFluidSupplier,
-                flowingFluidSupplier,
-                postProcess.apply(builderFor(name)));
-    }
+        ForgeFlowingFluid.Properties props = new ForgeFlowingFluid.Properties(
+                ASFluidTypes.LIQUID_STARLIGHT_TYPE,
+                () -> LIQUID_STARLIGHT_SOURCE.get(),
+                () -> LIQUID_STARLIGHT_FLOWING.get()
+        );
 
-    private static FluidAttributes.Builder builderFor(String fluidName) {
-        ResourceLocation still = AstralSorcery.key("fluid/" + fluidName + "_still");
-        ResourceLocation flowing = AstralSorcery.key("fluid/" + fluidName + "_flowing");
-        return FluidAttributes.builder(still, flowing);
-    }
+        LIQUID_STARLIGHT_SOURCE = FLUIDS.register("liquid_starlight",
+                () -> new FluidLiquidStarlight.Source(props));
 
-    private static <T extends Fluid> T registerFluid(T fluid) {
-        return registerFluid(fluid, NameUtil.fromClass(fluid, "Fluid", "Source"));
-    }
+        LIQUID_STARLIGHT_FLOWING = FLUIDS.register("liquid_starlight_flowing",
+                () -> new FluidLiquidStarlight.Flowing(props));
 
-    private static <T extends Fluid> T registerFluid(T fluid, ResourceLocation name) {
-        fluid.setRegistryName(name);
-        AstralSorcery.getProxy().getRegistryPrimer().register(fluid);
-        return fluid;
+        LIQUID_STARLIGHT_BLOCK = BLOCKS.register("liquid_starlight",
+                () -> new LiquidBlock(
+                        () -> (FlowingFluid) LIQUID_STARLIGHT_SOURCE.get(),
+                        Block.Properties.of()
+                ));
+
+        LIQUID_STARLIGHT_BUCKET = ITEMS.register("liquid_starlight_bucket",
+                () -> new BucketItem(LIQUID_STARLIGHT_SOURCE,
+                        new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
     }
 }

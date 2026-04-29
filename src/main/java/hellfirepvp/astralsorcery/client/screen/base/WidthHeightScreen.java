@@ -15,6 +15,7 @@ import hellfirepvp.astralsorcery.client.util.Blending;
 import hellfirepvp.astralsorcery.client.util.RenderingGuiUtils;
 import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.network.chat.Component; // ITextComponent -> Component
 import org.joml.Matrix4f;
@@ -78,7 +79,8 @@ public class WidthHeightScreen extends InputScreen {
         guiTop = height / 2 - guiHeight / 2;
     }
 
-    protected void drawWHRect(PoseStack renderStack, AbstractRenderableTexture resource) {
+    protected void drawWHRect(GuiGraphics renderStack, AbstractRenderableTexture resource) {
+        PoseStack poseStack = renderStack.pose();
         //Whoever disables blending on GUI overlays, your states bleed into following GUIs
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -87,7 +89,7 @@ public class WidthHeightScreen extends InputScreen {
 
         resource.bindTexture();
 
-        Matrix4f matrix = renderStack.last().pose();
+        Matrix4f matrix = poseStack.last().pose();
         RenderingGuiUtils.drawRect(matrix, guiLeft, guiTop, this.getGuiZLevel(), guiWidth, guiHeight);
     }
 

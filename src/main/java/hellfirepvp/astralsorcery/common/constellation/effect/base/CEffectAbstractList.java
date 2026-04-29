@@ -33,6 +33,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.function.Predicate;
 
 /**
@@ -135,7 +136,7 @@ public abstract class CEffectAbstractList<T extends CEffectAbstractList.ListEntr
     @Nullable
     public T getRandomElement() {
         // En 1.20.1, si MiscUtils usa RandomSource:
-        return MiscUtils.getRandomEntry(this.elements, net.minecraft.util.RandomSource.create(rand.nextLong()));
+        return MiscUtils.getRandomEntry(this.elements,new Random(rand.nextLong()));
     }
 
     @Nullable

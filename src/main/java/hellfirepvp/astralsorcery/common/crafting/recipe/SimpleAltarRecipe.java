@@ -189,7 +189,7 @@ public class SimpleAltarRecipe extends CustomMatcherRecipe implements GatedRecip
         this.outputs.add(ItemUtils.copyStackWithSize(output, output.getCount()));
     }
 
-    public boolean matches(LogicalSide side, PlayerEntity crafter, TileAltar altar, boolean ignoreStarlightRequirement) {
+    public boolean matches(LogicalSide side, Player crafter, TileAltar altar, boolean ignoreStarlightRequirement) {
         if (crafter == null) {
             return false;
         }
@@ -223,11 +223,11 @@ public class SimpleAltarRecipe extends CustomMatcherRecipe implements GatedRecip
 
     public void serializeAdditionalJson(JsonObject recipeObject) {}
 
-    public void writeRecipeSync(PacketBuffer buf) {}
+    public void writeRecipeSync(FriendlyByteBuf buf) {}
 
-    public void readRecipeSync(PacketBuffer buf) {}
+    public void readRecipeSync(FriendlyByteBuf buf) {}
 
-    public static SimpleAltarRecipe read(ResourceLocation recipeId, PacketBuffer buffer) {
+    public static SimpleAltarRecipe read(ResourceLocation recipeId, FriendlyByteBuf buffer) {
         AltarType type = ByteBufUtils.readEnumValue(buffer, AltarType.class);
         int duration = buffer.readInt();
         int starlight = buffer.readInt();
@@ -242,7 +242,7 @@ public class SimpleAltarRecipe extends CustomMatcherRecipe implements GatedRecip
         List<ItemStack> outputs = ByteBufUtils.readList(buffer, ByteBufUtils::readItemStack);
         outputs.forEach(recipe::addOutput);
         recipe.setFocusConstellation(ByteBufUtils.readOptional(buffer, ByteBufUtils::readRegistryEntry));
-        ByteBufUtils.readList(buffer, Ingredient::read).forEach(recipe::addRelayInput);
+        ByteBufUtils.readList(buffer, Ingredient::fromNetwork).forEach(recipe::addRelayInput);
         List<AltarRecipeEffect> effects = ByteBufUtils.readList(buffer, ByteBufUtils::readRegistryEntry);
         for (AltarRecipeEffect effect : effects) {
             recipe.addAltarEffect(effect);
@@ -251,7 +251,7 @@ public class SimpleAltarRecipe extends CustomMatcherRecipe implements GatedRecip
         return recipe;
     }
 
-    public final void write(PacketBuffer buffer) {
+    public final void write(FriendlyByteBuf buffer) {
         ByteBufUtils.writeEnumValue(buffer, this.getAltarType());
         buffer.writeInt(this.getDuration());
         buffer.writeInt(this.getStarlightRequirement());
@@ -260,7 +260,7 @@ public class SimpleAltarRecipe extends CustomMatcherRecipe implements GatedRecip
 
         ByteBufUtils.writeCollection(buffer, this.outputs, ByteBufUtils::writeItemStack);
         ByteBufUtils.writeOptional(buffer, this.getFocusConstellation(), ByteBufUtils::writeRegistryEntry);
-        ByteBufUtils.writeCollection(buffer, this.getRelayInputs(), (buf, ingredient) -> ingredient.getIngredient().write(buf));
+        ByteBufUtils.writeCollection(buffer, this.getRelayInputs(), (buf, ingredient) -> ingredient.getIngredient().toNetwork(buf));
         ByteBufUtils.writeCollection(buffer, this.getCraftingEffects(), ByteBufUtils::writeRegistryEntry);
         this.writeRecipeSync(buffer);
     }
@@ -294,16 +294,22 @@ public class SimpleAltarRecipe extends CustomMatcherRecipe implements GatedRecip
         if (!this.getRelayInputs().isEmpty()) {
             JsonArray inputs = new JsonArray();
             for (WrappedIngredient traitInput : this.getRelayInputs()) {
-                inputs.add(traitInput.getIngredient().serialize());
+                inputs.add(traitInput.getIngredient().toJson());
             }
             object.add("relay_inputs", inputs);
         }
 
         if (!this.getCraftingEffects().isEmpty()) {
             JsonArray effects = new JsonArray();
+
             for (AltarRecipeEffect effect : this.getCraftingEffects()) {
-                effects.add(effect.getRegistryName().toString());
+                ResourceLocation id = effect.getId();
+
+                if (id != null) {
+                    effects.add(id.toString());
+                }
             }
+
             object.add("effects", effects);
         }
     }

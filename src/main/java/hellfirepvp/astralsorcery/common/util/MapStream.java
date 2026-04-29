@@ -8,6 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.util;
 
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
 
 import java.util.*;
@@ -22,6 +23,8 @@ import java.util.stream.*;
  * Date: 09.11.2019 / 13:09
  */
 public class MapStream<K, V> implements Stream<Tuple<K, V>> {
+
+    private static final RandomSource rand = RandomSource.create();
 
     private final Stream<Tuple<K, V>> decorated;
 

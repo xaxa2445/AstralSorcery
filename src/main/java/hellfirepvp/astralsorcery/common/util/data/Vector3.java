@@ -14,6 +14,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i; // Nuevo paquete
 import net.minecraft.util.Mth;   // Reemplaza MathHelper
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity; // Reemplaza net.minecraft.entity.Entity
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity; // Reemplaza TileEntity
@@ -35,7 +36,7 @@ import java.util.function.Consumer;
  */
 public class Vector3 {
 
-    private static final Random RAND = new Random();
+    private static final RandomSource RAND = RandomSource.create();
 
     protected double x;
     protected double y;

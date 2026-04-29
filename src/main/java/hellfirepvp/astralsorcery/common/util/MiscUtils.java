@@ -55,6 +55,7 @@ import net.minecraftforge.common.util.LogicalSidedProvider;
 import net.minecraftforge.fml.ModContainer;
 import net.minecraftforge.fml.ModLoadingContext;
 import org.apache.logging.log4j.util.TriConsumer;
+import net.minecraft.util.RandomSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -115,7 +116,7 @@ public class MiscUtils {
     // --- SECCIÓN: COLECCIONES Y ALEATORIEDAD ---
 
     @Nullable
-    public static <T> T getRandomEntry(Collection<T> collection, RandomSource rand) {
+    public static <T> T getRandomEntry(Collection<T> collection, Random rand) {
         if (collection == null || collection.isEmpty()) {
             return null;
         }
@@ -124,7 +125,7 @@ public class MiscUtils {
     }
 
     @Nullable
-    public static <T> T getRandomEntry(T[] array, RandomSource rand) {
+    public static <T> T getRandomEntry(T[] array, Random rand) {
         if (array == null || array.length <= 0) {
             return null;
         }
@@ -552,17 +553,17 @@ public class MiscUtils {
         return new Color(Color.HSBtoRGB((230F + (50F * perc)) / 360F, 0.8F, 0.8F - (0.3F * perc)));
     }
 
-    public static void applyRandomOffset(Vector3 target, Random rand) {
+    public static void applyRandomOffset(Vector3 target, RandomSource rand) {
         applyRandomOffset(target, rand, 1F);
     }
 
-    public static void applyRandomOffset(Vector3 target, Random rand, float multiplier) {
+    public static void applyRandomOffset(Vector3 target, RandomSource rand, float multiplier) {
         target.addX(rand.nextFloat() * multiplier * (rand.nextBoolean() ? 1 : -1));
         target.addY(rand.nextFloat() * multiplier * (rand.nextBoolean() ? 1 : -1));
         target.addZ(rand.nextFloat() * multiplier * (rand.nextBoolean() ? 1 : -1));
     }
 
-    public static void applyRandomCircularOffset(Vector3 target, Random rand) {
+    public static void applyRandomCircularOffset(Vector3 target, RandomSource rand) {
         applyRandomOffset(target, rand, 1F);
     }
 

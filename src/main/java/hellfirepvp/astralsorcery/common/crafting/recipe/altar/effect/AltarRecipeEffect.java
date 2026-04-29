@@ -8,17 +8,17 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.common.block.tile.altar.AltarType;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.ActiveSimpleAltarRecipe;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.registries.ForgeRegistryEntry;
-
+import net.minecraftforge.registries.ForgeRegistries;
 import java.util.Objects;
 import java.util.Random;
 
@@ -29,13 +29,25 @@ import java.util.Random;
  * Created by HellFirePvP
  * Date: 23.09.2019 / 17:46
  */
-public abstract class AltarRecipeEffect extends ForgeRegistryEntry<AltarRecipeEffect> {
+public abstract class AltarRecipeEffect {
 
     protected static final int INDEX_NOISE_PLANE_LAYER1 = 0;
     protected static final int INDEX_NOISE_PLANE_LAYER2 = 1;
     protected static final int INDEX_CRAFT_FLARE = 2;
 
     protected static final Random rand = new Random();
+
+    private final ResourceLocation id;
+
+    protected AltarRecipeEffect(ResourceLocation id) {
+        this.id = id;
+    }
+
+    public ResourceLocation getId() {
+        return id;
+    }
+
+
     private static final Vector3[] offsetPillarsT2 = new Vector3[] {
             new Vector3( 2, 0,  2),
             new Vector3(-2, 0,  2),
@@ -107,7 +119,7 @@ public abstract class AltarRecipeEffect extends ForgeRegistryEntry<AltarRecipeEf
     public abstract void onTick(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state);
 
     @OnlyIn(Dist.CLIENT)
-    public abstract void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, MatrixStack renderStack, IRenderTypeBuffer buffer, float pTicks, int combinedLight);
+    public abstract void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, PoseStack renderStack, MultiBufferSource buffer, float pTicks, int combinedLight);
 
     @OnlyIn(Dist.CLIENT)
     public abstract void onCraftingFinish(TileAltar altar, boolean isChaining);
@@ -115,13 +127,12 @@ public abstract class AltarRecipeEffect extends ForgeRegistryEntry<AltarRecipeEf
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AltarRecipeEffect that = (AltarRecipeEffect) o;
-        return this.getRegistryName().equals(that.getRegistryName());
+        if (!(o instanceof AltarRecipeEffect that)) return false;
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(this.getRegistryName());
+        return Objects.hash(id);
     }
 }

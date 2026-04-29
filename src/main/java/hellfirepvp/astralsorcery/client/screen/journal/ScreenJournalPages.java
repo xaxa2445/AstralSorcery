@@ -106,17 +106,17 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float pTicks) {
-        super.render(guiGraphics, mouseX, mouseY, pTicks);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float pTicks) {
+        super.render(graphics, mouseX, mouseY, pTicks);
 
-        PoseStack renderStack = guiGraphics.pose(); // 🔥 clave
+        PoseStack renderStack = graphics.pose(); // 🔥 clave
 
         if (origin != null) {
-            drawDefault(renderStack, TexturesAS.TEX_GUI_BOOK_BLANK, mouseX, mouseY);
+            drawDefault(graphics, TexturesAS.TEX_GUI_BOOK_BLANK, mouseX, mouseY);
         } else {
             RenderSystem.enableBlend();
             Blending.DEFAULT.apply();
-            drawWHRect(renderStack, TexturesAS.TEX_GUI_BOOK_BLANK);
+            drawWHRect(graphics, TexturesAS.TEX_GUI_BOOK_BLANK);
             RenderSystem.disableBlend();
         }
 
@@ -134,7 +134,7 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
             renderStack.scale(1.3F, 1.3F, 1F);
             renderStack.translate(-width / 2F, 0, 0);
 
-            RenderingDrawUtils.renderStringAt(font, renderStack, this.getTitle(), 0x00DDDDDD);
+            RenderingDrawUtils.renderStringAt(font, graphics, this.getTitle(), 0x00DDDDDD);
 
             renderStack.popPose();
 

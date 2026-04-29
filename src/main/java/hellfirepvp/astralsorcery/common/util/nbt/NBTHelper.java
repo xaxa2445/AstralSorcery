@@ -139,6 +139,40 @@ public class NBTHelper {
         return stack.getOrCreateTag(); // Método nativo de 1.20.1 que reemplaza tu lógica manual
     }
 
+    public static <T> Set<T> readSet(CompoundTag tag, String key, int type, Function<Tag, T> mapper) {
+        if (!tag.contains(key, Tag.TAG_LIST)) {
+            return new HashSet<>();
+        }
+        ListTag list = tag.getList(key, type);
+        Set<T> out = new HashSet<>();
+        for (Tag entry : list) {
+            out.add(mapper.apply(entry));
+        }
+        return out;
+    }
+
+    @Nullable
+    public static BlockState getBlockState(CompoundTag compound, String key) {
+        if (compound.contains(key, Tag.TAG_COMPOUND)) {
+            return getBlockStateFromTag(compound.getCompound(key));
+        }
+        return null;
+    }
+
+    // Este es el método para guardar: 'NBTHelper.setBlockState(cmp, "state", state)'
+    public static void setBlockState(CompoundTag compound, String key, BlockState state) {
+        if (state != null) {
+            compound.put(key, getBlockStateNBTTag(state));
+        }
+    }
+
+    // Método de utilidad para envolver el guardado en un consumidor (usado en writeCustomNBT)
+    public static void setBlockStateAsSubTag(CompoundTag tag, String key, BlockState state) {
+        if (state != null) {
+            tag.put(key, getBlockStateNBTTag(state));
+        }
+    }
+
     @Nonnull
     public static CompoundTag getBlockStateNBTTag(BlockState state) {
         ResourceLocation res = BuiltInRegistries.BLOCK.getKey(state.getBlock());

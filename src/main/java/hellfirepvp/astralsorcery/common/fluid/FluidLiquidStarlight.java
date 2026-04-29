@@ -8,11 +8,11 @@
 
 package hellfirepvp.astralsorcery.common.fluid;
 
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.item.Rarity;
-import net.minecraft.state.StateContainer;
-import net.minecraftforge.fluids.FluidAttributes;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.fluids.ForgeFlowingFluid;
 
 /**
@@ -24,54 +24,48 @@ import net.minecraftforge.fluids.ForgeFlowingFluid;
  */
 public abstract class FluidLiquidStarlight extends ForgeFlowingFluid {
 
-    private FluidLiquidStarlight(Properties properties) {
+    protected FluidLiquidStarlight(Properties properties) {
         super(properties);
-    }
-
-    public static FluidAttributes.Builder addAttributes(FluidAttributes.Builder attributeBuilder) {
-        return attributeBuilder
-                .rarity(Rarity.EPIC)
-                .luminosity(15)
-                .density(1001)
-                .viscosity(300)
-                .temperature(40);
     }
 
     public static class Flowing extends FluidLiquidStarlight {
 
         public Flowing(Properties properties) {
             super(properties);
-            setDefaultState(getStateContainer().getBaseState().with(LEVEL_1_8, 7));
+            this.registerDefaultState(this.getStateDefinition().any().setValue(LEVEL, 7));
         }
 
-        protected void fillStateContainer(StateContainer.Builder<Fluid, FluidState> builder) {
-            super.fillStateContainer(builder);
-            builder.add(LEVEL_1_8);
+        @Override
+        protected void createFluidStateDefinition(StateDefinition.Builder<Fluid, FluidState> builder) {
+            super.createFluidStateDefinition(builder);
+            builder.add(LEVEL);
         }
 
-        public int getLevel(FluidState state) {
-            return state.get(LEVEL_1_8);
+        @Override
+        public int getAmount(FluidState state) {
+            return state.getValue(LEVEL);
         }
 
+        @Override
         public boolean isSource(FluidState state) {
             return false;
         }
+        public static class Source extends FluidLiquidStarlight {
+
+            public Source(Properties properties) {
+                super(properties);
+            }
+
+            @Override
+            public int getAmount(FluidState state) {
+                return 8;
+            }
+
+            @Override
+            public boolean isSource(FluidState state) {
+                return true;
+            }
+        }
     }
-
-    public static class Source extends FluidLiquidStarlight {
-
-        public Source(Properties properties) {
-            super(properties);
-        }
-
-        public int getLevel(FluidState state) {
-            return 8;
-        }
-
-        public boolean isSource(FluidState state) {
-            return true;
-        }
-
-    }
-
 }
+

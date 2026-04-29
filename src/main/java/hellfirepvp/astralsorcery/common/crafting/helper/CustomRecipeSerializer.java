@@ -9,9 +9,11 @@
 package hellfirepvp.astralsorcery.common.crafting.helper;
 
 import com.google.gson.JsonObject;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+
+import javax.annotation.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -20,11 +22,28 @@ import net.minecraftforge.registries.ForgeRegistryEntry;
  * Created by HellFirePvP
  * Date: 06.07.2019 / 20:38
  */
-public abstract class CustomRecipeSerializer<T extends CustomMatcherRecipe> extends ForgeRegistryEntry<IRecipeSerializer<?>> implements IRecipeSerializer<T> {
+public abstract class CustomRecipeSerializer<T extends CustomMatcherRecipe> implements RecipeSerializer<T> {
 
-    public CustomRecipeSerializer(ResourceLocation name) {
-        this.setRegistryName(name);
-    }
+    /**
+     * Lectura desde JSON (datapack)
+     */
+    @Override
+    public abstract T fromJson(ResourceLocation id, JsonObject json);
 
+    /**
+     * Lectura desde red
+     */
+    @Override
+    public abstract @Nullable T fromNetwork(ResourceLocation id, FriendlyByteBuf buf);
+
+    /**
+     * Escritura a red
+     */
+    @Override
+    public abstract void toNetwork(FriendlyByteBuf buf, T recipe);
+
+    /**
+     * Tu método custom (se mantiene)
+     */
     public abstract void write(JsonObject object, T recipe);
 }

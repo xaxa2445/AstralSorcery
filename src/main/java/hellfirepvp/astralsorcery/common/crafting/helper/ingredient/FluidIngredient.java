@@ -15,16 +15,17 @@ import hellfirepvp.astralsorcery.common.lib.IngredientSerializersAS;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntComparators;
 import it.unimi.dsi.fastutil.ints.IntList;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.item.crafting.RecipeItemHelper;
-import net.minecraft.util.NonNullList;
-import net.minecraftforge.common.crafting.CraftingHelper;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.world.entity.player.StackedContents;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraftforge.common.crafting.IIngredientSerializer;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidUtil;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -58,34 +59,28 @@ public class FluidIngredient extends Ingredient {
     }
 
     @Override
-    public ItemStack[] getMatchingStacks() {
-        if (itemArray == null || this.cacheItemStacks != this.fluids.size()) {
-            NonNullList<ItemStack> lst = NonNullList.create();
-
+    public ItemStack[] getItems() { // Renombrado de getMatchingStacks en 1.20.1
+        if (this.itemArray == null) {
+            List<ItemStack> lst = new ArrayList<>();
             for (FluidStack fluid : this.fluids) {
                 lst.add(FluidUtil.getFilledBucket(fluid));
             }
-
-            this.itemArray = lst.toArray(new ItemStack[lst.size()]);
-            this.cacheItemStacks = this.fluids.size();
+            this.itemArray = lst.toArray(new ItemStack[0]);
         }
         return this.itemArray;
     }
 
     @Override
-    public IntList getValidItemStacksPacked() {
-        if (this.itemIds == null || this.cacheItemIds != fluids.size()) {
+    public IntList getStackingIds() { // Renombrado de getValidItemStacksPacked
+        if (this.itemIds == null) {
             this.itemIds = new IntArrayList(this.fluids.size());
-
             for (FluidStack fluid : this.fluids) {
-                ItemStack bucketFluid = FluidUtil.getFilledBucket(fluid);
-                this.itemIds.add(RecipeItemHelper.pack(bucketFluid));
+                ItemStack bucket = FluidUtil.getFilledBucket(fluid);
+                // RecipeItemHelper.pack -> StackedContents.getStackingIndex
+                this.itemIds.add(StackedContents.getStackingIndex(bucket));
             }
-
             this.itemIds.sort(IntComparators.NATURAL_COMPARATOR);
-            this.cacheItemIds = this.fluids.size();
         }
-
         return this.itemIds;
     }
 
@@ -109,7 +104,7 @@ public class FluidIngredient extends Ingredient {
     }
 
     @Override
-    public boolean hasNoMatchingItems() {
+    public boolean isEmpty() { // Renombrado de hasNoMatchingItems
         return this.fluids.isEmpty();
     }
 
@@ -127,19 +122,24 @@ public class FluidIngredient extends Ingredient {
     }
 
     @Override
-    public JsonElement serialize() {
+    public JsonElement toJson() { // Renombrado de serialize
         JsonObject object = new JsonObject();
-        object.addProperty("type", CraftingHelper.getID(IngredientSerializersAS.FLUID_SERIALIZER).toString());
+        object.addProperty("type", IngredientSerializersAS.FLUID_SERIALIZER.toString());
 
         JsonArray array = new JsonArray();
         for (FluidStack stack : this.fluids) {
             JsonObject fluidStackObject = new JsonObject();
-            fluidStackObject.addProperty("fluid", stack.getFluid().getRegistryName().toString());
+            // RegistryName -> ForgeRegistries.FLUIDS.getKey
+            fluidStackObject.addProperty("fluid", ForgeRegistries.FLUIDS.getKey(stack.getFluid()).toString());
             fluidStackObject.addProperty("amount", stack.getAmount());
+
+            if (stack.hasTag()) {
+                fluidStackObject.addProperty("nbt", stack.getTag().toString());
+            }
 
             array.add(fluidStackObject);
         }
-        object.add("fluid", array);
+        object.add("fluids", array);
         return object;
     }
 

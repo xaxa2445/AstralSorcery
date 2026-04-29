@@ -82,7 +82,7 @@ public class RadianceAltarRecipeProvider {
                         .patternLine("  S  ")
                         .patternLine(" GGG ")
                         .key('R', ItemsAS.RESONATOR)
-                        .key('L', FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                        .key('L', FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                         .key('S', TagsAS.Items.DUSTS_STARDUST)
                         .key('I', ItemsAS.ILLUMINATION_POWDER)
                         .key('G', ItemsAS.RESONATING_GEM)

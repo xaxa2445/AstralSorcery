@@ -26,23 +26,26 @@ import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
 import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.BubbleColumnBlock;
-import net.minecraft.block.FlowingFluidBlock;
-import net.minecraft.block.material.Material;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.loot.*;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.gen.Heightmap;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BubbleColumnBlock;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -68,35 +71,36 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
     public CEffectOctans(@Nonnull ILocatable origin) {
         super(origin, ConstellationsAS.octans, CONFIG.maxAmount.get(), (world, pos, state) -> {
             if (!corruptedSkipWaterCheck) {
-                pos = world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos).down();
+                int surfaceY = world.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ());
+                pos = new BlockPos(pos.getX(), surfaceY - 1, pos.getZ());
             }
             return corruptedSkipWaterCheck || (
-                    world.isAirBlock(pos.up()) &&
-                            (state.getBlock() instanceof FlowingFluidBlock &&
-                                    state.getMaterial() == Material.WATER &&
-                                    state.get(FlowingFluidBlock.LEVEL) == 0) ||
-                            state.getBlock() instanceof BubbleColumnBlock
-                    );
+                    world.isEmptyBlock(pos.above()) &&
+                            ((state.getBlock() instanceof LiquidBlock &&
+                                    state.getFluidState().isSource()) ||
+                                    state.getBlock() instanceof BubbleColumnBlock)
+            );
         });
         this.excludeRitualColumn();
     }
 
     @Nullable
     @Override
-    public ListEntries.CounterMaxEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+    public ListEntries.CounterMaxEntry recreateElement(CompoundTag tag, BlockPos pos) {
         return new ListEntries.CounterMaxEntry(pos, 1);
     }
 
     @Nullable
     @Override
-    public ListEntries.CounterMaxEntry createElement(World world, BlockPos pos) {
-        pos = world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, pos).down();
-        return new ListEntries.CounterMaxEntry(pos, 1);
+    public ListEntries.CounterMaxEntry createElement(Level world, BlockPos pos) {
+        int y = world.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, pos.getX(), pos.getZ());
+        BlockPos surfacePos = pos.atY(y).below();
+        return new ListEntries.CounterMaxEntry(surfacePos, 1);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
 
         Vector3 at = new Vector3(pos).add(0.5, 0.5, 0.5);
@@ -118,8 +122,8 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
-        if (!(world instanceof ServerWorld)) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        if (!(world instanceof ServerLevel)) {
             return false;
         }
 
@@ -131,12 +135,12 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
             return newEntry.mapLeft(entry -> {
                 BlockState state = world.getBlockState(entry.getPos());
                 BlockPos offset = entry.getPos().subtract(pos);
-                if (world.isAirBlock(entry.getPos()) &&
+                if (world.isEmptyBlock(entry.getPos()) &&
                         (this.isLinkedRitual || Math.abs(offset.getX()) > 5 || Math.abs(offset.getZ()) > 5 || offset.getY() < 0)) {
-                    if (!world.getDimensionType().isUltrawarm()) {
-                        if (world.setBlockState(entry.getPos(), Blocks.WATER.getDefaultState())) {
+                    if (!world.dimensionType().ultraWarm()) {
+                        if (world.setBlock(entry.getPos(), Blocks.WATER.defaultBlockState(), 3)) {
                             for (int i = 0; i < 3; i++) {
-                                spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                                spawnFishingDropsAt((ServerLevel) world, entry.getPos());
                             }
                             world.neighborChanged(entry.getPos(), Blocks.WATER, entry.getPos());
                         }
@@ -144,14 +148,14 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
                 } else if (BlockUtils.isFluidBlock(state)) {
                     if (state.getBlock() == Blocks.WATER) {
                         if (rand.nextInt(100) == 0) {
-                            spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                            spawnFishingDropsAt((ServerLevel) world, entry.getPos());
                         }
                     } else {
-                        world.setBlockState(entry.getPos(), Blocks.SAND.getDefaultState());
+                        world.setBlock(entry.getPos(), Blocks.SAND.defaultBlockState(), 3);
                     }
                 } else if (state.getBlock() instanceof BubbleColumnBlock) {
                     if (rand.nextInt(70) == 0) {
-                        spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                        spawnFishingDropsAt((ServerLevel) world, entry.getPos());
                     }
                 }
                 return true;
@@ -177,7 +181,7 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
                         entry.setMaxCount(min + rand.nextInt(diff));
                         entry.setCounter(0);
 
-                        spawnFishingDropsAt((ServerWorld) world, entry.getPos());
+                        spawnFishingDropsAt((ServerLevel) world, entry.getPos());
                     }
                 }
                 update = true;
@@ -185,34 +189,42 @@ public class CEffectOctans extends CEffectAbstractList<ListEntries.CounterMaxEnt
         }
 
         if (findNewPosition(world, pos, properties)
-                .ifRight(attemptedPos -> sendConstellationPing(world, new Vector3(world.getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, attemptedPos).down()).add(0.5, 0.5, 0.5)))
+                .ifRight(attemptedPos -> {
+                    // 1. Obtenemos la altura Y correcta
+                    int surfaceY = world.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, attemptedPos.getX(), attemptedPos.getZ());
+
+                    // 2. Creamos el vector para el efecto visual (ping)
+                    // Bajamos 1 para estar en el bloque y sumamos 0.5 para centrar la partícula
+                    Vector3 effectPos = new Vector3(attemptedPos.getX() + 0.5, surfaceY - 0.5, attemptedPos.getZ() + 0.5);
+
+                    sendConstellationPing(world, effectPos);
+                })
                 .left().isPresent()) {
             update = true;
         }
         return update;
     }
 
-    private void spawnFishingDropsAt(ServerWorld world, BlockPos pos) {
+    private void spawnFishingDropsAt(ServerLevel world, BlockPos pos) {
         Vector3 dropLoc = new Vector3(pos).add(0.5, 0.85, 0.5);
         ItemStack tool = new ItemStack(Items.FISHING_ROD);
-        tool.addEnchantment(Enchantments.LUCK_OF_THE_SEA, 2);
+        tool.enchant(Enchantments.FISHING_LUCK, 2);
 
-        ResourceLocation fromTable = LootTables.GAMEPLAY_FISHING_FISH;
+        ResourceLocation fromTable = BuiltInLootTables.FISHING_FISH;
         if (rand.nextFloat() < 0.1F) {
-            fromTable = LootTables.GAMEPLAY_FISHING_TREASURE;
+            fromTable = BuiltInLootTables.FISHING_TREASURE;
         }
 
-        LootContext.Builder builder = new LootContext.Builder(world);
-        builder.withLuck(rand.nextInt(2) * rand.nextFloat());
-        builder.withRandom(rand);
-        builder.withParameter(LootParameters.TOOL, tool);
-        builder.withParameter(LootParameters.field_237457_g_, Vector3d.copyCentered(pos));
-        LootTable lootTable = world.getServer().getLootTableManager().getLootTableFromLocation(fromTable);
-        for (ItemStack loot : lootTable.generate(builder.build(LootParameterSets.FISHING))) {
+        LootParams params = new LootParams.Builder(world)
+                .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
+                .withParameter(LootContextParams.TOOL, tool)
+                .withLuck(world.random.nextFloat())
+                .create(LootContextParamSets.FISHING);
+
+        LootTable lootTable = world.getServer().getLootData().getLootTable(fromTable);
+        for (ItemStack loot : lootTable.getRandomItems(params)) {
             ItemEntity ei = ItemUtils.dropItemNaturally(world, dropLoc.getX(), dropLoc.getY(), dropLoc.getZ(), loot);
-            Vector3 motion = new Vector3(ei.getMotion());
-            motion.setY(Math.abs(motion.getY()));
-            ei.setMotion(motion.toVector3d());
+            ei.setDeltaMovement(ei.getDeltaMovement().multiply(1, 0, 1).add(0, 0.2, 0));
         }
     }
 

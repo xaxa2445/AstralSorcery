@@ -11,9 +11,10 @@ package hellfirepvp.astralsorcery.common.crafting.helper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import hellfirepvp.astralsorcery.common.util.IngredientHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraftforge.common.crafting.CraftingHelper;
 
 import javax.annotation.Nullable;
@@ -42,17 +43,17 @@ public class WrappedIngredient {
     }
 
     @Nullable
-    public static WrappedIngredient deserialize(CompoundNBT tag) {
+    public static WrappedIngredient deserialize(CompoundTag tag) {
         if (!tag.contains("ingredient")) {
             return null;
         }
-        JsonElement jsonElement = new JsonParser().parse(tag.getString("ingredient"));
-        return new WrappedIngredient(CraftingHelper.getIngredient(jsonElement));
+        JsonElement jsonElement = new JsonParser().parseString(tag.getString("ingredient"));
+        return new WrappedIngredient(CraftingHelper.getIngredient(jsonElement, false));
     }
 
-    public CompoundNBT serialize() {
-        CompoundNBT tag = new CompoundNBT();
-        tag.putString("ingredient", this.ingredient.serialize().toString());
+    public CompoundTag serialize() {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("ingredient", this.ingredient.toJson().toString());
         return tag;
     }
 }

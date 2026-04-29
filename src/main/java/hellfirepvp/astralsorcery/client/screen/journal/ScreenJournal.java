@@ -86,7 +86,7 @@ public class ScreenJournal extends WidthHeightScreen {
         renderStack.translate(0, 0, 100);
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
-        drawWHRect(renderStack, texture);
+        drawWHRect(graphics, texture);
         RenderSystem.disableBlend();
 
         drawBookmarks(graphics, mouseX, mouseY);

@@ -15,18 +15,17 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissio
 import hellfirepvp.astralsorcery.common.starlight.transmission.TransmissionNetworkHelper;
 import hellfirepvp.astralsorcery.common.tile.base.TileNetwork;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.tileentity.TileEntityType;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.Constants;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
 import java.util.LinkedList;
@@ -43,17 +42,17 @@ public abstract class TileTransmissionBase<T extends IPrismTransmissionNode> ext
 
     private final List<BlockPos> positions = new LinkedList<>();
 
-    protected TileTransmissionBase(TileEntityType<?> tileEntityTypeIn) {
-        super(tileEntityTypeIn);
+    protected TileTransmissionBase(BlockEntityType<?> tileEntityTypeIn, BlockPos pos, BlockState state) {
+        super(tileEntityTypeIn, pos, state);
     }
 
     @Override
-    public boolean onSelect(PlayerEntity player) {
-        if (player.isSneaking()) {
+    public boolean onSelect(Player player) {
+        if (player.isShiftKeyDown()) {
             for (BlockPos linkTo : Lists.newArrayList(getLinkedPositions())) {
                 tryUnlink(player, linkTo);
             }
-            player.sendMessage(new TranslationTextComponent("astralsorcery.misc.link.unlink.all").mergeStyle(TextFormatting.GREEN), Util.DUMMY_UUID);
+            player.sendSystemMessage(Component.translatable("astralsorcery.misc.link.unlink.all").withStyle(ChatFormatting.GREEN));
             return false;
         }
         return true;
@@ -62,12 +61,12 @@ public abstract class TileTransmissionBase<T extends IPrismTransmissionNode> ext
     public abstract boolean isSingleLink();
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
-        ListNBT list = new ListNBT();
+        ListTag list = new ListTag();
         for (BlockPos pos : positions) {
-            CompoundNBT tag = new CompoundNBT();
+            CompoundTag tag = new CompoundTag();
             NBTHelper.writeBlockPosToNBT(pos, tag);
             list.add(tag);
         }
@@ -75,22 +74,22 @@ public abstract class TileTransmissionBase<T extends IPrismTransmissionNode> ext
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
         positions.clear();
 
         if (compound.contains("linked")) {
-            ListNBT list = compound.getList("linked", Constants.NBT.TAG_COMPOUND);
+            ListTag list = compound.getList("linked", Tag.TAG_COMPOUND);
             for (int i = 0; i < list.size(); i++) {
-                CompoundNBT tag = list.getCompound(i);
+                CompoundTag tag = list.getCompound(i);
                 positions.add(NBTHelper.readBlockPosFromNBT(tag));
             }
         }
     }
 
     @Override
-    public void onBlockLinkCreate(PlayerEntity player, BlockPos other) {
-        if (other.equals(getPos())) return;
+    public void onBlockLinkCreate(Player player, BlockPos other) {
+        if (other.equals(getBlockPos())) return;
 
         if (TransmissionNetworkHelper.createTransmissionLink(this, other)) {
             if (this.isSingleLink()) {
@@ -105,34 +104,34 @@ public abstract class TileTransmissionBase<T extends IPrismTransmissionNode> ext
     }
 
     @Override
-    public void onEntityLinkCreate(PlayerEntity player, LivingEntity linked) {
+    public void onEntityLinkCreate(Player player, LivingEntity linked) {
     }
 
     @Override
     @Nonnull
     public BlockPos getTrPos() {
-        return getPos();
+        return getBlockPos();
     }
 
     @Override
     @Nonnull
-    public World getTrWorld() {
-        return getWorld();
+    public Level getTrWorld() {
+        return getLevel();
     }
 
     @Override
-    public boolean tryLinkBlock(PlayerEntity player, BlockPos other) {
-        return !other.equals(getPos()) && TransmissionNetworkHelper.canCreateTransmissionLink(this, other);
+    public boolean tryLinkBlock(Player player, BlockPos other) {
+        return !other.equals(getBlockPos()) && TransmissionNetworkHelper.canCreateTransmissionLink(this, other);
     }
 
     @Override
-    public boolean tryLinkEntity(PlayerEntity player, LivingEntity other) {
+    public boolean tryLinkEntity(Player player, LivingEntity other) {
         return false;
     }
 
     @Override
-    public boolean tryUnlink(PlayerEntity player, BlockPos other) {
-        if (other.equals(getPos())) return false;
+    public boolean tryUnlink(Player player, BlockPos other) {
+        if (other.equals(getBlockPos())) return false;
 
         if (TransmissionNetworkHelper.hasTransmissionLink(this, other)) {
             TransmissionNetworkHelper.removeTransmissionLink(this, other);

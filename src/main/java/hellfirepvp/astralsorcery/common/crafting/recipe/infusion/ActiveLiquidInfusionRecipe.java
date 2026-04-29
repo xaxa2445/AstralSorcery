@@ -29,25 +29,27 @@ import hellfirepvp.astralsorcery.common.util.RecipeHelper;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.block.Blocks;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.RecipeManager;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fluids.FluidAttributes;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.server.ServerLifecycleHooks;
+import net.minecraft.util.RandomSource;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,14 +61,14 @@ import java.util.stream.Collectors;
 
 /**
  * This class is part of the Astral Sorcery Mod
- * The complete source code for this mod can be found on github.
+ * The complete source code for this mo d can be found on github.
  * Class: ActiveLiquidInfusionRecipe
  * Created by HellFirePvP
  * Date: 09.11.2019 / 11:24
  */
 public class ActiveLiquidInfusionRecipe {
 
-    private static final Random rand = new Random();
+    private static final RandomSource rand = RandomSource.create();
     private static final int CHALICE_DISTANCE = 8;
 
     private final LiquidInfusion recipeToCraft;
@@ -74,11 +76,11 @@ public class ActiveLiquidInfusionRecipe {
 
     private int ticksCrafting = 0;
     private final Set<BlockPos> supportingChalices = new HashSet<>();
-    private CompoundNBT craftingData = new CompoundNBT();
+    private CompoundTag craftingData = new CompoundTag();
 
     private Object orbitalLiquid = null;
 
-    public ActiveLiquidInfusionRecipe(World world, BlockPos center, LiquidInfusion recipeToCraft, UUID playerCraftingUUID) {
+    public ActiveLiquidInfusionRecipe(Level world, BlockPos center, LiquidInfusion recipeToCraft, UUID playerCraftingUUID) {
         this(recipeToCraft, playerCraftingUUID);
 
         if (this.recipeToCraft.acceptsChaliceInput()) {
@@ -91,9 +93,9 @@ public class ActiveLiquidInfusionRecipe {
         this.playerCraftingUUID = playerCraftingUUID;
     }
 
-    private void findChalices(World world, BlockPos center) {
+    private void findChalices(Level world, BlockPos center) {
         ChaliceHelper.findNearbyChalicesCombined(world, center, this.getChaliceRequiredFluidInput(), CHALICE_DISTANCE)
-                .ifPresent(chalices -> chalices.forEach(chalice -> this.supportingChalices.add(chalice.getPos())));
+                .ifPresent(chalices -> chalices.forEach(chalice -> this.supportingChalices.add(chalice.getBlockPos())));
     }
 
     public boolean matches(TileInfuser infuser) {
@@ -102,7 +104,7 @@ public class ActiveLiquidInfusionRecipe {
         }
 
         if (!this.supportingChalices.isEmpty()) {
-            if (!ChaliceHelper.doChalicesContainCombined(infuser.getWorld(), this.supportingChalices, this.getChaliceRequiredFluidInput())) {
+            if (!ChaliceHelper.doChalicesContainCombined(infuser.getLevel(), this.supportingChalices, this.getChaliceRequiredFluidInput())) {
                 this.supportingChalices.clear();
             }
         }
@@ -115,7 +117,7 @@ public class ActiveLiquidInfusionRecipe {
 
     @OnlyIn(Dist.CLIENT)
     public void tickClient(TileInfuser infuser) {
-        FluidStack required = new FluidStack(this.getRecipeToCraft().getLiquidInput(), FluidAttributes.BUCKET_VOLUME);
+        FluidStack required = new FluidStack(this.getRecipeToCraft().getLiquidInput(), FluidType.BUCKET_VOLUME);
 
         if (orbitalLiquid == null || ((FXOrbitalInfuserLiquid) orbitalLiquid).isRemoved()) {
             ResourceLocation recipeName = this.getRecipeToCraft().getId();
@@ -155,7 +157,7 @@ public class ActiveLiquidInfusionRecipe {
         TextureAtlasSprite tas = RenderingUtils.getParticleTexture(required);
         VFXColorFunction<?> colorFn = (fx, pTicks) -> new Color(ColorUtils.getOverlayColor(required));
         for (int i = 0; i < 2 * this.supportingChalices.size(); i++) {
-            BlockPos chalice = MiscUtils.getRandomEntry(chalices, rand);
+            BlockPos chalice = MiscUtils.getRandomEntry(new ArrayList<>(chalices), rand);
             Vector3 pos = new Vector3(chalice).add(0.5, 1.4, 0.5);
 
             int maxAge = 30;
@@ -203,7 +205,7 @@ public class ActiveLiquidInfusionRecipe {
     @OnlyIn(Dist.CLIENT)
     private void playLiquidPoolEffect(TileInfuser infuser, FluidStack required) {
         List<BlockPos> posList = TileInfuser.getLiquidOffsets().stream()
-                .map(pos -> pos.add(infuser.getPos()))
+                .map(pos -> pos.offset(infuser.getBlockPos()))
                 .collect(Collectors.toList());
 
         BlockPos at = MiscUtils.getRandomEntry(posList, rand);
@@ -251,7 +253,7 @@ public class ActiveLiquidInfusionRecipe {
         float chaliceSupplied = 0F;
         if (!this.supportingChalices.isEmpty()) {
             FluidStack required = this.getChaliceRequiredFluidInput();
-            Optional<List<TileChalice>> chalices = ChaliceHelper.findNearbyChalicesCombined(infuser.getWorld(), infuser.getPos(), required, CHALICE_DISTANCE);
+            Optional<List<TileChalice>> chalices = ChaliceHelper.findNearbyChalicesCombined(infuser.getLevel(), infuser.getBlockPos(), required, CHALICE_DISTANCE);
             if (chalices.isPresent()) {
                 FluidStack left = required.copy();
                 for (TileChalice chalice : chalices.get()) {
@@ -272,19 +274,19 @@ public class ActiveLiquidInfusionRecipe {
         if (infusion.doesConsumeMultipleFluids()) {
             for (BlockPos at : TileInfuser.getLiquidOffsets()) {
                 if (rand.nextFloat() < chance) {
-                    infuser.getWorld().setBlockState(at.add(infuser.getPos()), Blocks.AIR.getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
+                    infuser.getLevel().setBlock(at.offset(infuser.getBlockPos()), Blocks.AIR.defaultBlockState(), 3);
                 }
             }
         } else {
-            BlockPos at = MiscUtils.getRandomEntry(TileInfuser.getLiquidOffsets(), rand).add(infuser.getPos());
+            BlockPos at = MiscUtils.getRandomEntry(TileInfuser.getLiquidOffsets(), rand).offset(infuser.getBlockPos());
             if (rand.nextFloat() < chance) {
-                infuser.getWorld().setBlockState(at, Blocks.AIR.getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
+                infuser.getLevel().setBlock(at, Blocks.AIR.defaultBlockState(), 3);
             }
         }
     }
 
     public FluidStack getChaliceRequiredFluidInput() {
-        int amount = Math.round(FluidAttributes.BUCKET_VOLUME * recipeToCraft.getConsumptionChance());
+        int amount = Math.round(FluidType.BUCKET_VOLUME * recipeToCraft.getConsumptionChance());
         amount *= 0.75; //Bonus for using chalices
 
         amount = recipeToCraft.doesConsumeMultipleFluids() ? amount * TileInfuser.getLiquidOffsets().size() : amount;
@@ -301,7 +303,7 @@ public class ActiveLiquidInfusionRecipe {
         return fixTime + chaliceTime;
     }
 
-    public CompoundNBT getCraftingData() {
+    public CompoundTag getCraftingData() {
         return craftingData;
     }
 
@@ -323,32 +325,32 @@ public class ActiveLiquidInfusionRecipe {
 
     @Nullable
     public Player tryGetCraftingPlayerServer() {
-        MinecraftServer srv = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-        return srv.getPlayerList().getUUID(this.getPlayerCraftingUUID());
+        MinecraftServer srv = ServerLifecycleHooks.getCurrentServer();
+        return srv != null ? srv.getPlayerList().getPlayer(this.getPlayerCraftingUUID()) : null;
     }
 
     @Nullable
-    public static ActiveLiquidInfusionRecipe deserialize(CompoundNBT compound, @Nullable ActiveLiquidInfusionRecipe prev) {
+    public static ActiveLiquidInfusionRecipe deserialize(CompoundTag compound, @Nullable ActiveLiquidInfusionRecipe prev) {
         RecipeManager mgr = RecipeHelper.getRecipeManager();
         if (mgr == null) {
             return null;
         }
 
         ResourceLocation recipeKey = new ResourceLocation(compound.getString("recipeToCraft"));
-        Optional<?> recipe = mgr.getRecipe(recipeKey);
+        Optional<?> recipe = mgr.byKey(recipeKey);
         if (!recipe.isPresent() || !(recipe.get() instanceof LiquidInfusion)) {
             AstralSorcery.log.info("Recipe with unknown/invalid name found: " + recipeKey);
             return null;
         }
         LiquidInfusion altarRecipe = (LiquidInfusion) recipe.get();
 
-        UUID uuidCraft = compound.getUniqueId("playerCraftingUUID");
+        UUID uuidCraft = compound.getUUID("playerCraftingUUID");
         int tick = compound.getInt("ticksCrafting");
-        ListNBT chalices = compound.getList("supportingChalices", Constants.NBT.TAG_COMPOUND);
+        ListTag chalices = compound.getList("supportingChalices", Tag.TAG_COMPOUND);
 
         Set<BlockPos> chalicePositions = new HashSet<>();
         for (int i = 0; i < chalices.size(); i++) {
-            CompoundNBT tag = chalices.getCompound(i);
+            CompoundTag tag = chalices.getCompound(i);
             chalicePositions.add(NBTHelper.readBlockPosFromNBT(tag));
         }
 
@@ -364,13 +366,13 @@ public class ActiveLiquidInfusionRecipe {
     }
 
     @Nonnull
-    public CompoundNBT serialize() {
-        ListNBT chalicePositions = new ListNBT();
-        this.supportingChalices.forEach(pos -> chalicePositions.add(NBTHelper.writeBlockPosToNBT(pos, new CompoundNBT())));
+    public CompoundTag serialize() {
+        ListTag chalicePositions = new ListTag();
+        this.supportingChalices.forEach(pos -> chalicePositions.add(NBTHelper.writeBlockPosToNBT(pos, new CompoundTag())));
 
-        CompoundNBT compound = new CompoundNBT();
+        CompoundTag compound = new CompoundTag();
         compound.putString("recipeToCraft", getRecipeToCraft().getId().toString());
-        compound.putUniqueId("playerCraftingUUID", getPlayerCraftingUUID());
+        compound.putUUID("playerCraftingUUID", getPlayerCraftingUUID());
         compound.putInt("ticksCrafting", getTicksCrafting());
         compound.put("craftingData", craftingData);
         compound.put("supportingChalices", chalicePositions);

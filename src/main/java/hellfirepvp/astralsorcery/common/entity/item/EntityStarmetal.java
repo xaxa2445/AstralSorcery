@@ -15,21 +15,20 @@ import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.reflection.ReflectionHelper;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntitySize;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.Pose;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.IPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraft.world.InteractionHand;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -40,69 +39,73 @@ import net.minecraftforge.fml.network.NetworkHooks;
  */
 public class EntityStarmetal extends EntityCustomItemReplacement implements InteractableEntity {
 
-    public EntityStarmetal(EntityType<? extends ItemEntity> type, World world) {
+    public EntityStarmetal(EntityType<? extends ItemEntity> type, Level world) {
         super(type, world);
         ReflectionHelper.setSkipItemPhysicsRender(this);
-        recalculateSize();
+        refreshDimensions();
     }
 
-    public EntityStarmetal(EntityType<? extends ItemEntity> type, World world, double x, double y, double z) {
+    public EntityStarmetal(EntityType<? extends ItemEntity> type, Level world, double x, double y, double z) {
         this(type, world);
-        this.setPosition(x, y, z);
-        this.rotationYaw = this.rand.nextFloat() * 360.0F;
-        this.setMotion(this.rand.nextDouble() * 0.2D - 0.1D, 0.2D, this.rand.nextDouble() * 0.2D - 0.1D);
+        this.setPos(x, y, z);
+        this.setYRot(this.random.nextFloat() * 360.0F);
+        this.setDeltaMovement(this.random.nextDouble() * 0.2D - 0.1D, 0.2D, this.random.nextDouble() * 0.2D - 0.1D);
     }
 
-    public EntityStarmetal(EntityType<? extends ItemEntity> type, World world, double x, double y, double z, ItemStack stack) {
+    public EntityStarmetal(EntityType<? extends ItemEntity> type, Level world, double x, double y, double z, ItemStack stack) {
         this(type, world, x, y, z);
         this.setItem(stack);
         this.lifespan = stack.isEmpty() ? 6000 : stack.getEntityLifespan(world);
     }
 
-    public static EntityType.IFactory<EntityStarmetal> factoryStarmetalIngot() {
-        return (spawnEntity, world) -> new EntityStarmetal(EntityTypesAS.ITEM_STARMETAL_INGOT, world);
-    }
-
     @Override
-    public boolean canBeCollidedWith() {
+    public boolean isPickable() {
         return true;
     }
 
     @Override
-    public boolean canBeAttackedWithItem() {
+    public boolean skipAttackInteraction(Entity entity) {
         return true;
     }
 
     @Override
-    public boolean hitByEntity(Entity entity) {
-        if (!this.getEntityWorld().isRemote() && entity instanceof ServerPlayerEntity) {
-            ItemStack held = ((ServerPlayerEntity) entity).getHeldItem(Hand.MAIN_HAND);
+    public boolean hurt(DamageSource source, float amount) {
+        Entity entity = source.getEntity();
+
+        if (!level().isClientSide() && entity instanceof ServerPlayer player) {
+
+            ItemStack held = player.getItemInHand(InteractionHand.MAIN_HAND);
+
             if (!held.isEmpty() && held.getItem() instanceof ItemChisel) {
 
                 ItemStack thisStack = this.getItem();
+
                 if (!thisStack.isEmpty() && thisStack.getItem() instanceof ItemStarmetalIngot) {
 
                     boolean doDamage = false;
-                    if (rand.nextFloat() < 0.4F) {
-                        int fortuneLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.FORTUNE, held);
+
+                    if (random.nextFloat() < 0.4F) {
+                        int fortuneLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.BLOCK_FORTUNE, held);
                         doDamage = this.createStardust(fortuneLevel);
                     }
-                    if (doDamage || rand.nextFloat() < 0.35F) {
-                        held.damageItem(1, (PlayerEntity) entity, (player) -> player.sendBreakAnimation(Hand.MAIN_HAND));
+
+                    if (doDamage || random.nextFloat() < 0.35F) {
+                        held.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(InteractionHand.MAIN_HAND));
                     }
                 }
             }
         }
-        return true;
+
+        return super.hurt(source, amount);
     }
 
     private boolean createStardust(int fortuneLevel) {
         ItemStack created = new ItemStack(ItemsAS.STARDUST);
-        ItemUtils.dropItemNaturally(getEntityWorld(), this.getPosX(), this.getPosY() + 0.25F, this.getPosZ(), created);
+        ItemUtils.dropItemNaturally(level(), this.getX(), this.getY() + 0.25F, this.getZ(), created);
 
         float breakIngot = 0.90F;
-        breakIngot -= MathHelper.clamp(fortuneLevel, 0, 10) * 0.06F;
-        if (rand.nextFloat() < breakIngot) {
+        breakIngot -= Mth.clamp(fortuneLevel, 0, 10) * 0.06F;
+        if (random.nextFloat() < breakIngot) {
             ItemStack thisStack = this.getItem();
             thisStack.shrink(1);
             this.setItem(thisStack);
@@ -112,32 +115,27 @@ public class EntityStarmetal extends EntityCustomItemReplacement implements Inte
 
     @Override
     public void tick() {
-        boolean onGround = this.isOnGround();
+        boolean onGround = this.onGround();
         super.tick();
-        if (this.isOnGround() != onGround) {
-            recalculateSize();
+        if (this.onGround() != onGround) {
+            refreshDimensions();
         }
     }
 
     @Override
     public void setOnGround(boolean grounded) {
-        boolean updateSize = isOnGround() != grounded;
+        boolean updateSize = onGround() != grounded;
         super.setOnGround(grounded);
         if (updateSize) {
-            recalculateSize();
+            refreshDimensions();
         }
     }
 
     @Override
-    public EntitySize getSize(Pose poseIn) {
-        if (!this.isOnGround()) {
-            return EntityType.ITEM.getSize();
+    public EntityDimensions getDimensions(Pose poseIn) {
+        if (!this.onGround()) {
+            return EntityType.ITEM.getDimensions();
         }
-        return this.getType().getSize();
-    }
-
-    @Override
-    public IPacket<?> createSpawnPacket() {
-        return NetworkHooks.getEntitySpawningPacket(this);
+        return this.getType().getDimensions();
     }
 }

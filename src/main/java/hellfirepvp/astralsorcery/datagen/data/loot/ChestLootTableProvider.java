@@ -10,14 +10,15 @@ package hellfirepvp.astralsorcery.datagen.data.loot;
 
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.lib.LootAS;
-import net.minecraft.data.loot.ChestLootTables;
-import net.minecraft.item.Items;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.loot.ItemLootEntry;
-import net.minecraft.loot.LootPool;
-import net.minecraft.loot.LootTable;
-import net.minecraft.loot.RandomValueRange;
-import net.minecraft.loot.functions.SetCount;
+import net.minecraft.data.loot.LootTableSubProvider;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
+import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
+import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
 
 import java.util.function.BiConsumer;
 
@@ -28,24 +29,24 @@ import java.util.function.BiConsumer;
  * Created by HellFirePvP
  * Date: 02.05.2020 / 15:37
  */
-public class ChestLootTableProvider extends ChestLootTables {
+public class ChestLootTableProvider implements LootTableSubProvider {
 
     @Override
-    public void accept(BiConsumer<ResourceLocation, LootTable.Builder> registrar) {
+    public void generate(BiConsumer<ResourceLocation, LootTable.Builder> registrar) {
         registrar.accept(LootAS.SHRINE_CHEST,
-                LootTable.builder()
-                    .addLootPool(LootPool.builder()
-                            .rolls(RandomValueRange.of(3, 5))
-                            .bonusRolls(1, 2)
-                            .addEntry(ItemLootEntry.builder(ItemsAS.CONSTELLATION_PAPER).weight(18))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.AQUAMARINE).weight(12).acceptFunction(SetCount.builder(RandomValueRange.of(1, 3))))
-                            .addEntry(ItemLootEntry.builder(Items.BONE).weight(10).acceptFunction(SetCount.builder(RandomValueRange.of(1, 3))))
-                            .addEntry(ItemLootEntry.builder(Items.GOLD_INGOT).weight(5).acceptFunction(SetCount.builder(RandomValueRange.of(1, 2))))
-                            .addEntry(ItemLootEntry.builder(Items.IRON_INGOT).weight(15).acceptFunction(SetCount.builder(RandomValueRange.of(1, 3))))
-                            .addEntry(ItemLootEntry.builder(Items.DIAMOND).weight(2))
-                            .addEntry(ItemLootEntry.builder(Items.GLOWSTONE_DUST).weight(8).acceptFunction(SetCount.builder(RandomValueRange.of(1, 3))))
-                            .addEntry(ItemLootEntry.builder(Items.EMERALD).weight(1))
-                            .addEntry(ItemLootEntry.builder(Items.ENDER_PEARL).weight(2))
+                LootTable.lootTable()
+                    .withPool(LootPool.lootPool()
+                            .setRolls(UniformGenerator.between(3.0F, 5.0F))
+                            .setBonusRolls(UniformGenerator.between(1.0F, 2.0F))
+                            .add(LootItem.lootTableItem(ItemsAS.CONSTELLATION_PAPER).setWeight(18))
+                            .add(LootItem.lootTableItem(ItemsAS.AQUAMARINE).setWeight(12).apply(SetItemCountFunction.setCount(UniformGenerator.between(1, 3))))
+                            .add(LootItem.lootTableItem(Items.BONE).setWeight(10).apply(SetItemCountFunction.setCount(UniformGenerator.between(1, 3))))
+                            .add(LootItem.lootTableItem(Items.GOLD_INGOT).setWeight(5).apply(SetItemCountFunction.setCount(UniformGenerator.between(1, 2))))
+                            .add(LootItem.lootTableItem(Items.IRON_INGOT).setWeight(15).apply(SetItemCountFunction.setCount(UniformGenerator.between(1, 3))))
+                            .add(LootItem.lootTableItem(Items.DIAMOND).setWeight(2))
+                            .add(LootItem.lootTableItem(Items.GLOWSTONE_DUST).setWeight(8).apply(SetItemCountFunction.setCount(UniformGenerator.between(1, 3))))
+                            .add(LootItem.lootTableItem(Items.EMERALD).setWeight(1))
+                            .add(LootItem.lootTableItem(Items.ENDER_PEARL).setWeight(2))
                     )
         );
     }

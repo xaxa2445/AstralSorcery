@@ -31,9 +31,10 @@ import hellfirepvp.astralsorcery.common.tile.base.network.TileSourceBase;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -70,15 +71,15 @@ public class TileCollectorCrystal extends TileSourceBase<SimpleTransmissionSourc
 
     private Object[] effectOrbitals = new Object[4];
 
-    public TileCollectorCrystal() {
-        super(TileEntityTypesAS.COLLECTOR_CRYSTAL);
+    public TileCollectorCrystal(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.COLLECTOR_CRYSTAL, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!this.getWorld().isRemote()) {
+        if (!this.getLevel().isClientSide()) {
             this.doesSeeSky();
             this.hasMultiblock();
         } else {
@@ -122,7 +123,7 @@ public class TileCollectorCrystal extends TileSourceBase<SimpleTransmissionSourc
                 }
             }
 
-            BlockPos starlightSource = MiscUtils.getRandomEntry(OFFSETS_LIQUID_STARLIGHT, rand).add(this.getPos());
+            BlockPos starlightSource = MiscUtils.getRandomEntry(OFFSETS_LIQUID_STARLIGHT, rand).offset(this.getBlockPos());
 
             Vector3 from = new Vector3(starlightSource).add(rand.nextFloat(), 0.85F, rand.nextFloat());
             Vector3 motion = thisPos.clone().subtract(from).normalize().multiply(0.08F);
@@ -240,7 +241,7 @@ public class TileCollectorCrystal extends TileSourceBase<SimpleTransmissionSourc
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.constellationType = NBTHelper.readOptional(compound, "constellationType", (nbt) -> {
@@ -260,11 +261,11 @@ public class TileCollectorCrystal extends TileSourceBase<SimpleTransmissionSourc
         setAttributes(CrystalAttributes.getCrystalAttributes(compound));
         this.crystalAttributes = CrystalAttributes.getCrystalAttributes(compound);;
         this.collectorType = NBTHelper.readEnum(compound, "collectorType", CollectorCrystalType.class);
-        this.playerUUID = NBTHelper.readOptional(compound, "playerUUID", (nbt) -> nbt.getUniqueId("playerUUID"));
+        this.playerUUID = NBTHelper.readOptional(compound, "playerUUID", (nbt) -> nbt.getUUID("playerUUID"));
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         if (getAttributes() != null) {
@@ -273,12 +274,12 @@ public class TileCollectorCrystal extends TileSourceBase<SimpleTransmissionSourc
         NBTHelper.writeOptional(compound, "constellationType", this.constellationType, (nbt, cst) -> cst.writeToNBT(nbt));
         NBTHelper.writeOptional(compound, "constellationTrait", this.constellationTrait, (nbt, cst) -> cst.writeToNBT(nbt));
         NBTHelper.writeEnum(compound, "collectorType", this.collectorType);
-        NBTHelper.writeOptional(compound, "playerUUID", this.playerUUID, (nbt, uuid) -> nbt.putUniqueId("playerUUID", uuid));
+        NBTHelper.writeOptional(compound, "playerUUID", this.playerUUID, (nbt, uuid) -> nbt.putUUID("playerUUID", uuid));
     }
 
     @Override
-    public AxisAlignedBB getRenderBoundingBox() {
-        return BOX.grow(1).offset(getPos());
+    public AABB getRenderBoundingBox() {
+        return new AABB(this.worldPosition).inflate(2, 1, 2);
     }
 
     @Nonnull

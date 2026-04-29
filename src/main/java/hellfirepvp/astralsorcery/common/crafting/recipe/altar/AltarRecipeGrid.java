@@ -16,17 +16,17 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import hellfirepvp.astralsorcery.common.block.tile.altar.AltarType;
 import hellfirepvp.astralsorcery.common.crafting.helper.ingredient.FluidIngredient;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.Tag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.JSONUtils;
-import net.minecraftforge.fluids.FluidAttributes;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import org.apache.commons.lang3.StringUtils;
 
@@ -139,14 +139,15 @@ public class AltarRecipeGrid {
             throw new IllegalArgumentException("Altar recipe grid cannot be empty!");
         }
 
-        for (Integer index : this.gridParts.keySet()) {
+        for (Map.Entry<Integer, Ingredient> entry : this.gridParts.entrySet()) {
+            Integer index = entry.getKey();
+            Ingredient input = entry.getValue();
             if (!type.hasSlot(index)) {
                 throw new IllegalArgumentException("Altar type " + type.name() + " has no slot at " + index);
             }
 
-            Ingredient input = this.gridParts.get(index);
-            if (input.hasNoMatchingItems()){
-                throw new IllegalArgumentException("Input at " + index + " has no matching items!");
+            if (input == null || input.isEmpty()) {
+                throw new IllegalArgumentException("El ingrediente en el slot " + index + " está vacío o es inválido.");
             }
         }
     }
@@ -206,24 +207,24 @@ public class AltarRecipeGrid {
     }
     */
 
-    public void write(PacketBuffer buffer) {
+    public void write(FriendlyByteBuf buffer) {
         buffer.writeInt(this.width);
         buffer.writeInt(this.height);
         buffer.writeInt(this.gridParts.size());
         this.gridParts.forEach((key, value) -> {
             buffer.writeInt(key);
-            value.write(buffer);
+            value.toNetwork(buffer);
         });
     }
 
-    public static AltarRecipeGrid read(PacketBuffer buffer) {
+    public static AltarRecipeGrid read(FriendlyByteBuf buffer) {
         int width = buffer.readInt();
         int height = buffer.readInt();
         int gridParts = buffer.readInt();
         Map<Integer, Ingredient> ingredientMap = new HashMap<>();
         for (int i = 0; i < gridParts; i++) {
             int slot = buffer.readInt();
-            Ingredient ingredient = Ingredient.read(buffer);
+            Ingredient ingredient = Ingredient.fromNetwork(buffer);
             ingredientMap.put(slot, ingredient);
         }
         return new AltarRecipeGrid(ingredientMap, width, height);
@@ -241,7 +242,7 @@ public class AltarRecipeGrid {
         for (Map.Entry<Integer, Ingredient> entry : this/*.centralizeGrid()*/.gridParts.entrySet()) {
             Integer slotIndex = entry.getKey();
             Ingredient value = entry.getValue();
-            JsonElement jsonIngredient = value.serialize();
+            JsonElement jsonIngredient = value.toJson();
             if (!revMap.containsKey(jsonIngredient)) {
                 String strKey = String.valueOf(c);
                 revMap.put(jsonIngredient, strKey);
@@ -268,8 +269,8 @@ public class AltarRecipeGrid {
     }
 
     public static AltarRecipeGrid deserialize(AltarType type, JsonObject json) throws JsonSyntaxException {
-        JsonArray pattern = JSONUtils.getJsonArray(json, "pattern");
-        JsonObject keys = JSONUtils.getJsonObject(json, "key");
+        JsonArray pattern = GsonHelper.getAsJsonArray(json, "pattern");
+        JsonObject keys = GsonHelper.getAsJsonObject(json, "key");
 
         Map<Integer, Character> patternMap = new HashMap<>();
         Set<Character> usedChars = new HashSet<>();
@@ -278,7 +279,7 @@ public class AltarRecipeGrid {
         }
 
         for (int i = 0; i < Math.min(pattern.size(), GRID_SIZE); i++) {
-            String str = JSONUtils.getString(pattern.get(i), String.format("pattern[%s]", i));
+            String str = GsonHelper.convertToString(pattern.get(i), String.format("pattern[%s]", i));
             if (str.length() > GRID_SIZE) {
                 throw new JsonSyntaxException("Invalid pattern: too many columns, " + GRID_SIZE + " is maximum");
             }
@@ -310,7 +311,7 @@ public class AltarRecipeGrid {
                 throw new JsonSyntaxException("Invalid Key: '" + key + "'! Not used in the pattern map!");
             }
 
-            Ingredient i = Ingredient.deserialize(jEntry.getValue());
+            Ingredient i = Ingredient.fromJson(jEntry.getValue());
             for (int index = 0; index < MAX_INVENTORY_SIZE; index++) {
                 if (patternMap.get(index) == c) {
                     mappedIngredients.put(index, i);
@@ -350,16 +351,16 @@ public class AltarRecipeGrid {
             return this;
         }
 
-        public Builder key(Character key, ITag.INamedTag<Item> tagIn) {
-            return this.key(key, Ingredient.fromTag(tagIn));
+        public Builder key(Character key, TagKey<Item> tagIn) {
+            return this.key(key, Ingredient.of(tagIn));
         }
 
-        public Builder key(Character key, IItemProvider itemIn) {
-            return this.key(key, Ingredient.fromItems(itemIn));
+        public Builder key(Character key, ItemLike item) {
+            return this.key(key, Ingredient.of(item)); // fromItems -> of
         }
 
         public Builder key(Character key, Fluid fluid) {
-            return this.key(key, new FluidIngredient(new FluidStack(fluid, FluidAttributes.BUCKET_VOLUME)));
+            return this.key(key, new FluidIngredient(new FluidStack(fluid, FluidType.BUCKET_VOLUME)));
         }
 
         public Builder key(Character key, Ingredient input) {

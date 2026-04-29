@@ -10,10 +10,11 @@ package hellfirepvp.astralsorcery.common.block.base;
 
 import hellfirepvp.astralsorcery.common.tile.base.TileNetwork;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -24,18 +25,18 @@ import net.minecraft.world.level.Level;
  */
 public abstract class BlockStarlightNetwork extends BlockInventory {
 
-    protected BlockStarlightNetwork(Block.Properties builder) {
+    protected BlockStarlightNetwork(BlockBehaviour.Properties builder) {
         super(builder);
     }
 
     @Override
-    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
+    public void onRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
         if (state != newState) {
             TileNetwork<?> te = MiscUtils.getTileAt(worldIn, pos, TileNetwork.class, true);
             if (te != null) {
                 te.onBreak();
             }
         }
-        super.onReplaced(state, worldIn, pos, newState, isMoving);
+        super.onRemove(state, worldIn, pos, newState, isMoving);
     }
 }

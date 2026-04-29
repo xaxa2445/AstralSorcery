@@ -36,11 +36,17 @@ import hellfirepvp.astralsorcery.common.util.world.SkyCollectionHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ForgeCapabilities; // Nuevo acceso a Caps
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fluids.FluidType; // Reemplaza mucho de FluidAttributes
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -54,6 +60,8 @@ import java.awt.*;
  * Date: 30.06.2019 / 21:53
  */
 public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
+
+    RandomSource rand = RandomSource.create();
 
     private static final int TANK_SIZE = 2 * FluidType.BUCKET_VOLUME;
 
@@ -87,17 +95,17 @@ public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!getWorld().isRemote()) {
+        if (!getLevel().isClientSide) {
             if (this.doesSeeSky()) {
                 this.collectStarlight();
             }
 
             ItemStack stack = this.getInventory().getStackInSlot(0);
             if (!stack.isEmpty()) {
-                if (!getWorld().isAirBlock(getPos().up())) {
+                if (!getLevel().isEmptyBlock(getBlockPos().above())) {
                     breakCatalyst();
                 } else {
                     if (runningRecipe == null) {
@@ -117,13 +125,13 @@ public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
 
                             fillAndDiscardRest(runningRecipe, gain);
                             if (rand.nextInt(750) == 0) {
-                                EntityFlare.spawnAmbientFlare(getWorld(), getPos().add(-3 + rand.nextInt(7), 1, -3 + rand.nextInt(7)));
+                                EntityFlare.spawnAmbientFlare(getLevel(), getBlockPos().offset(-3 + rand.nextInt(7), 1, -3 + rand.nextInt(7)));
                             }
                         }
                         starlightBuffer = 0;
                         if (rand.nextInt(1 + (int) (1000 * (statMultiplier * runningRecipe.getShatterMultiplier()))) == 0) {
                             breakCatalyst();
-                            EntityFlare.spawnAmbientFlare(getWorld(), getPos().add(-3 + rand.nextInt(7), 1, -3 + rand.nextInt(7)));
+                            EntityFlare.spawnAmbientFlare(getLevel(), getBlockPos().offset(-3 + rand.nextInt(7), 1, -3 + rand.nextInt(7)));
                         }
                     } else {
                         breakCatalyst();
@@ -160,9 +168,9 @@ public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
 
         PktPlayEffect effect = new PktPlayEffect(PktPlayEffect.Type.SMALL_CRYSTAL_BREAK)
                 .addData(buf -> ByteBufUtils.writeVector(buf, new Vector3(this).add(0.5, 1.3, 0.5)));
-        PacketChannel.CHANNEL.sendToAllAround(effect, PacketChannel.pointFromPos(getWorld(), getPos(), 32));
+        PacketChannel.CHANNEL.sendToAllAround(effect, PacketChannel.pointFromPos(getLevel(), getBlockPos(), 32));
 
-        SoundHelper.playSoundAround(SoundEvents.BLOCK_GLASS_BREAK, getWorld(), getPos(), 1F, 1F);
+        SoundHelper.playSoundAround(SoundEvents.GLASS_BREAK, getLevel(), getBlockPos(), 1F, 1F);
         markForUpdate();
     }
 
@@ -210,21 +218,15 @@ public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
     }
 
     private void collectStarlight() {
-        double sbDayDistribution = DayTimeHelper.getCurrentDaytimeDistribution(world);
+        double sbDayDistribution = DayTimeHelper.getCurrentDaytimeDistribution(this.level);
         sbDayDistribution = 0.3 + (0.7 * sbDayDistribution);
-        int yLevel = getPos().getY();
-        float dstr;
-        if (yLevel > 120) {
-            dstr = 1F;
-        } else {
-            dstr = yLevel / 120F;
-        }
+
+        int yLevel = this.worldPosition.getY();
+        float dstr = (yLevel > 120) ? 1F : yLevel / 120F;
+
         if (posDistribution == -1) {
-            if (world instanceof ISeedReader) {
-                posDistribution = SkyCollectionHelper.getSkyNoiseDistribution((ISeedReader) world, getPos());
-            } else {
-                posDistribution = 0.3F;
-            }
+            // Ya no usamos ISeedReader, usamos level directamente
+            posDistribution = SkyCollectionHelper.getSkyNoiseDistribution(this.level, this.worldPosition);
         }
 
         sbDayDistribution *= dstr;
@@ -254,7 +256,7 @@ public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.tank.readNBT(compound.getCompound("tank"));
@@ -262,7 +264,7 @@ public class TileWell extends TileReceiverBase<StarlightReceiverWell> {
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         compound.put("tank", this.tank.writeNBT());

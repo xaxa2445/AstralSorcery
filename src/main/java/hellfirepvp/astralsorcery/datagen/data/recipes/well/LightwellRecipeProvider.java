@@ -32,7 +32,7 @@ public class LightwellRecipeProvider {
     public static void registerLightwellRecipes(Consumer<IFinishedRecipe> registrar) {
         WellRecipeBuilder.builder(AstralSorcery.key("starlight_aquamarine"))
                 .setItemInput(ItemsAS.AQUAMARINE)
-                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .color(new Color(0x00A7FF))
                 .productionMultiplier(0.45F)
                 .shatterMultiplier(9F)
@@ -40,7 +40,7 @@ public class LightwellRecipeProvider {
 
         WellRecipeBuilder.builder(AstralSorcery.key("starlight_resonating_gem"))
                 .setItemInput(ItemsAS.RESONATING_GEM)
-                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .color(new Color(0x00A7FF))
                 .productionMultiplier(0.65F)
                 .shatterMultiplier(15F)
@@ -48,7 +48,7 @@ public class LightwellRecipeProvider {
 
         WellRecipeBuilder.builder(AstralSorcery.key("starlight_rock_crystal"))
                 .setItemInput(ItemsAS.ROCK_CRYSTAL)
-                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .color(ColorsAS.ROCK_CRYSTAL)
                 .productionMultiplier(0.12F)
                 .shatterMultiplier(3.5F)
@@ -56,7 +56,7 @@ public class LightwellRecipeProvider {
 
         WellRecipeBuilder.builder(AstralSorcery.key("starlight_attuned_rock_crystal"))
                 .setItemInput(ItemsAS.ATTUNED_ROCK_CRYSTAL)
-                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .color(ColorsAS.ROCK_CRYSTAL)
                 .productionMultiplier(0.14F)
                 .shatterMultiplier(5F)
@@ -64,7 +64,7 @@ public class LightwellRecipeProvider {
 
         WellRecipeBuilder.builder(AstralSorcery.key("starlight_celestial_crystal"))
                 .setItemInput(ItemsAS.CELESTIAL_CRYSTAL)
-                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .color(ColorsAS.CELESTIAL_CRYSTAL)
                 .productionMultiplier(0.18F)
                 .shatterMultiplier(4F)
@@ -72,7 +72,7 @@ public class LightwellRecipeProvider {
 
         WellRecipeBuilder.builder(AstralSorcery.key("starlight_attuned_celestial_crystal"))
                 .setItemInput(ItemsAS.ATTUNED_CELESTIAL_CRYSTAL)
-                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE)
+                .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .color(ColorsAS.CELESTIAL_CRYSTAL)
                 .productionMultiplier(0.2F)
                 .shatterMultiplier(8F)

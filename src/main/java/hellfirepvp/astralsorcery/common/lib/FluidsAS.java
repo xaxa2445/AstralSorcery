@@ -9,7 +9,10 @@
 package hellfirepvp.astralsorcery.common.lib;
 
 import hellfirepvp.astralsorcery.common.fluid.FluidLiquidStarlight;
+import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
 import net.minecraftforge.fluids.ForgeFlowingFluid;
+
+import java.util.function.Supplier;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -22,9 +25,10 @@ public class FluidsAS {
 
     private FluidsAS() {}
 
-    public static ForgeFlowingFluid.Properties LIQUID_STARLIGHT_PROPERTIES;
+    public static final Supplier<FluidLiquidStarlight.Source> LIQUID_STARLIGHT_SOURCE =
+            () -> (FluidLiquidStarlight.Source) RegistryFluids.LIQUID_STARLIGHT_SOURCE.get();
 
-    public static FluidLiquidStarlight.Flowing LIQUID_STARLIGHT_FLOWING;
-    public static FluidLiquidStarlight.Source LIQUID_STARLIGHT_SOURCE;
+    public static final Supplier<FluidLiquidStarlight.Flowing> LIQUID_STARLIGHT_FLOWING =
+            () -> (FluidLiquidStarlight.Flowing) RegistryFluids.LIQUID_STARLIGHT_FLOWING.get();
 
 }

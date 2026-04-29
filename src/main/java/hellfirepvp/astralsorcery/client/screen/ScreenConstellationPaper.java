@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.client.screen;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.screen.base.WidthHeightScreen;
 import hellfirepvp.astralsorcery.client.util.Blending;
@@ -24,9 +24,11 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.SoundsAS;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.ITextProperties;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraftforge.fml.LogicalSide;
 
 import java.util.ArrayList;
@@ -52,7 +54,7 @@ public class ScreenConstellationPaper extends WidthHeightScreen {
     }
 
     private void resolvePhases() {
-        WorldContext ctx = SkyHandler.getContext(Minecraft.getInstance().world, LogicalSide.CLIENT);
+        WorldContext ctx = SkyHandler.getContext(Minecraft.getInstance().level, LogicalSide.CLIENT);
         if (ctx != null) {
             phases = new ArrayList<>();
             for (MoonPhase phase : MoonPhase.values()) {
@@ -66,7 +68,7 @@ public class ScreenConstellationPaper extends WidthHeightScreen {
     @Override
     public void onClose() {
         super.onClose();
-        SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_CLOSE, 1F, 1F);
+        SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_CLOSE.getSoundEvent(), 1F, 1F);
     }
 
     @Override
@@ -80,7 +82,7 @@ public class ScreenConstellationPaper extends WidthHeightScreen {
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
+    public void render(GuiGraphics renderStack, int mouseX, int mouseY, float pTicks) {
         RenderSystem.enableDepthTest();
         drawWHRect(renderStack, TexturesAS.TEX_GUI_CONSTELLATION_PAPER);
         drawHeader(renderStack);
@@ -88,20 +90,22 @@ public class ScreenConstellationPaper extends WidthHeightScreen {
         drawPhaseInformation(renderStack);
     }
 
-    private void drawHeader(MatrixStack renderStack) {
-        IFormattableTextComponent name = this.constellation.getConstellationName();
-        float length = font.getStringPropertyWidth(name) * 1.8F;
+    private void drawHeader(GuiGraphics graphics) {
+        PoseStack renderStack = graphics.pose();
+        Component name = this.constellation.getConstellationName();
+        float length = font.width(name) * 1.8F;
         double offsetLeft = (width >> 1) - (length / 2);
         int offsetTop = guiTop + 45;
 
-        renderStack.push();
+        renderStack.pushPose();
         renderStack.translate(offsetLeft + 2, offsetTop, this.getGuiZLevel());
         renderStack.scale(1.8F, 1.8F, 1F);
-        RenderingDrawUtils.renderStringAt(name, renderStack, font, 0xAA4D4D4D, false);
-        renderStack.pop();
+        RenderingDrawUtils.renderStringAt(font, graphics, name, 0xAA4D4D4D);
+        renderStack.popPose();
     }
 
-    private void drawConstellation(MatrixStack renderStack) {
+    private void drawConstellation(GuiGraphics graphics) {
+        PoseStack renderStack = graphics.pose();
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
 
@@ -115,15 +119,16 @@ public class ScreenConstellationPaper extends WidthHeightScreen {
         RenderSystem.disableBlend();
     }
 
-    private void drawPhaseInformation(MatrixStack renderStack) {
+    private void drawPhaseInformation(GuiGraphics graphics) {
+        PoseStack renderStack = graphics.pose();
         if (this.phases == null) {
             this.resolvePhases();
         }
 
         List<MoonPhase> phases = this.phases == null ? Collections.emptyList() : this.phases;
         if (phases.isEmpty()) {
-            ITextProperties text = new TranslationTextComponent("astralsorcery.journal.constellation.unknown");
-            RenderingDrawUtils.renderStringCentered(Minecraft.getInstance().fontRenderer, renderStack,
+            Component text = Component.translatable("astralsorcery.journal.constellation.unknown");
+            RenderingDrawUtils.renderStringCentered(Minecraft.getInstance().font, graphics,
                     text, guiLeft + guiWidth / 2 + 25, guiTop + 239,
                     1.8F, 0xAA4D4D4D);
         } else {
@@ -134,7 +139,7 @@ public class ScreenConstellationPaper extends WidthHeightScreen {
                 phases.get(i).getTexture().bindTexture();
                 RenderSystem.enableBlend();
                 Blending.DEFAULT.apply();
-                RenderingGuiUtils.drawRect(renderStack, offsetX + (i * (size + 2)), offsetY, this.getGuiZLevel(), size, size);
+                RenderingGuiUtils.drawRect(renderStack.last().pose(), offsetX + (i * (size + 2)), offsetY, this.getGuiZLevel(), size, size);
                 RenderSystem.disableBlend();
             }
         }

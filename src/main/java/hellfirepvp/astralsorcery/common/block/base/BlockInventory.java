@@ -10,13 +10,14 @@ package hellfirepvp.astralsorcery.common.block.base;
 
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.BlockState;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.CapabilityItemHandler;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -27,20 +28,20 @@ import net.minecraftforge.items.IItemHandler;
  */
 public abstract class BlockInventory extends BlockCrystalContainer {
 
-    protected BlockInventory(Properties builder) {
+    protected BlockInventory(BlockBehaviour.Properties builder) {
         super(builder);
     }
 
     @Override
-    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
-        TileEntity te = MiscUtils.getTileAt(worldIn, pos, TileEntity.class, true);
-        if (te != null && !worldIn.isRemote) {
-            LazyOptional<IItemHandler> opt = te.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY);
+    public void onRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
+        BlockEntity te = MiscUtils.getTileAt(worldIn, pos, BlockEntity.class, true);
+        if (te != null && !worldIn.isClientSide) {
+            LazyOptional<IItemHandler> opt = te.getCapability(ForgeCapabilities.ITEM_HANDLER);
             if (opt.isPresent()) {
                 ItemUtils.dropInventory(opt.orElse(ItemUtils.EMPTY_INVENTORY), worldIn, pos);
             }
         }
 
-        super.onReplaced(state, worldIn, pos, newState, isMoving);
+        super.onRemove(state, worldIn, pos, newState, isMoving);
     }
 }

@@ -16,8 +16,8 @@ import hellfirepvp.astralsorcery.common.starlight.transmission.IPrismTransmissio
 import hellfirepvp.astralsorcery.common.starlight.transmission.base.crystal.CrystalPrismTransmissionNode;
 import hellfirepvp.astralsorcery.common.starlight.transmission.registry.TransmissionProvider;
 import hellfirepvp.astralsorcery.common.tile.TilePrism;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -37,19 +37,19 @@ public class StarlightTransmissionPrism extends CrystalPrismTransmissionNode {
     }
 
     @Override
-    public <T extends TileEntity> boolean updateFromTileEntity(T tile) {
+    public <T extends BlockEntity> boolean updateFromTileEntity(T tile) {
         if (!(tile instanceof TilePrism)) {
             return super.updateFromTileEntity(tile);
         }
 
         LensColorType colorType = ((TilePrism) tile).getColorType();
         if (this.updateAdditionalLoss(colorType == null ? 0 : colorType.getFlowMultiplier())) {
-            TransmissionWorldHandler handle = StarlightTransmissionHandler.getInstance().getWorldHandler(tile.getWorld());
+            TransmissionWorldHandler handle = StarlightTransmissionHandler.getInstance().getWorldHandler(tile.getLevel());
             if (handle != null) {
                 handle.notifyTransmissionNodeChange(this);
             }
         }
-        this.updateIgnoreBlockCollisionState(tile.getWorld(), colorType != null && colorType.doesIgnoreBlockCollision());
+        this.updateIgnoreBlockCollisionState(tile.getLevel(), colorType != null && colorType.doesIgnoreBlockCollision());
         return true;
     }
 

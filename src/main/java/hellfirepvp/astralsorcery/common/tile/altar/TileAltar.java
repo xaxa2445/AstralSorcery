@@ -40,23 +40,28 @@ import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventoryFiltered;
 import hellfirepvp.astralsorcery.common.util.world.SkyCollectionHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.StringNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.ISeedReader;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nonnull;
@@ -88,16 +93,16 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
     private Object clientCraftSound = null;
     private Object clientWaitSound = null;
 
-    public TileAltar() {
-        super(TileEntityTypesAS.ALTAR);
+    public TileAltar(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.ALTAR, pos, state);
         this.inventory = new TileInventoryFiltered(this, () -> 25);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!getWorld().isRemote()) {
+        if (!getLevel().isClientSide()) {
             this.doesSeeSky();
             this.hasMultiblock();
 
@@ -119,7 +124,7 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
 
     @OnlyIn(Dist.CLIENT)
     private void doCraftSound() {
-        if (SoundHelper.getSoundVolume(SoundCategory.BLOCKS) > 0) {
+        if (SoundHelper.getSoundVolume(SoundSource.BLOCKS) > 0) {
             ActiveSimpleAltarRecipe activeRecipe = this.getActiveRecipe();
             AltarType type = this.getAltarType();
 
@@ -137,13 +142,13 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
                         break;
                 }
 
-                clientCraftSound = SoundHelper.playSoundLoopFadeInClient(sound,
+                clientCraftSound = SoundHelper.playSoundLoopFadeInClient(sound.getSoundEvent(),
                         new Vector3(this).add(0.5, 0.5, 0.5),
                         0.6F,
                         1F,
                         false,
                         (s) -> isRemoved() ||
-                                SoundHelper.getSoundVolume(SoundCategory.BLOCKS) <= 0 ||
+                                SoundHelper.getSoundVolume(SoundSource.BLOCKS) <= 0 ||
                                 this.getActiveRecipe() == null)
                         .setFadeInTicks(40)
                         .setFadeOutTicks(20);
@@ -152,9 +157,9 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
             if (activeRecipe.getState() == ActiveSimpleAltarRecipe.CraftingState.WAITING && type.isThisGEThan(AltarType.RADIANCE)) {
 
                 if (clientWaitSound == null || ((PositionedLoopSound) clientWaitSound).hasStoppedPlaying()) {
-                    clientWaitSound = SoundHelper.playSoundLoopFadeInClient(SoundsAS.ALTAR_CRAFT_LOOP_T4_WAITING, new Vector3(this).add(0.5, 0.5, 0.5), 0.7F, 1F, false,
+                    clientWaitSound = SoundHelper.playSoundLoopFadeInClient(SoundsAS.ALTAR_CRAFT_LOOP_T4_WAITING.getSoundEvent(), new Vector3(this).add(0.5, 0.5, 0.5), 0.7F, 1F, false,
                             (s) -> isRemoved() ||
-                                    SoundHelper.getSoundVolume(SoundCategory.BLOCKS) <= 0 ||
+                                    SoundHelper.getSoundVolume(SoundSource.BLOCKS) <= 0 ||
                                     this.getActiveRecipe() == null ||
                                     this.getActiveRecipe().getState() != ActiveSimpleAltarRecipe.CraftingState.WAITING)
                             .setFadeInTicks(30)
@@ -177,20 +182,20 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
         BlockPos at = ByteBufUtils.readPos(pkt.getExtraData());
         boolean isChaining = pkt.getExtraData().readBoolean();
 
-        World world = Minecraft.getInstance().world;
+        Level world = Minecraft.getInstance().level;
         if (world == null) {
             return;
         }
 
         TileAltar thisAltar = MiscUtils.getTileAt(world, at, TileAltar.class, false);
         if (thisAltar != null) {
-            IRecipe<?> recipe = world.getRecipeManager().getRecipes(RecipeTypesAS.TYPE_ALTAR.getType()).get(recipeName);
-            if (recipe instanceof SimpleAltarRecipe) {
-                ((SimpleAltarRecipe) recipe).getCraftingEffects().forEach(effect -> {
-                    effect.onCraftingFinish(thisAltar, isChaining);
-                });
-            }
-
+            world.getRecipeManager().byKey(recipeName).ifPresent(recipeHolder -> {
+                if (recipeHolder instanceof SimpleAltarRecipe) {
+                    ((SimpleAltarRecipe) recipeHolder).getCraftingEffects().forEach(effect -> {
+                        effect.onCraftingFinish(thisAltar, isChaining);
+                    });
+                }
+            });
             if (!isChaining) {
                 SoundHelper.playSoundClientWorld(SoundsAS.ALTAR_CRAFT_FINISH, at, 0.6F, 1F);
             }
@@ -228,16 +233,16 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
         if (!(isChaining = finishedRecipe.matches(this, false, true))) {
             this.abortCrafting();
 
-            EntityFlare.spawnAmbientFlare(getWorld(), getPos().add(-3 + rand.nextInt(7), 1 + rand.nextInt(3), -3 + rand.nextInt(7)));
-            EntityFlare.spawnAmbientFlare(getWorld(), getPos().add(-3 + rand.nextInt(7), 1 + rand.nextInt(3), -3 + rand.nextInt(7)));
+            EntityFlare.spawnAmbientFlare(getLevel(), getBlockPos().offset(-3 + rand.nextInt(7), 1 + rand.nextInt(3), -3 + rand.nextInt(7)));
+            EntityFlare.spawnAmbientFlare(getLevel(), getBlockPos().offset(-3 + rand.nextInt(7), 1 + rand.nextInt(3), -3 + rand.nextInt(7)));
         }
         PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.ALTAR_RECIPE_FINISH)
                 .addData(buf -> {
                     ByteBufUtils.writeResourceLocation(buf, recipeName);
-                    ByteBufUtils.writePos(buf, this.getPos());
+                    ByteBufUtils.writePos(buf, this.getBlockPos());
                     buf.writeBoolean(isChaining);
                 });
-        PacketChannel.CHANNEL.sendToAllAround(pkt, PacketChannel.pointFromPos(this.getWorld(), this.getPos(), 32));
+        PacketChannel.CHANNEL.sendToAllAround(pkt, PacketChannel.pointFromPos(this.getLevel(), this.getBlockPos(), 32));
 
         this.knownRecipes.add(recipeName);
         markForUpdate();
@@ -248,28 +253,28 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
         markForUpdate();
     }
 
-    protected SimpleAltarRecipe findRecipe(PlayerEntity crafter) {
+    protected SimpleAltarRecipe findRecipe(Player crafter) {
         return RecipeTypesAS.TYPE_ALTAR.findRecipe(new SimpleAltarRecipeContext(crafter, LogicalSide.SERVER, this)
                 .setIgnoreStarlightRequirement(false));
     }
 
-    protected boolean startCrafting(SimpleAltarRecipe recipe, PlayerEntity crafter) {
+    protected boolean startCrafting(SimpleAltarRecipe recipe, Player crafter) {
         if (this.getActiveRecipe() != null) {
             return false;
         }
 
         int divisor = Math.max(0, this.getAltarType().ordinal() - recipe.getAltarType().ordinal());
         divisor = (int) Math.round(Math.pow(2, divisor));
-        this.activeRecipe = new ActiveSimpleAltarRecipe(recipe, divisor, crafter.getUniqueID());
+        this.activeRecipe = new ActiveSimpleAltarRecipe(recipe, divisor, crafter.getUUID());
         markForUpdate();
 
-        SoundHelper.playSoundAround(SoundsAS.ALTAR_CRAFT_START, SoundCategory.BLOCKS, this.world, new Vector3(this).add(0.5, 0.5, 0.5), 0.6F, 1F);
+        SoundHelper.playSoundAround(SoundsAS.ALTAR_CRAFT_START.getSoundEvent(), SoundSource.BLOCKS, this.level, new Vector3(this).add(0.5, 0.5, 0.5), 0.6F, 1F);
         return true;
     }
 
     @Override
-    public boolean onInteract(World world, BlockPos pos, PlayerEntity player, Direction side, boolean sneak) {
-        if (!world.isRemote() && this.hasMultiblock()) {
+    public boolean onInteract(Level world, BlockPos pos, Player player, Direction side, boolean sneak) {
+        if (!world.isClientSide() && this.hasMultiblock()) {
             if (this.getActiveRecipe() != null) {
                 if (this.getActiveRecipe().matches(this, false, false)) {
                     return true;
@@ -288,7 +293,7 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
     private void gatherStarlight() {
         this.tickStarlightCollectionMap.clear();
 
-        WorldContext ctx = SkyHandler.getContext(getWorld());
+        WorldContext ctx = SkyHandler.getContext(getLevel());
         if (ctx == null) {
             if (this.starlightNextTick > 0) {
                 this.starlightNextTick = 0;
@@ -301,19 +306,19 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
         if (this.doesSeeSky()) {
             int altarTier = this.getAltarType().ordinal() + 1;
 
-            float heightAmount = MathHelper.clamp((float) Math.pow(getPos().getY() / 7F, 1.5F) / 65F, 0F, 1F);
-            heightAmount *= DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+            float heightAmount = Mth.clamp((float) Math.pow(getBlockPos().getY() / 7F, 1.5F) / 65F, 0F, 1F);
+            heightAmount *= DayTimeHelper.getCurrentDaytimeDistribution(getLevel());
             this.collectStarlight(heightAmount * altarTier * 60F, AltarCollectionCategory.HEIGHT);
 
             if (posDistribution == -1) {
-                if (world instanceof ISeedReader) {
-                    posDistribution = SkyCollectionHelper.getSkyNoiseDistribution((ISeedReader) world, pos);
+                if (level instanceof LevelAccessor) {
+                    posDistribution = SkyCollectionHelper.getSkyNoiseDistribution((LevelAccessor) getLevel(), getBlockPos());
                 } else {
                     posDistribution = 0.3F;
                 }
             }
-            float fieldAmount = MathHelper.sqrt(posDistribution);
-            fieldAmount *= DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+            float fieldAmount = Mth.sqrt(posDistribution);
+            fieldAmount *= DayTimeHelper.getCurrentDaytimeDistribution(getLevel());
             this.collectStarlight(fieldAmount * altarTier * 65F, AltarCollectionCategory.FOSIC_FIELD);
         }
 
@@ -321,8 +326,8 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
     }
 
     public void collectStarlight(float percent, AltarCollectionCategory category) {
-        int collectable = MathHelper.floor(Math.min(percent, getRemainingCollectionCapacity(category)));
-        this.starlightNextTick = MathHelper.clamp(this.starlightNextTick + collectable, 0, this.getAltarType().getStarlightCapacity());
+        int collectable = Mth.floor(Math.min(percent, getRemainingCollectionCapacity(category)));
+        this.starlightNextTick = Mth.clamp(this.starlightNextTick + collectable, 0, this.getAltarType().getStarlightCapacity());
         this.tickStarlightCollectionMap.computeIfPresent(category, (cat, remaining) -> Math.max(remaining - collectable, 0));
         this.markForUpdate();
         this.preventNetworkSync();
@@ -346,9 +351,9 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
                 }
 
                 BlockPos offset = new BlockPos(xx, 0, zz);
-                TileSpectralRelay tar = MiscUtils.getTileAt(getWorld(), getPos().add(offset), TileSpectralRelay.class, true);
+                TileSpectralRelay tar = MiscUtils.getTileAt(getLevel(), getBlockPos().offset(offset), TileSpectralRelay.class, true);
                 if (tar != null) {
-                    eligableRelayOffsets.add(getPos().add(offset));
+                    eligableRelayOffsets.add(getBlockPos().offset(offset));
                 }
             }
         }
@@ -359,9 +364,9 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
     public void onBreak() {
         super.onBreak();
 
-        if (!getWorld().isRemote() && !getFocusItem().isEmpty()) {
-            ItemUtils.dropItemNaturally(getWorld(),
-                    getPos().getX() + 0.5, getPos().getY() + 0.5, getPos().getZ() + 0.5,
+        if (!getLevel().isClientSide() && !getFocusItem().isEmpty()) {
+            ItemUtils.dropItemNaturally(getLevel(),
+                    getBlockPos().getX() + 0.5, getBlockPos().getY() + 0.5, getBlockPos().getZ() + 0.5,
                     this.focusItem);
 
             this.focusItem = ItemStack.EMPTY;
@@ -376,10 +381,10 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
     }
 
     private void updateNearbyRelayLinkStates() {
-        Set<BlockPos> relayPositions = BlockDiscoverer.searchForTileEntitiesAround(getWorld(), getPos(), 16, tile -> tile instanceof TileSpectralRelay);
+        Set<BlockPos> relayPositions = BlockDiscoverer.searchForTileEntitiesAround(getLevel(), getBlockPos(), 16, tile -> tile instanceof TileSpectralRelay);
 
         for (BlockPos relayPos : relayPositions) {
-            TileSpectralRelay tsr = MiscUtils.getTileAt(getWorld(), relayPos, TileSpectralRelay.class, true);
+            TileSpectralRelay tsr = MiscUtils.getTileAt(getLevel(), relayPos, TileSpectralRelay.class, true);
             if (tsr != null) {
                 tsr.updateAltarLinkState();
             }
@@ -435,10 +440,10 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public AxisAlignedBB getRenderBoundingBox() {
-        AxisAlignedBB box = super.getRenderBoundingBox().expand(0, 5, 0);
+    public AABB getRenderBoundingBox() {
+        AABB box = super.getRenderBoundingBox().inflate(0, 5, 0);
         if (this.getAltarType().isThisGEThan(AltarType.RADIANCE)) {
-            box = box.grow(3, 0, 3);
+            box = box.inflate(3, 0, 3);
         }
         return box;
     }
@@ -450,7 +455,7 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
 
         this.altarType = newType;
 
-        CompoundNBT thisTag = new CompoundNBT();
+        CompoundTag thisTag = new CompoundTag();
         this.writeCustomNBT(thisTag);
         this.readCustomNBT(thisTag);
         if (!initialPlacement) {
@@ -462,29 +467,29 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
     }
 
     @Override
-    public void readNetNBT(CompoundNBT compound) {
+    public void readNetNBT(CompoundTag compound) {
         super.readNetNBT(compound);
 
         this.starlightStorage.readNBT(compound);
     }
 
     @Override
-    public void writeNetNBT(CompoundNBT compound) {
+    public void writeNetNBT(CompoundTag compound) {
         super.writeNetNBT(compound);
 
         this.starlightStorage.writeNBT(compound);
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.altarType = AltarType.values()[compound.getInt("altarType")];
         this.inventory = this.inventory.deserialize(compound.getCompound("inventory"));
         this.focusItem = NBTHelper.getStack(compound, "focusItem");
-        this.knownRecipes = NBTHelper.readSet(compound, "knownRecipes", Constants.NBT.TAG_STRING, nbt -> new ResourceLocation(nbt.getString()));
+        this.knownRecipes = NBTHelper.readSet(compound, "knownRecipes", Tag.TAG_STRING, nbt -> new ResourceLocation(nbt.getAsString()));
 
-        if (compound.contains("activeRecipe", Constants.NBT.TAG_COMPOUND)) {
+        if (compound.contains("activeRecipe", Tag.TAG_COMPOUND)) {
             this.activeRecipe = ActiveSimpleAltarRecipe.deserialize(compound.getCompound("activeRecipe"), this.activeRecipe);
         } else {
             this.activeRecipe = null;
@@ -492,13 +497,13 @@ public class TileAltar extends TileReceiverBase<StarlightReceiverAltar> implemen
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         compound.putInt("altarType", this.altarType.ordinal());
         compound.put("inventory", this.inventory.serialize());
         NBTHelper.setStack(compound, "focusItem", this.focusItem);
-        NBTHelper.writeList(compound, "knownRecipes", this.knownRecipes, key -> StringNBT.valueOf(key.toString()));
+        NBTHelper.writeList(compound, "knownRecipes", this.knownRecipes, key -> StringTag.valueOf(key.toString()));
 
         if (this.activeRecipe != null) {
             compound.put("activeRecipe", this.activeRecipe.serialize());

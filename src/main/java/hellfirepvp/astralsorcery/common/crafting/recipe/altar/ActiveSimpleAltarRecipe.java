@@ -20,24 +20,26 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.RecipeHelper;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.item.crafting.RecipeManager;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidActionResult;
-import net.minecraftforge.fluids.FluidAttributes;
+import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.fluids.FluidUtil;
 import net.minecraftforge.fluids.capability.templates.VoidFluidHandler;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.server.ServerLifecycleHooks;
+
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -64,7 +66,7 @@ public class ActiveSimpleAltarRecipe {
     private int totalCraftingTime;
 
     private CraftingState state;
-    private CompoundNBT craftingData = new CompoundNBT();
+    private CompoundTag craftingData = new CompoundTag();
 
     private List<CraftingFocusStack> focusStacks = new LinkedList<>();
 
@@ -87,7 +89,7 @@ public class ActiveSimpleAltarRecipe {
         }
     }
 
-    public CompoundNBT getCraftingData() {
+    public CompoundTag getCraftingData() {
         return craftingData;
     }
 
@@ -108,9 +110,9 @@ public class ActiveSimpleAltarRecipe {
     }
 
     @Nullable
-    public PlayerEntity tryGetCraftingPlayerServer() {
-        MinecraftServer srv = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-        return srv.getPlayerList().getPlayerByUUID(this.getPlayerCraftingUUID());
+    public Player tryGetCraftingPlayerServer() {
+        MinecraftServer srv = ServerLifecycleHooks.getCurrentServer();
+        return srv.getPlayerList().getPlayer(this.getPlayerCraftingUUID());
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -134,7 +136,7 @@ public class ActiveSimpleAltarRecipe {
             Ingredient input = grid.getIngredient(slot);
             if (input instanceof FluidIngredient) {
                 ItemStack stack = inv.getStackInSlot(slot);
-                FluidActionResult far = FluidUtil.tryEmptyContainer(stack, VoidFluidHandler.INSTANCE, FluidAttributes.BUCKET_VOLUME, null, true);
+                FluidActionResult far = FluidUtil.tryEmptyContainer(stack, VoidFluidHandler.INSTANCE, FluidType.BUCKET_VOLUME, null, true);
                 if (far.isSuccess()) {
                     inv.setStackInSlot(slot, far.getResult());
                 }
@@ -144,12 +146,12 @@ public class ActiveSimpleAltarRecipe {
         }
 
         for (CraftingFocusStack input : this.focusStacks) {
-            TileSpectralRelay tar = MiscUtils.getTileAt(altar.getWorld(), input.getRealPosition(), TileSpectralRelay.class, true);
+            TileSpectralRelay tar = MiscUtils.getTileAt(altar.getLevel(), input.getRealPosition(), TileSpectralRelay.class, true);
             if (tar != null) {
                 TileInventory tarInventory = tar.getInventory();
                 if (input.getInput() != null && input.getInput().getIngredient() instanceof FluidIngredient) {
                     ItemStack stack = tarInventory.getStackInSlot(0);
-                    FluidActionResult far = FluidUtil.tryEmptyContainer(stack, VoidFluidHandler.INSTANCE, FluidAttributes.BUCKET_VOLUME, null, true);
+                    FluidActionResult far = FluidUtil.tryEmptyContainer(stack, VoidFluidHandler.INSTANCE, FluidType.BUCKET_VOLUME, null, true);
                     if (far.isSuccess()) {
                         tarInventory.setStackInSlot(0, far.getResult());
                     }
@@ -168,7 +170,7 @@ public class ActiveSimpleAltarRecipe {
         List<WrappedIngredient> listIngredients = this.getRecipeToCraft().getRelayInputs();
         for (CraftingFocusStack stack : this.focusStacks) {
             if (stack.getStackIndex() >= 0 && stack.getStackIndex() < listIngredients.size()) {
-                TileSpectralRelay relay = MiscUtils.getTileAt(altar.getWorld(), stack.getRealPosition(), TileSpectralRelay.class, true);
+                TileSpectralRelay relay = MiscUtils.getTileAt(altar.getLevel(), stack.getRealPosition(), TileSpectralRelay.class, true);
                 if (relay == null) {
                     return false;
                 }
@@ -231,7 +233,7 @@ public class ActiveSimpleAltarRecipe {
                         continue;
                     }
                     BlockPos at = MiscUtils.getRandomEntry(relays, rand);
-                    TileSpectralRelay tar = MiscUtils.getTileAt(altar.getWorld(), at, TileSpectralRelay.class, true);
+                    TileSpectralRelay tar = MiscUtils.getTileAt(altar.getLevel(), at, TileSpectralRelay.class, true);
                     if (tar == null) { // We were lied to. lol.
                         waitMissingInputs = true;
                         continue;
@@ -239,7 +241,7 @@ public class ActiveSimpleAltarRecipe {
                     found = new CraftingFocusStack(index, input, at);
                     this.focusStacks.add(found);
                 }
-                TileSpectralRelay tar = MiscUtils.getTileAt(altar.getWorld(), found.getRealPosition(), TileSpectralRelay.class, true);
+                TileSpectralRelay tar = MiscUtils.getTileAt(altar.getLevel(), found.getRealPosition(), TileSpectralRelay.class, true);
                 if (tar == null) {
                     waitMissingInputs = true;
                     continue;
@@ -269,29 +271,27 @@ public class ActiveSimpleAltarRecipe {
     }
 
     @Nullable
-    public static ActiveSimpleAltarRecipe deserialize(CompoundNBT compound, @Nullable ActiveSimpleAltarRecipe previous) {
+    public static ActiveSimpleAltarRecipe deserialize(CompoundTag compound, @Nullable ActiveSimpleAltarRecipe previous) {
         RecipeManager mgr = RecipeHelper.getRecipeManager();
         if (mgr == null) {
             return null;
         }
-
         ResourceLocation recipeKey = new ResourceLocation(compound.getString("recipeToCraft"));
-        Optional<?> recipe = mgr.getRecipe(recipeKey);
-        if (!recipe.isPresent() || !(recipe.get() instanceof SimpleAltarRecipe)) {
+        Optional<? extends Recipe<?>> recipeOpt = mgr.byKey(recipeKey);
+
+        if (recipeOpt.isEmpty() || !(recipeOpt.get() instanceof SimpleAltarRecipe altarRecipe)) {
             AstralSorcery.log.info("Recipe with unknown/invalid name found: " + recipeKey);
             return null;
         }
-        SimpleAltarRecipe altarRecipe = (SimpleAltarRecipe) recipe.get();
-        UUID uuidCraft = compound.getUniqueId("playerCraftingUUID");
+        UUID uuidCraft = compound.getUUID("playerCraftingUUID");
         int tick = compound.getInt("ticksCrafting");
         int total = compound.getInt("totalCraftingTime");
         CraftingState state = CraftingState.values()[compound.getInt("state")];
         List<CraftingFocusStack> stacks = new LinkedList<>();
-        ListNBT listStacks = compound.getList("focusStacks", Constants.NBT.TAG_COMPOUND);
+        ListTag listStacks = compound.getList("focusStacks", Tag.TAG_COMPOUND);
         for (int i = 0; i < listStacks.size(); i++) {
             stacks.add(new CraftingFocusStack(listStacks.getCompound(i)));
         }
-
         ActiveSimpleAltarRecipe task = new ActiveSimpleAltarRecipe(altarRecipe, uuidCraft);
         task.ticksCrafting = tick;
         task.totalCraftingTime = total;
@@ -303,16 +303,16 @@ public class ActiveSimpleAltarRecipe {
     }
 
     @Nonnull
-    public CompoundNBT serialize() {
-        CompoundNBT compound = new CompoundNBT();
+    public CompoundTag serialize() {
+        CompoundTag compound = new CompoundTag();
         compound.putString("recipeToCraft", getRecipeToCraft().getId().toString());
-        compound.putUniqueId("playerCraftingUUID", getPlayerCraftingUUID());
+        compound.putUUID("playerCraftingUUID", getPlayerCraftingUUID());
         compound.putInt("ticksCrafting", getTicksCrafting());
         compound.putInt("totalCraftingTime", getTotalCraftingTime());
         compound.putInt("state", getState().ordinal());
         compound.put("craftingData", craftingData);
 
-        ListNBT list = new ListNBT();
+        ListTag list = new ListTag();
         for (CraftingFocusStack stack : this.focusStacks) {
             list.add(stack.serialize());
         }

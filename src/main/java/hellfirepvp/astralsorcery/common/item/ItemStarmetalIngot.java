@@ -11,14 +11,13 @@ package hellfirepvp.astralsorcery.common.item;
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.entity.item.EntityStarmetal;
 import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,8 +29,7 @@ import javax.annotation.Nullable;
 public class ItemStarmetalIngot extends Item {
 
     public ItemStarmetalIngot() {
-        super(new Properties()
-                .group(CommonProxy.ITEM_GROUP_AS));
+        super(new Properties()); // ❌ group eliminado en 1.20
     }
 
     @Override
@@ -41,12 +39,25 @@ public class ItemStarmetalIngot extends Item {
 
     @Nullable
     @Override
-    public Entity createEntity(World world, Entity location, ItemStack itemstack) {
-        EntityStarmetal res = new EntityStarmetal(EntityTypesAS.ITEM_STARMETAL_INGOT, world, location.getPosX(), location.getPosY(), location.getPosZ(), itemstack);
-        res.read(location.writeWithoutTypeId(new CompoundNBT()));
-        if (location instanceof ItemEntity) {
-            res.setReplacedEntity((ItemEntity) location);
+    public Entity createEntity(Level level, Entity location, ItemStack stack) {
+
+        EntityStarmetal entity = new EntityStarmetal(
+                EntityTypesAS.ITEM_STARMETAL_INGOT.get(), // 🔥 IMPORTANTE
+                level,
+                location.getX(),
+                location.getY(),
+                location.getZ(),
+                stack
+        );
+
+        // 🔄 copiar NBT del item original
+        CompoundTag tag = location.saveWithoutId(new CompoundTag());
+        entity.load(tag);
+
+        if (location instanceof ItemEntity itemEntity) {
+            entity.setReplacedEntity(itemEntity);
         }
-        return res;
+
+        return entity;
     }
 }

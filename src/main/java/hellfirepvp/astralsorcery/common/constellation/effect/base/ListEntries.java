@@ -11,15 +11,16 @@ package hellfirepvp.astralsorcery.common.constellation.effect.base;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectRegistry;
 import hellfirepvp.astralsorcery.common.constellation.world.DayTimeHelper;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
-import net.minecraft.entity.*;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.biome.MobSpawnInfo;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraftforge.registries.ForgeRegistries;
-
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,32 +48,33 @@ public class ListEntries {
         }
 
         @Override
-        public void readFromNBT(CompoundNBT nbt) {
+        public void readFromNBT(CompoundTag nbt) {
             super.readFromNBT(nbt);
 
-            this.type = ForgeRegistries.ENTITIES.getValue(new ResourceLocation(nbt.getString("entity")));
+            this.type = ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation(nbt.getString("entity")));
         }
 
         @Override
-        public void writeToNBT(CompoundNBT nbt) {
+        public void writeToNBT(CompoundTag nbt) {
             super.writeToNBT(nbt);
 
-            nbt.putString("entity", this.type.getRegistryName().toString());
+            nbt.putString("entity", ForgeRegistries.ENTITY_TYPES.getKey(this.type).toString());
         }
 
-        public static EntitySpawnEntry createEntry(ServerWorld world, BlockPos pos, SpawnReason reason) {
-            Biome b = world.getBiome(pos);
-            List<MobSpawnInfo.Spawners> applicable = new LinkedList<>();
+        public static EntitySpawnEntry createEntry(ServerLevel world, BlockPos pos, MobSpawnType reason) {
+            MobSpawnSettings spawnSettings = world.getBiome(pos).value().getMobSettings();
+            List<MobSpawnSettings.SpawnerData> applicable = new LinkedList<>();
             if (DayTimeHelper.isNight(world)) {
-                applicable.addAll(b.getMobSpawnInfo().getSpawners(EntityClassification.MONSTER));
+                applicable.addAll(spawnSettings.getMobs(MobCategory.MONSTER).unwrap());
             } else {
-                applicable.addAll(b.getMobSpawnInfo().getSpawners(EntityClassification.CREATURE));
+                applicable.addAll(spawnSettings.getMobs(MobCategory.CREATURE).unwrap());
             }
             if (applicable.isEmpty()) {
                 return null; //Duh.
             }
+            RandomSource rand = world.getRandom();
             Collections.shuffle(applicable);
-            MobSpawnInfo.Spawners entry = applicable.get(world.rand.nextInt(applicable.size()));
+            MobSpawnSettings.SpawnerData entry = applicable.get(rand.nextInt(applicable.size()));
             EntityType<?> type = entry.type;
             if (type != null && EntityUtils.canEntitySpawnHere(world, pos, type, reason, EntityUtils.SpawnConditionFlags.IGNORE_SPAWN_CONDITIONS,
                     (e) -> e.addTag(ConstellationEffectRegistry.ENTITY_TAG_LUCERNA_SKIP_ENTITY))) {
@@ -81,7 +83,7 @@ public class ListEntries {
             return null;
         }
 
-        public void spawn(ServerWorld world, SpawnReason reason) {
+        public void spawn(ServerLevel world, MobSpawnType reason) {
             if (this.type == null) {
                 return;
             }
@@ -91,21 +93,21 @@ public class ListEntries {
                 e.addTag(ConstellationEffectRegistry.ENTITY_TAG_LUCERNA_SKIP_ENTITY);
 
                 BlockPos at = getPos();
-                e.setLocationAndAngles(
-                        at.getX() + 0.5,
-                        at.getY() + 0.5,
-                        at.getZ() + 0.5,
-                        world.rand.nextFloat() * 360.0F, 0.0F);
-                if (e instanceof MobEntity) {
-                    ((MobEntity) e).onInitialSpawn(world, world.getDifficultyForLocation(at), reason, null, null);
-                    if (!((MobEntity) e).isNotColliding(world)) {
-                        e.remove();
+                RandomSource rand = world.getRandom();
+
+                // setLocationAndAngles -> moveTo
+                e.moveTo(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5, rand.nextFloat() * 360.0F, 0.0F);
+
+                if (e instanceof Mob mob) {
+                    // onInitialSpawn -> finalizeSpawn
+                    mob.finalizeSpawn(world, world.getCurrentDifficultyAt(at), reason, null, null);
+                    if (!mob.checkSpawnObstruction(world)) {
+                        mob.discard(); // remove() -> discard()
                         return;
                     }
                 }
-                world.addEntity(e);
-                world.playEvent(2004, e.getPosition(), 0);
-                world.playEvent(2004, e.getPosition(), 0);
+                world.addFreshEntity(e); // addEntity -> addFreshEntity
+                world.levelEvent(2004, at, 0); // playEvent -> levelEvent
             }
         }
     }
@@ -132,14 +134,14 @@ public class ListEntries {
         }
 
         @Override
-        public void writeToNBT(CompoundNBT nbt) {
+        public void writeToNBT(CompoundTag nbt) {
             super.writeToNBT(nbt);
 
             nbt.putInt("maxCount", this.maxCount);
         }
 
         @Override
-        public void readFromNBT(CompoundNBT nbt) {
+        public void readFromNBT(CompoundTag nbt) {
             super.readFromNBT(nbt);
 
             this.maxCount = nbt.getInt("maxCount");
@@ -163,14 +165,14 @@ public class ListEntries {
         }
 
         @Override
-        public void writeToNBT(CompoundNBT nbt) {
+        public void writeToNBT(CompoundTag nbt) {
             super.writeToNBT(nbt);
 
             nbt.putInt("counter", this.counter);
         }
 
         @Override
-        public void readFromNBT(CompoundNBT nbt) {
+        public void readFromNBT(CompoundTag nbt) {
             super.readFromNBT(nbt);
 
             this.counter = nbt.getInt("counter");
@@ -191,10 +193,10 @@ public class ListEntries {
         }
 
         @Override
-        public void writeToNBT(CompoundNBT nbt) {}
+        public void writeToNBT(CompoundTag nbt) {}
 
         @Override
-        public void readFromNBT(CompoundNBT nbt) {}
+        public void readFromNBT(CompoundTag nbt) {}
 
     }
 }

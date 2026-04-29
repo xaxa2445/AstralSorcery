@@ -38,6 +38,7 @@ import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -45,14 +46,18 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource; // SoundCategory -> SoundSource
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidType; // FluidAttributes -> FluidType
 import net.minecraftforge.fml.LogicalSide;
@@ -72,6 +77,8 @@ import java.util.Set;
  * Date: 09.11.2019 / 11:18
  */
 public class TileInfuser extends TileEntityTick implements WandInteractable {
+
+    private static final RandomSource rand = RandomSource.create();
 
     private static final Set<BlockPos> LIQUID_OFFSETS = ImmutableSet.of(
             new BlockPos( 1, -1,  2),
@@ -246,7 +253,7 @@ public class TileInfuser extends TileEntityTick implements WandInteractable {
         this.activeRecipe = new ActiveLiquidInfusionRecipe(getLevel(), getBlockPos(), recipe, crafter.getUUID());
         markForUpdate();
 
-        SoundHelper.playSoundAround(SoundsAS.INFUSER_CRAFT_START, SoundSource.BLOCKS, this.level, new Vector3(this).add(0.5, 0.5, 0.5), 1F, 1F);
+        SoundHelper.playSoundAround(SoundsAS.INFUSER_CRAFT_START.getSoundEvent(), SoundSource.BLOCKS, this.level, new Vector3(this).add(0.5, 0.5, 0.5), 1F, 1F);
         return true;
     }
 
@@ -293,7 +300,7 @@ public class TileInfuser extends TileEntityTick implements WandInteractable {
 
     @Nonnull
     public Map<BlockPos, Fluid> getLiquids() {
-        return MapStream.ofKeys(getLiquidOffsets(), pos -> getLevel().getFluidState(getBlockPos().offset(pos)).getFluid()).toMap();
+        return MapStream.ofKeys(getLiquidOffsets(), pos -> getLevel().getFluidState(getBlockPos().offset(pos)).getType()).toMap();
     }
 
     @Nonnull
@@ -321,7 +328,7 @@ public class TileInfuser extends TileEntityTick implements WandInteractable {
         super.readCustomNBT(compound);
 
         this.inventory = this.inventory.deserialize(compound.getCompound("inventory"));
-        this.knownRecipes = NBTHelper.readSet(compound, "knownRecipes", Tag.TAG_STRING, nbt -> new ResourceLocation(nbt.getString()));
+        this.knownRecipes = NBTHelper.readSet(compound, "knownRecipes", Tag.TAG_STRING, nbt -> new ResourceLocation(nbt.getAsString()));
 
         if (compound.contains("activeRecipe", Tag.TAG_COMPOUND)) {
             this.activeRecipe = ActiveLiquidInfusionRecipe.deserialize(compound.getCompound("activeRecipe"), this.activeRecipe);

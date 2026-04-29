@@ -147,12 +147,13 @@ public class RegistryItems {
         );
     }
 
-    public static void registerDispenseBehaviors() {
-        DispenserBlock.registerBehavior(
-                BUCKET_LIQUID_STARLIGHT,
-                FluidContainerDispenseBehavior.getInstance()
-        );
-    }
+    //public static void registerDispenseBehaviors() {
+    //DispenserBlock.registerBehavior(
+    //RegistryFluids.LIQUID_STARLIGHT_BUCKET.get(),
+    //FluidContainerDispenseBehavior.getInstance()
+    //);
+    //}
+
 
     public static void registerItemProperties() {
 

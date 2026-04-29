@@ -22,7 +22,7 @@ import java.util.Random;
  */
 public abstract class CelestialEvent {
 
-    public abstract void tick(World world, Random rand, WorldContext ctx);
+    public abstract void tick(Level world, Random rand, WorldContext ctx);
 
     public abstract boolean isActiveNow();
 
