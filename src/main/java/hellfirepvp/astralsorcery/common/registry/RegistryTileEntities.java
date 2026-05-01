@@ -14,6 +14,7 @@ import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.tile.*;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -36,48 +37,48 @@ public class RegistryTileEntities {
     private RegistryTileEntities() {}
 
     public static void registerTiles() {
-        SPECTRAL_RELAY = registerTile(TileSpectralRelay.class, BlocksAS.SPECTRAL_RELAY);
-        ALTAR = registerTile(TileAltar.class, BlocksAS.ALTAR_DISCOVERY, BlocksAS.ALTAR_ATTUNEMENT, BlocksAS.ALTAR_CONSTELLATION, BlocksAS.ALTAR_RADIANCE);
-        ATTUNEMENT_ALTAR = registerTile(TileAttunementAltar.class, BlocksAS.ATTUNEMENT_ALTAR);
-        CELESTIAL_CRYSTAL_CLUSTER = registerTile(TileCelestialCrystals.class, BlocksAS.CELESTIAL_CRYSTAL_CLUSTER);
-        GATEWAY = registerTile(TileCelestialGateway.class, BlocksAS.GATEWAY);
-        CHALICE = registerTile(TileChalice.class, BlocksAS.CHALICE);
-        COLLECTOR_CRYSTAL = registerTile(TileCollectorCrystal.class, BlocksAS.ROCK_COLLECTOR_CRYSTAL, BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL);
-        FOUNTAIN = registerTile(TileFountain.class, BlocksAS.FOUNTAIN);
-        GEM_CRYSTAL_CLUSTER = registerTile(TileGemCrystals.class, BlocksAS.GEM_CRYSTAL_CLUSTER);
-        ILLUMINATOR = registerTile(TileIlluminator.class, BlocksAS.ILLUMINATOR);
-        INFUSER = registerTile(TileInfuser.class, BlocksAS.INFUSER);
-        LENS = registerTile(TileLens.class, BlocksAS.LENS);
-        OBSERVATORY = registerTile(TileObservatory.class, BlocksAS.OBSERVATORY);
-        PRISM = registerTile(TilePrism.class, BlocksAS.PRISM);
-        REFRACTION_TABLE = registerTile(TileRefractionTable.class, BlocksAS.REFRACTION_TABLE);
-        RITUAL_LINK = registerTile(TileRitualLink.class, BlocksAS.RITUAL_LINK);
-        RITUAL_PEDESTAL = registerTile(TileRitualPedestal.class, BlocksAS.RITUAL_PEDESTAL);
-        TELESCOPE = registerTile(TileTelescope.class, BlocksAS.TELESCOPE);
-        TRANSLUCENT_BLOCK = registerTile(TileTranslucentBlock.class, BlocksAS.TRANSLUCENT_BLOCK);
-        TREE_BEACON = registerTile(TileTreeBeacon.class, BlocksAS.TREE_BEACON);
-        TREE_BEACON_COMPONENT = registerTile(TileTreeBeaconComponent.class, BlocksAS.TREE_BEACON_COMPONENT);
-        VANISHING = registerTile(TileVanishing.class, BlocksAS.VANISHING);
-        WELL = registerTile(TileWell.class, BlocksAS.WELL);
+        SPECTRAL_RELAY = registerTile(TileSpectralRelay.class, TileSpectralRelay::new, BlocksAS.SPECTRAL_RELAY);
+        ALTAR = registerTile(TileAltar.class, TileAltar::new ,BlocksAS.ALTAR_DISCOVERY, BlocksAS.ALTAR_ATTUNEMENT, BlocksAS.ALTAR_CONSTELLATION, BlocksAS.ALTAR_RADIANCE);
+        ATTUNEMENT_ALTAR = registerTile(TileAttunementAltar.class, TileAttunementAltar::new ,BlocksAS.ATTUNEMENT_ALTAR);
+        CELESTIAL_CRYSTAL_CLUSTER = registerTile(TileCelestialCrystals.class, TileCelestialCrystals::new ,BlocksAS.CELESTIAL_CRYSTAL_CLUSTER);
+        GATEWAY = registerTile(TileCelestialGateway.class, TileCelestialGateway::new ,BlocksAS.GATEWAY);
+        CHALICE = registerTile(TileChalice.class, TileChalice::new ,BlocksAS.CHALICE);
+        COLLECTOR_CRYSTAL = registerTile(TileCollectorCrystal.class, TileCollectorCrystal::new ,BlocksAS.ROCK_COLLECTOR_CRYSTAL, BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL);
+        FOUNTAIN = registerTile(TileFountain.class, TileFountain::new ,BlocksAS.FOUNTAIN);
+        GEM_CRYSTAL_CLUSTER = registerTile(TileGemCrystals.class, TileGemCrystals::new ,BlocksAS.GEM_CRYSTAL_CLUSTER);
+        ILLUMINATOR = registerTile(TileIlluminator.class, TileIlluminator::new ,BlocksAS.ILLUMINATOR);
+        INFUSER = registerTile(TileInfuser.class, TileInfuser::new ,BlocksAS.INFUSER);
+        LENS = registerTile(TileLens.class, TileLens::new ,BlocksAS.LENS);
+        OBSERVATORY = registerTile(TileObservatory.class, TileObservatory::new ,BlocksAS.OBSERVATORY);
+        PRISM = registerTile(TilePrism.class, TilePrism::new ,BlocksAS.PRISM);
+        REFRACTION_TABLE = registerTile(TileRefractionTable.class, TileRefractionTable::new ,BlocksAS.REFRACTION_TABLE);
+        RITUAL_LINK = registerTile(TileRitualLink.class, TileRitualLink::new ,BlocksAS.RITUAL_LINK);
+        RITUAL_PEDESTAL = registerTile(TileRitualPedestal.class, TileRitualPedestal::new ,BlocksAS.RITUAL_PEDESTAL);
+        TELESCOPE = registerTile(TileTelescope.class, TileTelescope::new ,BlocksAS.TELESCOPE);
+        TRANSLUCENT_BLOCK = registerTile(TileTranslucentBlock.class, TileTranslucentBlock::new ,BlocksAS.TRANSLUCENT_BLOCK);
+        TREE_BEACON = registerTile(TileTreeBeacon.class, TileTreeBeacon::new ,BlocksAS.TREE_BEACON);
+        TREE_BEACON_COMPONENT = registerTile(TileTreeBeaconComponent.class, TileTreeBeaconComponent::new ,BlocksAS.TREE_BEACON_COMPONENT);
+        VANISHING = registerTile(TileVanishing.class, TileVanishing::new ,BlocksAS.VANISHING);
+        WELL = registerTile(TileWell.class, TileWell::new ,BlocksAS.WELL);
     }
 
     @OnlyIn(Dist.CLIENT)
     public static void initClient() {
-        ClientRegistry.bindTileEntityRenderer(ALTAR, RenderAltar::new);
-        ClientRegistry.bindTileEntityRenderer(ATTUNEMENT_ALTAR, RenderAttunementAltar::new);
-        ClientRegistry.bindTileEntityRenderer(CHALICE, RenderChalice::new);
-        ClientRegistry.bindTileEntityRenderer(COLLECTOR_CRYSTAL, RenderCollectorCrystal::new);
-        ClientRegistry.bindTileEntityRenderer(INFUSER, RenderInfuser::new);
-        ClientRegistry.bindTileEntityRenderer(LENS, RenderLens::new);
-        ClientRegistry.bindTileEntityRenderer(OBSERVATORY, RenderObservatory::new);
-        ClientRegistry.bindTileEntityRenderer(PRISM, RenderPrism::new);
-        ClientRegistry.bindTileEntityRenderer(REFRACTION_TABLE, RenderRefractionTable::new);
-        ClientRegistry.bindTileEntityRenderer(RITUAL_PEDESTAL, RenderRitualPedestal::new);
-        ClientRegistry.bindTileEntityRenderer(SPECTRAL_RELAY, RenderSpectralRelay::new);
-        ClientRegistry.bindTileEntityRenderer(TELESCOPE, RenderTelescope::new);
-        ClientRegistry.bindTileEntityRenderer(TRANSLUCENT_BLOCK, RenderTileFakedState::new);
-        ClientRegistry.bindTileEntityRenderer(TREE_BEACON_COMPONENT, RenderTileFakedState::new);
-        ClientRegistry.bindTileEntityRenderer(WELL, RenderWell::new);
+        BlockEntityRenderers.register(ALTAR, RenderAltar::new);
+        BlockEntityRenderers.register(ATTUNEMENT_ALTAR, RenderAttunementAltar::new);
+        BlockEntityRenderers.register(CHALICE, RenderChalice::new);
+        BlockEntityRenderers.register(COLLECTOR_CRYSTAL, RenderCollectorCrystal::new);
+        BlockEntityRenderers.register(INFUSER, RenderInfuser::new);
+        BlockEntityRenderers.register(LENS, RenderLens::new);
+        BlockEntityRenderers.register(OBSERVATORY, RenderObservatory::new);
+        BlockEntityRenderers.register(PRISM, RenderPrism::new);
+        BlockEntityRenderers.register(REFRACTION_TABLE, RenderRefractionTable::new);
+        BlockEntityRenderers.register(RITUAL_PEDESTAL, RenderRitualPedestal::new);
+        BlockEntityRenderers.register(SPECTRAL_RELAY, RenderSpectralRelay::new);
+        BlockEntityRenderers.register(TELESCOPE, RenderTelescope::new);
+        BlockEntityRenderers.register(TRANSLUCENT_BLOCK, RenderTileFakedState::new);
+        BlockEntityRenderers.register(TREE_BEACON_COMPONENT, RenderTileFakedState::new);
+        BlockEntityRenderers.register(WELL, RenderWell::new);
     }
 
     private static <T extends BlockEntity> BlockEntityType<T> registerTile(
@@ -92,7 +93,8 @@ public class RegistryTileEntities {
 
         // EXPLICACIÓN: Como 'type.setRegistryName' ya no existe,
         // enviamos el objeto Y el nombre por separado a tu RegistryPrimer.
-        AstralSorcery.getProxy().getRegistryPrimer().register(type, name);
+        AstralSorcery.getProxy().getRegistryPrimer()
+                .register(BlockEntityType.class, type, name);
 
         return type;
     }

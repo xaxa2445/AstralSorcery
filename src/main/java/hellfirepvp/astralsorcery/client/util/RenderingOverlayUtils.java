@@ -34,7 +34,9 @@ import java.util.List;
  */
 public class RenderingOverlayUtils {
 
-    public static void renderDefaultItemDisplay(GuiGraphics graphics, List<Tuple<ItemStack, Integer>> itemStacks) {
+    public static void renderDefaultItemDisplay(PoseStack poseStack, List<Tuple<ItemStack, Integer>> itemStacks) {
+        Minecraft mc = Minecraft.getInstance();
+        GuiGraphics graphics = new GuiGraphics(mc, mc.renderBuffers().bufferSource());
         int heightNormal  =  26;
         int heightSplit = 13;
         int width   =  26;
@@ -42,7 +44,6 @@ public class RenderingOverlayUtils {
         int offsetY =  15;
 
         Font font = Minecraft.getInstance().font;
-        PoseStack poseStack = graphics.pose();
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();

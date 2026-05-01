@@ -18,8 +18,8 @@ import hellfirepvp.astralsorcery.common.util.data.JsonHelper;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.awt.*;

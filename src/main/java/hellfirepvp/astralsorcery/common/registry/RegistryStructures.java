@@ -50,20 +50,22 @@ public class RegistryStructures {
 
     private static <T extends MatchableStructure> T register(T struct) {
 
-        // registrar estructura directamente
+        // registrar estructura
         AstralSorcery.getProxy().getRegistryPrimer().register(
                 MatchableStructure.class,
-                struct
+                struct,
+                struct.getRegistryName()
         );
 
         // crear provider
         ObserverProviderStructure provider =
                 new ObserverProviderStructure(struct.getRegistryName());
 
-        // registrar provider directamente
+        // registrar provider
         AstralSorcery.getProxy().getRegistryPrimer().register(
                 ObserverProvider.class,
-                provider
+                provider,
+                struct.getRegistryName() // mismo ID o uno derivado si quieres
         );
 
         return struct;

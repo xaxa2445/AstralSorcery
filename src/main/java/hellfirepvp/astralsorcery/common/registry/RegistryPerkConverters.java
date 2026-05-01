@@ -38,14 +38,14 @@ public class RegistryPerkConverters {
         IDENTITY = register(new PerkConverter(AstralSorcery.key("identity")) {
             @Nonnull
             @Override
-            public PerkAttributeModifier convertModifier(PlayerEntity player, PlayerProgress progress, PerkAttributeModifier modifier, @Nullable ModifierSource owningSource) {
+            public PerkAttributeModifier convertModifier(Player player, PlayerProgress progress, PerkAttributeModifier modifier, @Nullable ModifierSource owningSource) {
                 return modifier;
             }
         });
         FOCUS_ALCARA = register(new PerkConverter(AstralSorcery.key("focus_alcara")) {
             @Nonnull
             @Override
-            public PerkAttributeModifier convertModifier(PlayerEntity player, PlayerProgress progress, PerkAttributeModifier modifier, @Nullable ModifierSource owningSource) {
+            public PerkAttributeModifier convertModifier(Player player, PlayerProgress progress, PerkAttributeModifier modifier, @Nullable ModifierSource owningSource) {
                 if (modifier.getAttributeType().equals(PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EXP)) {
                     return modifier.convertModifier(PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, modifier.getMode(), modifier.getValue(player, progress));
                 }
@@ -55,7 +55,7 @@ public class RegistryPerkConverters {
         FOCUS_GELU = register(new PerkConverter(AstralSorcery.key("focus_gelu")) {
             @Nonnull
             @Override
-            public PerkAttributeModifier convertModifier(PlayerEntity player, PlayerProgress progress, PerkAttributeModifier modifier, @Nullable ModifierSource owningSource) {
+            public PerkAttributeModifier convertModifier(Player player, PlayerProgress progress, PerkAttributeModifier modifier, @Nullable ModifierSource owningSource) {
                 if (modifier.getAttributeType().equals(PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT) &&
                         owningSource != null && !(owningSource instanceof KeyGelu)) {
                     return modifier.convertModifier(PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, ModifierType.STACKING_MULTIPLY, 1F);
@@ -66,7 +66,10 @@ public class RegistryPerkConverters {
     }
 
     private static <T extends PerkConverter> T register(T converter) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(converter);
+        // En 1.20.1 tu RegistryPrimer requiere: Clase, Objeto, ResourceLocation
+        // Hacemos cast a PerkConverter para acceder a su ID de forma segura
+        PerkConverter base = (PerkConverter) converter;
+        AstralSorcery.getProxy().getRegistryPrimer().register(PerkConverter.class, converter, base.getRegistryName());
         return converter;
     }
 }

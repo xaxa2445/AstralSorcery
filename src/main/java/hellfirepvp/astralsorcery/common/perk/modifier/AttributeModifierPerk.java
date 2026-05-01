@@ -17,11 +17,11 @@ import hellfirepvp.astralsorcery.common.perk.source.AttributeModifierProvider;
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.GsonHelper; // Reemplaza a JSONUtils
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -60,7 +60,7 @@ public class AttributeModifierPerk extends AttributeConverterPerk implements Att
     }
 
     @Override
-    public Collection<PerkAttributeModifier> getModifiers(PlayerEntity player, LogicalSide side, boolean ignoreRequirements) {
+    public Collection<PerkAttributeModifier> getModifiers(Player player, LogicalSide side, boolean ignoreRequirements) {
         if (!ignoreRequirements && ResearchHelper.getProgress(player, side).getPerkData().isPerkSealed(this)) {
             return Collections.emptyList();
         }
@@ -70,7 +70,7 @@ public class AttributeModifierPerk extends AttributeConverterPerk implements Att
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean addLocalizedTooltip(Collection<IFormattableTextComponent> tooltip) {
+    public boolean addLocalizedTooltip(Collection<MutableComponent> tooltip) {
         Collection<PerkAttributeModifier> modifiers = this.getModifiers(Minecraft.getInstance().player, LogicalSide.CLIENT, true);
         boolean addEmptyLine = !modifiers.isEmpty();
 
@@ -78,7 +78,7 @@ public class AttributeModifierPerk extends AttributeConverterPerk implements Att
             for (PerkAttributeModifier modifier : modifiers) {
                 String modifierDisplay = modifier.getLocalizedDisplayString();
                 if (modifierDisplay != null) {
-                    tooltip.add(new StringTextComponent(modifierDisplay));
+                    tooltip.add(Component.literal(modifierDisplay));
                 } else {
                     addEmptyLine = false;
                 }
@@ -94,33 +94,36 @@ public class AttributeModifierPerk extends AttributeConverterPerk implements Att
 
         this.modifiers.clear();
 
-        if (JSONUtils.hasField(perkData, "modifiers")) {
-            JsonArray array = JSONUtils.getJsonArray(perkData, "modifiers");
+        // Reemplazamos JSONUtils.hasField por GsonHelper.isValidNode
+        if (GsonHelper.isValidNode(perkData, "modifiers")) {
+            JsonArray array = GsonHelper.getAsJsonArray(perkData, "modifiers");
             for (int i = 0; i < array.size(); i++) {
-                JsonObject serializedModifier = JSONUtils.getJsonObject(array.get(i), "modifiers[%s]");
+                // Aplicamos convertToJsonObject para evitar el error de tipo JsonElement -> JsonObject
+                JsonObject serializedModifier = GsonHelper.convertToJsonObject(array.get(i), "modifiers[" + i + "]");
 
                 if (serializedModifier.has("custom")) {
-                    String customKey = JSONUtils.getString(serializedModifier, "custom");
+                    String customKey = GsonHelper.getAsString(serializedModifier, "custom");
                     PerkAttributeModifier customModifier = RegistriesAS.REGISTRY_PERK_CUSTOM_MODIFIERS.getValue(new ResourceLocation(customKey));
                     if (customModifier == null) {
                         throw new IllegalArgumentException("Unknown specified modifier: " + customKey);
                     }
                     this.addModifier(customModifier);
                 } else {
-                    String typeKey = JSONUtils.getString(serializedModifier, "type");
+                    String typeKey = GsonHelper.getAsString(serializedModifier, "type");
                     PerkAttributeType type = RegistriesAS.REGISTRY_PERK_ATTRIBUTE_TYPES.getValue(new ResourceLocation(typeKey));
                     if (type == null) {
                         throw new IllegalArgumentException("Unknown modifier type: " + typeKey);
                     }
-                    String modeKey = JSONUtils.getString(serializedModifier, "mode");
+
+                    String modeKey = GsonHelper.getAsString(serializedModifier, "mode");
                     ModifierType mode;
                     try {
                         mode = ModifierType.valueOf(modeKey);
                     } catch (Exception exc) {
                         throw new IllegalArgumentException("Unknown mode: " + modeKey);
                     }
-                    float value = JSONUtils.getFloat(serializedModifier, "value");
 
+                    float value = GsonHelper.getAsFloat(serializedModifier, "value");
                     this.addModifier(value, mode, type);
                 }
             }

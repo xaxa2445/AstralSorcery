@@ -9,7 +9,7 @@
 package hellfirepvp.astralsorcery.common.registry;
 
 import hellfirepvp.astralsorcery.common.block.base.MaterialBuilderAS;
-import net.minecraft.block.material.MaterialColor;
+import net.minecraft.world.level.material.MapColor;
 
 import static hellfirepvp.astralsorcery.common.lib.MaterialsAS.*;
 
@@ -25,14 +25,16 @@ public class RegistryMaterials {
     private RegistryMaterials() {}
 
     public static void init() {
-        MARBLE = new MaterialBuilderAS(MaterialColor.WHITE_TERRACOTTA)
-                .build();
-        BLACK_MARBLE = new MaterialBuilderAS(MaterialColor.BLACK)
+        // MARBLE ahora almacena un objeto BlockBehaviour.Properties
+        MARBLE = new MaterialBuilderAS(MapColor.TERRACOTTA_WHITE)
                 .build();
 
-        INFUSED_WOOD = new MaterialBuilderAS(MaterialColor.BROWN)
+        BLACK_MARBLE = new MaterialBuilderAS(MapColor.COLOR_BLACK)
+                .build();
+
+        // Para maderas, usamos el color WOOD y marcamos como inflamable
+        INFUSED_WOOD = new MaterialBuilderAS(MapColor.WOOD)
                 .flammable()
                 .build();
     }
-
 }

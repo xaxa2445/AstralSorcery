@@ -10,6 +10,7 @@ package hellfirepvp.astralsorcery.common.data.config.base;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.config.ModConfig;
 
@@ -75,7 +76,7 @@ public abstract class ConfigDataAdapter<T extends ConfigDataSet> {
     }
 
     @Nullable
-    public synchronized T getRandomValue(Random rand) {
+    public synchronized T getRandomValue(RandomSource rand) {
         return MiscUtils.getRandomEntry(getConfiguredValues(), rand);
     }
 

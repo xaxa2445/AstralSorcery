@@ -57,7 +57,7 @@ public class RegistryConstellationEffects {
     }
 
     private static <T extends ConstellationEffectProvider> T register(T effectProvider) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(effectProvider);
+        AstralSorcery.getProxy().getRegistryPrimer().register(ConstellationEffectProvider.class, effectProvider);
         return effectProvider;
     }
 }

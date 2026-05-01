@@ -231,6 +231,10 @@ public class NBTHelper {
         return _default;
     }
 
+    public static void setResourceLocation(CompoundTag compoundNBT, String tag, ResourceLocation key) {
+        compoundNBT.putString(tag, key.toString());
+    }
+
     public static CompoundTag writeBlockPosToNBT(BlockPos pos, CompoundTag compound) {
         compound.putInt("bposX", pos.getX());
         compound.putInt("bposY", pos.getY());
@@ -310,6 +314,14 @@ public class NBTHelper {
             return reader.apply(tag.getCompound(key));
         }
         return null;
+    }
+
+    public static void setFluid(CompoundTag compound, String tag, FluidStack stack) {
+        setAsSubTag(compound, tag, stack::writeToNBT);
+    }
+
+    public static FluidStack getFluid(CompoundTag compound, String tag) {
+        return ObjectUtils.firstNonNull(readFromSubTag(compound, tag, FluidStack::loadFluidStackFromNBT), FluidStack.EMPTY);
     }
 
     // Este método facilita escribir un objeto en un sub-tag Compound usando un consumidor

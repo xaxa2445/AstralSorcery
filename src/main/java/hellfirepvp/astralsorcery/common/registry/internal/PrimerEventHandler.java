@@ -74,7 +74,7 @@ public class PrimerEventHandler {
         // BLOCKS
         event.register(ForgeRegistries.Keys.BLOCKS, helper -> {
             RegistryBlocks.registerBlocks();
-            RegistryBlocks.registerFluidBlocks();
+            //RegistryBlocks.registerFluidBlocks();
 
             fillRegistry(helper, Block.class);
         });
@@ -87,13 +87,13 @@ public class PrimerEventHandler {
         // BLOCK ENTITIES
         event.register(ForgeRegistries.Keys.BLOCK_ENTITY_TYPES, helper -> {
             RegistryTileEntities.registerTiles();
-            fillRegistry(helper, BlockEntityType.class);
+            fillRegistry(helper, (Class) BlockEntityType.class);
         });
 
         // ENTITIES
         event.register(ForgeRegistries.Keys.ENTITY_TYPES, helper -> {
             RegistryEntities.init();
-            fillRegistry(helper, EntityType.class);
+            fillRegistry(helper, (Class) EntityType.class);
         });
 
         // EFFECTS
@@ -117,12 +117,12 @@ public class PrimerEventHandler {
         // MENUS
         event.register(ForgeRegistries.Keys.MENU_TYPES, helper -> {
             RegistryContainerTypes.init();
-            fillRegistry(helper, MenuType.class);
+            fillRegistry(helper, (Class) MenuType.class);
         });
 
         // RECIPE SERIALIZERS
         event.register(ForgeRegistries.Keys.RECIPE_SERIALIZERS, helper -> {
-            fillRegistry(helper, RecipeSerializer.class);
+            fillRegistry(helper, (Class) RecipeSerializer.class);
         });
 
 
@@ -157,13 +157,12 @@ public class PrimerEventHandler {
         RegistryPerkAttributeReaders.init();
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> void fillRegistry(RegisterEvent.RegisterHelper<? super T> helper, Class<T> clazz) {
+    private <T> void fillRegistry(RegisterEvent.RegisterHelper<T> helper, Class<T> clazz) {
         registry.getEntries(clazz).forEach(e -> {
-            ResourceLocation id = extractId(e);
-            helper.register(id, (T) e);
+            helper.register(e.id, e.obj);
         });
     }
+
 
     private ResourceLocation extractId(Object obj) {
 

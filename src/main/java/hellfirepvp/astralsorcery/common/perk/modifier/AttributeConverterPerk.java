@@ -17,9 +17,9 @@ import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkConverter;
 import hellfirepvp.astralsorcery.common.perk.ProgressGatedPerk;
 import hellfirepvp.astralsorcery.common.perk.source.AttributeConverterProvider;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.GsonHelper; // Reemplaza a JSONUtils
 import net.minecraftforge.fml.LogicalSide;
 
 import java.awt.*;
@@ -52,7 +52,7 @@ public class AttributeConverterPerk extends ProgressGatedPerk implements Attribu
     }
 
     @Override
-    public Collection<PerkConverter> getConverters(PlayerEntity player, LogicalSide side, boolean ignoreRequirements) {
+    public Collection<PerkConverter> getConverters(Player player, LogicalSide side, boolean ignoreRequirements) {
         if (!ignoreRequirements && ResearchHelper.getProgress(player, side).getPerkData().isPerkSealed(this)) {
             return Collections.emptyList();
         }
@@ -61,10 +61,10 @@ public class AttributeConverterPerk extends ProgressGatedPerk implements Attribu
     }
 
     @Override
-    public void applyPerkLogic(PlayerEntity player, LogicalSide side) {}
+    public void applyPerkLogic(Player player, LogicalSide side) {}
 
     @Override
-    public void removePerkLogic(PlayerEntity player, LogicalSide side) {}
+    public void removePerkLogic(Player player, LogicalSide side) {}
 
     @Override
     public void deserializeData(JsonObject perkData) {
@@ -72,17 +72,20 @@ public class AttributeConverterPerk extends ProgressGatedPerk implements Attribu
 
         this.converters.clear();
 
-        if (JSONUtils.hasField(perkData, "converters")) {
-            JsonArray array = JSONUtils.getJsonArray(perkData, "converters");
+        if (GsonHelper.isValidNode(perkData, "converters")) {
+            JsonArray array = GsonHelper.getAsJsonArray(perkData, "converters");
             for (int i = 0; i < array.size(); i++) {
-                JsonObject serializedConverter = JSONUtils.getJsonObject(array.get(i), "converters[%s]");
-                String key = JSONUtils.getString(serializedConverter, "name");
+                JsonObject serializedConverter = GsonHelper.convertToJsonObject(array.get(i), "converters[" + i + "]");
+                String key = GsonHelper.getAsString(serializedConverter, "name");
+
+                // Obtención del convertidor desde el registro personalizado de Astral Sorcery
                 PerkConverter converter = RegistriesAS.REGISTRY_PERK_ATTRIBUTE_CONVERTERS.getValue(new ResourceLocation(key));
                 if (converter == null) {
                     throw new JsonParseException("Unknown converter: " + key);
                 }
+
                 if (serializedConverter.has("radius")) {
-                    float radius = JSONUtils.getFloat(serializedConverter, "radius");
+                    float radius = GsonHelper.getAsFloat(serializedConverter, "radius");
                     this.addRangedConverter(radius, converter);
                 } else {
                     this.addConverter(converter);

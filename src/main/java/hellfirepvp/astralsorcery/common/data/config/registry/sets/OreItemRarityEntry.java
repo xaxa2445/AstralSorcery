@@ -11,15 +11,20 @@ package hellfirepvp.astralsorcery.common.data.config.registry.sets;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataSet;
 import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.item.Item;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.Item;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Random;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,18 +35,18 @@ import java.util.stream.Collectors;
  */
 public class OreItemRarityEntry implements ConfigDataSet {
 
-    private final ITag<Item> itemTag;
+    private final TagKey<Item> itemTag;
     private final ResourceLocation key;
     private final int weight;
 
-    public OreItemRarityEntry(ITag<Item> itemTag, ResourceLocation key, int weight) {
+    public OreItemRarityEntry(TagKey<Item> itemTag, ResourceLocation key, int weight) {
         this.itemTag = itemTag;
         this.key = key;
         this.weight = weight;
     }
 
-    public OreItemRarityEntry(ITag.INamedTag<Item> itemTag, int weight) {
-        this(itemTag, itemTag.getName(), weight);
+    public OreItemRarityEntry(TagKey<Item> itemTag, int weight) {
+        this(itemTag, itemTag.location(), weight);
     }
 
     public int getWeight() {
@@ -49,11 +54,18 @@ public class OreItemRarityEntry implements ConfigDataSet {
     }
 
     @Nullable
-    public Item getRandomItem(Random rand) {
-        return MiscUtils.getRandomEntry(this.itemTag.getAllElements()
-                .stream()
-                .filter(item -> !GeneralConfig.CONFIG.modidOreBlacklist.get().contains(item.getRegistryName().getNamespace()))
-                .collect(Collectors.toList()), rand);
+    public Item getRandomItem(RandomSource rand) {
+        // En 1.20.1 obtenemos los elementos del tag a través del registro
+        List<Item> items = StreamSupport.stream(ForgeRegistries.ITEMS.getValues().spliterator(), false)
+                .filter(item -> {
+                    ResourceLocation name = ForgeRegistries.ITEMS.getKey(item);
+                    return name != null &&
+                            BuiltInRegistries.ITEM.getHolderOrThrow(BuiltInRegistries.ITEM.getResourceKey(item).get()).is(this.itemTag) &&
+                            !GeneralConfig.CONFIG.modidOreBlacklist.get().contains(name.getNamespace());
+                })
+                .collect(Collectors.toList());
+
+        return MiscUtils.getRandomEntry(items, rand);
     }
 
     @Nullable
@@ -63,10 +75,9 @@ public class OreItemRarityEntry implements ConfigDataSet {
             return null;
         }
         ResourceLocation keyItemTag = new ResourceLocation(split[0]);
-        ITag<Item> itemTag = ItemTags.getCollection().get(keyItemTag);
-        if (itemTag == null) {
-            return null;
-        }
+        // Creamos la TagKey para ítems
+        TagKey<Item> itemTag = TagKey.create(Registries.ITEM, keyItemTag);
+
         String strWeight = split[1];
         int weight;
         try {

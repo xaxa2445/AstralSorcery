@@ -10,14 +10,16 @@ package hellfirepvp.astralsorcery.common.perk.node.key;
 
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigEntry;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -66,17 +68,20 @@ public class KeyVoidTrash extends KeyPerk {
                     .comment("List items that should count as trash and should be voided.")
                     .translation(translationKey("trashItems"))
                     .define("trashItems", defaultTrashItems.stream()
-                            .map(item -> item.getRegistryName().toString())
+                            // CORRECCIÓN: Uso de ForgeRegistries para obtener el ResourceLocation
+                            .map(item -> Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(item)).toString())
                             .collect(Collectors.toList()));
 
             this.oreChance = cfgBuilder
                     .comment("Chance that a voided drop will instead yield a random ore out of the configured ore table.")
                     .translation(translationKey("oreChance"))
-                    .defineInRange("oreChance", defaultOreChance, 0F, 1F);
+                    .defineInRange("oreChance", (double) defaultOreChance, 0.0, 1.0);
         }
 
         public boolean isTrash(ItemStack stack) {
-            String key = stack.getItem().getRegistryName().toString();
+            if (stack.isEmpty()) return false;
+            // CORRECCIÓN: Obtención del nombre del ítem mediante el registro
+            String key = Objects.requireNonNull(ForgeRegistries.ITEMS.getKey(stack.getItem())).toString();
             return this.trashItems.get().contains(key);
         }
 

@@ -10,16 +10,17 @@ package hellfirepvp.astralsorcery.common.block.tile;
 
 import hellfirepvp.astralsorcery.common.block.base.BlockFakedState;
 import hellfirepvp.astralsorcery.common.tile.TileTranslucentBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.MapColor;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-
 import javax.annotation.Nullable;
 import java.util.Random;
 
@@ -33,20 +34,26 @@ import java.util.Random;
 public class BlockTranslucentBlock extends BlockFakedState {
 
     public BlockTranslucentBlock() {
-        super(Properties.create(Material.BARRIER, MaterialColor.AIR)
-                .hardnessAndResistance(-1.0F, 6_000_000.0F)
-                .setLightLevel(state -> 12));
+        // En 1.20.1 Material.BARRIER desaparece. Usamos las propiedades directamente.
+        super(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.NONE)
+                .strength(-1.0F, 3600000.0F) // hardnessAndResistance
+                .lightLevel(state -> 12)
+                .noLootTable()
+                .offsetType(BlockBehaviour.OffsetType.NONE)
+                .noOcclusion()); // Importante para bloques traslúcidos
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, World world, BlockPos pos, Random rand) {
+    public void animateTick(BlockState state, Level world, BlockPos pos, Random rand) {
         this.playParticles(world, pos, rand);
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader world) {
-        return new TileTranslucentBlock();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        // Pasamos pos y state al Tile, cumpliendo con el nuevo requerimiento de la 1.20.1
+        return new TileTranslucentBlock(pos, state);
     }
 }

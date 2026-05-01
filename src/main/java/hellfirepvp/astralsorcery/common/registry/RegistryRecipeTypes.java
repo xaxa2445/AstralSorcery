@@ -18,9 +18,14 @@ import hellfirepvp.astralsorcery.common.crafting.nojson.WorldFreezingRegistry;
 import hellfirepvp.astralsorcery.common.crafting.nojson.WorldMeltableRegistry;
 import hellfirepvp.astralsorcery.common.crafting.recipe.*;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect.*;
+import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.registries.RegisterEvent;
 
 import static hellfirepvp.astralsorcery.common.lib.AltarRecipeEffectsAS.*;
 import static hellfirepvp.astralsorcery.common.lib.RecipeTypesAS.*;
@@ -79,13 +84,15 @@ public class RegistryRecipeTypes {
     }
 
     private static <T extends AltarRecipeEffect> T registerEffect(T recipeEffect) {
-        recipeEffect.setRegistryName(NameUtil.fromClass(recipeEffect, "Effect"));
-        AstralSorcery.getProxy().getRegistryPrimer().register(recipeEffect);
+        // En 1.20.1 usamos el IForgeRegistry obtenido en RegistryRegistries
+        IForgeRegistry<AltarRecipeEffect> registry = RegistriesAS.REGISTRY_ALTAR_EFFECTS;
+        registry.register(NameUtil.fromClass(recipeEffect, "Effect"), recipeEffect);
         return recipeEffect;
     }
 
     private static <C extends IItemHandler, T extends IHandlerRecipe<C>, R extends RecipeCraftingContext<T, C>, S extends ResolvingRecipeType<C, T, R>> S register(S recipeType) {
-        Registry.register(Registry.RECIPE_TYPE, recipeType.getRegistryName(), recipeType.getType());
+        // Acceso al registro nativo de tipos de recetas en 1.20.1
+        net.minecraft.core.Registry.register(BuiltInRegistries.RECIPE_TYPE, recipeType.getRegistryName(), recipeType.getType());
         return recipeType;
     }
 

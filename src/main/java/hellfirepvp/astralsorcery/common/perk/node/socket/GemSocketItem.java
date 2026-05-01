@@ -16,6 +16,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.LogicalSide;
+import org.spongepowered.asm.mixin.Mutable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -93,6 +94,6 @@ public interface GemSocketItem {
      * @param perk
      * @param toolTip
      */
-    default <T extends AbstractPerk & GemSocketPerk> void addTooltip(ItemStack stack, T perk, List<Component> toolTip) {}
+    default <T extends AbstractPerk & GemSocketPerk> void addTooltip(ItemStack stack, T perk, List<MutableComponent> toolTip) {}
 
 }

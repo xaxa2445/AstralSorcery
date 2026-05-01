@@ -13,11 +13,11 @@ import hellfirepvp.astralsorcery.common.base.Mods;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataAdapter;
 import hellfirepvp.astralsorcery.common.data.config.registry.sets.FluidRarityEntry;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Random;
+import net.minecraft.util.RandomSource;
 import java.util.function.Predicate;
 
 /**
@@ -55,8 +55,12 @@ public class FluidRarityRegistry extends ConfigDataAdapter<FluidRarityEntry> {
 
     @Nullable
     @Override
-    public synchronized FluidRarityEntry getRandomValue(Random rand) {
-        return MiscUtils.getWeightedRandomEntry(this.getConfiguredValues(), rand, FluidRarityEntry::getRarity);
+    public synchronized FluidRarityEntry getRandomValue(RandomSource rand) {
+        return MiscUtils.getWeightedRandomEntry(
+                this.getConfiguredValues(),
+                rand,
+                FluidRarityEntry::getRarity
+        );
     }
 
     @Override

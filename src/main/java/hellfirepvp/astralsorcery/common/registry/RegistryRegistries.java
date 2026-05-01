@@ -22,8 +22,9 @@ import hellfirepvp.astralsorcery.common.perk.reader.PerkAttributeReader;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeTypeHelper;
 import hellfirepvp.astralsorcery.common.structure.types.StructureType;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.NewRegistryEvent;
 import net.minecraftforge.registries.RegistryBuilder;
 
 import static hellfirepvp.astralsorcery.common.lib.RegistriesAS.*;
@@ -35,99 +36,93 @@ import static hellfirepvp.astralsorcery.common.lib.RegistriesAS.*;
  * Created by HellFirePvP
  * Date: 02.06.2019 / 09:18
  */
-// Yea don't worry, i'm also having second thoughts at this naming
+@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class RegistryRegistries {
 
     private RegistryRegistries() {}
 
-    public static void buildRegistries(RegistryEvent.NewRegistry event) {
-        REGISTRY_CONSTELLATIONS = new RegistryBuilder<IConstellation>()
+    @SubscribeEvent
+    public static void buildRegistries(NewRegistryEvent event) {
+
+        REGISTRY_CONSTELLATIONS = event.create(new RegistryBuilder<IConstellation>()
                 .setName(REGISTRY_NAME_CONSTELLATIONS)
-                .setType(IConstellation.class)
-                .add((IForgeRegistry.AddCallback<IConstellation>) (owner, stage, id, obj, oldObj) ->
-                        ConstellationRegistry.addConstellation(obj))
+                /*
+                   La firma de 6 parámetros suele ser:
+                   (Registry, Stage, Id, Name/ResourceLocation, ResourceKey, Instance)
+                */
+                .onAdd((owner, stage, id, name, key, instance) ->
+                        ConstellationRegistry.addConstellation(instance))
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_CONSTELLATION_EFFECT = new RegistryBuilder<ConstellationEffectProvider>()
+        REGISTRY_CONSTELLATION_EFFECT = event.create(new RegistryBuilder<ConstellationEffectProvider>()
                 .setName(REGISTRY_NAME_CONSTELLATION_EFFECTS)
-                .setType(ConstellationEffectProvider.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_MANTLE_EFFECT = new RegistryBuilder<MantleEffect>()
+        REGISTRY_MANTLE_EFFECT = event.create(new RegistryBuilder<MantleEffect>()
                 .setName(REGISTRY_NAME_MANTLE_EFFECTS)
-                .setType(MantleEffect.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_ENGRAVING_EFFECT = new RegistryBuilder<EngravingEffect>()
+        REGISTRY_ENGRAVING_EFFECT = event.create(new RegistryBuilder<EngravingEffect>()
                 .setName(REGISTRY_NAME_ENGRAVING_EFFECT)
-                .setType(EngravingEffect.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_PERK_ATTRIBUTE_CONVERTERS = new RegistryBuilder<PerkConverter>()
+        REGISTRY_PERK_ATTRIBUTE_CONVERTERS = event.create(new RegistryBuilder<PerkConverter>()
                 .setName(REGISTRY_NAME_PERK_ATTRIBUTE_CONVERTERS)
-                .setType(PerkConverter.class)
                 .disableSaving()
                 .disableOverrides()
                 .allowModification()
-                .create();
+        ).get();
 
-        REGISTRY_PERK_CUSTOM_MODIFIERS = new RegistryBuilder<PerkAttributeModifier>()
+        REGISTRY_PERK_CUSTOM_MODIFIERS = event.create(new RegistryBuilder<PerkAttributeModifier>()
                 .setName(REGISTRY_NAME_PERK_CUSTOM_MODIFIERS)
-                .setType(PerkAttributeModifier.class)
                 .disableSaving()
                 .disableOverrides()
                 .allowModification()
-                .create();
+        ).get();
 
-        REGISTRY_STRUCTURE_TYPES = new RegistryBuilder<StructureType>()
+        REGISTRY_STRUCTURE_TYPES = event.create(new RegistryBuilder<StructureType>()
                 .setName(REGISTRY_NAME_STRUCTURE_TYPES)
-                .setType(StructureType.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_PERK_ATTRIBUTE_TYPES = new RegistryBuilder<PerkAttributeType>()
+        REGISTRY_PERK_ATTRIBUTE_TYPES = event.create(new RegistryBuilder<PerkAttributeType>()
                 .setName(REGISTRY_NAME_PERK_ATTRIBUTE_TYPES)
-                .setType(PerkAttributeType.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_PERK_ATTRIBUTE_READERS = new RegistryBuilder<PerkAttributeReader>()
+        REGISTRY_PERK_ATTRIBUTE_READERS = event.create(new RegistryBuilder<PerkAttributeReader>()
                 .setName(REGISTRY_NAME_PERK_ATTRIBUTE_READERS)
-                .setType(PerkAttributeReader.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_CRYSTAL_PROPERTIES = new RegistryBuilder<CrystalProperty>()
+        REGISTRY_CRYSTAL_PROPERTIES = event.create(new RegistryBuilder<CrystalProperty>()
                 .setName(REGISTRY_NAME_CRYSTAL_PROPERTIES)
-                .setType(CrystalProperty.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_CRYSTAL_USAGES = new RegistryBuilder<PropertyUsage>()
+        REGISTRY_CRYSTAL_USAGES = event.create(new RegistryBuilder<PropertyUsage>()
                 .setName(REGISTRY_NAME_CRYSTAL_USAGES)
-                .setType(PropertyUsage.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
 
-        REGISTRY_ALTAR_EFFECTS = new RegistryBuilder<AltarRecipeEffect>()
+        REGISTRY_ALTAR_EFFECTS = event.create(new RegistryBuilder<AltarRecipeEffect>()
                 .setName(REGISTRY_NAME_ALTAR_EFFECTS)
-                .setType(AltarRecipeEffect.class)
                 .disableSaving()
                 .disableOverrides()
-                .create();
+        ).get();
     }
 
 }

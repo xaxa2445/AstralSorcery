@@ -22,14 +22,14 @@ import hellfirepvp.astralsorcery.common.util.ColorUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.block.BlockPredicate;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.DyeColor;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.LightType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -60,19 +60,19 @@ public class TileIlluminator extends TileEntityTick {
 
     private DyeColor color = DyeColor.YELLOW;
 
-    public TileIlluminator() {
-        super(TileEntityTypesAS.ILLUMINATOR);
+    public TileIlluminator(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.ILLUMINATOR, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
         if (!this.isPlayerPlaced()) {
             return; //Don't do anything if it's not specifically made as player-placed
         }
 
-        if (!world.isRemote()) {
+        if (!this.level.isClientSide()) {
             if (layerPositions == null) {
                 recalculate();
             }
@@ -95,19 +95,19 @@ public class TileIlluminator extends TileEntityTick {
             }
         }
 
-        if (world.isRemote()) {
+        if (this.level.isClientSide()) {
             this.tickEffects();
         }
     }
 
     private void recalculate() {
-        int height = Math.max(0, getPos().getY() - 7);
+        int height = Math.max(0, getBlockPos().getY() - 7);
         int parts = height / 7;
         layerPositions = new ArrayList<>(parts);
         for (int i = 0; i < parts; i++) {
             int yPart = 3 + i * 7;
             List<BlockPos> positions = new ArrayList<>();
-            generatePositions(positions, new BlockPos(getPos().getX(), yPart, getPos().getZ()));
+            generatePositions(positions, new BlockPos(getBlockPos().getX(), yPart, getBlockPos().getZ()));
             layerPositions.add(positions);
         }
     }
@@ -125,12 +125,12 @@ public class TileIlluminator extends TileEntityTick {
         while (Math.abs(currentPos.getX() - xPos) <= SEARCH_RADIUS &&
                 Math.abs(currentPos.getY() - yPos) <= SEARCH_RADIUS &&
                 Math.abs(currentPos.getZ() - zPos) <= SEARCH_RADIUS) {
-            currentPos = currentPos.offset(dir, STEP_WIDTH);
+            currentPos = currentPos.relative(dir, STEP_WIDTH);
             if (!positions.contains(currentPos)) {
                 positions.add(currentPos);
             }
-            Direction tryDirNext = dir.rotateY();
-            if (!positions.contains(currentPos.offset(tryDirNext, STEP_WIDTH))) {
+            Direction tryDirNext = dir.getClockWise();
+            if (!positions.contains(currentPos.relative(tryDirNext, STEP_WIDTH))) {
                 dir = tryDirNext;
             }
         }
@@ -182,13 +182,13 @@ public class TileIlluminator extends TileEntityTick {
             if (!recalc && list.isEmpty()) {
                 recalc = true;
             }
-            at = at.add(rand.nextInt(5) - 2, rand.nextInt(13) - 6, rand.nextInt(5) - 2);
-            MiscUtils.executeWithChunk(world, at, at, (pos) -> {
-                if (this.doesSeeSky() && TileIlluminator.ILLUMINATOR_CHECK.test(world, pos, world.getBlockState(pos))) {
+            at = at.offset(rand.nextInt(5) - 2, rand.nextInt(13) - 6, rand.nextInt(5) - 2);
+            MiscUtils.executeWithChunk(level, at, at, (pos) -> {
+                if (this.doesSeeSky() && TileIlluminator.ILLUMINATOR_CHECK.test(level, pos, level.getBlockState(pos))) {
                     DyeColor color = this.getColor();
-                    BlockState toPlace = BlocksAS.FLARE_LIGHT.getDefaultState().with(BlockFlareLight.COLOR, color);
-                    if (world.setBlockState(pos, toPlace)) {
-                        EntityFlare.spawnAmbientFlare(world, this.getPos());
+                    BlockState toPlace = BlocksAS.FLARE_LIGHT.defaultBlockState().setValue(BlockFlareLight.COLOR, color);
+                    if (level.setBlock(pos, toPlace, 3)) {
+                        EntityFlare.spawnAmbientFlare(level, this.getBlockPos());
                     }
                 }
             });
@@ -220,7 +220,7 @@ public class TileIlluminator extends TileEntityTick {
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         compound.putBoolean("playerPlaced", this.playerPlaced);
@@ -229,7 +229,7 @@ public class TileIlluminator extends TileEntityTick {
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.playerPlaced = compound.getBoolean("playerPlaced");
@@ -240,11 +240,11 @@ public class TileIlluminator extends TileEntityTick {
     public static class LightCheck implements BlockPredicate {
 
         @Override
-        public boolean test(World world, BlockPos pos, BlockState state) {
-            return world.isAirBlock(pos) &&
+        public boolean test(Level world, BlockPos pos, BlockState state) {
+            return world.isEmptyBlock(pos) &&
                     !MiscUtils.canSeeSky(world, pos, false, false) &&
-                    world.getLight(pos) < 8 &&
-                    world.getLightFor(LightType.SKY, pos) < 4;
+                    world.getMaxLocalRawBrightness(pos) < 8 &&
+                    world.getBrightness(LightLayer.SKY, pos) < 4;
         }
 
     }

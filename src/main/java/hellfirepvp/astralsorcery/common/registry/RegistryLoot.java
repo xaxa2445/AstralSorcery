@@ -12,12 +12,14 @@ import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.loot.*;
 import hellfirepvp.astralsorcery.common.loot.global.LootModifierPerkVoidTrash;
 import hellfirepvp.astralsorcery.common.loot.global.LootModifierScorchingHeat;
-import net.minecraft.loot.LootFunction;
-import net.minecraft.loot.LootFunctionType;
-import net.minecraft.loot.functions.LootFunctionManager;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.common.loot.GlobalLootModifierSerializer;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
+import net.minecraft.world.level.storage.loot.Serializer;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.loot.IGlobalLootModifier;
+import com.mojang.serialization.Codec;
 
 import static hellfirepvp.astralsorcery.common.lib.LootAS.*;
 
@@ -43,13 +45,13 @@ public class RegistryLoot {
         Functions.COPY_GATEWAY_COLOR = registerFunction(new CopyGatewayColor.Serializer(), AstralSorcery.key("copy_gateway_color"));
     }
 
-    private static <T extends LootFunction> LootFunctionType registerFunction(LootFunction.Serializer<T> serializer, ResourceLocation key) {
-        return LootFunctionManager.func_237451_a_(key.toString(), serializer);
+    private static LootItemFunctionType registerFunction(ResourceLocation key, Serializer<? extends LootItemFunction> serializer) {
+        return Registry.register(BuiltInRegistries.LOOT_FUNCTION_TYPE, key, new LootItemFunctionType(serializer));
     }
 
-    private static <T extends IGlobalLootModifier> void registerGlobalModifier(GlobalLootModifierSerializer<T> modifier, ResourceLocation key) {
-        modifier.setRegistryName(key);
-        AstralSorcery.getProxy().getRegistryPrimer().register(modifier);
+    private static void registerGlobalModifier(Codec<? extends IGlobalLootModifier> codec, ResourceLocation key) {
+        // El RegistryPrimer ahora gestiona la clase de registro de Forge para modificadores globales
+        AstralSorcery.getProxy().getRegistryPrimer().register(Codec.class, codec, key);
     }
 
 }

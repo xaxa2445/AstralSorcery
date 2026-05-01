@@ -9,13 +9,13 @@
 package hellfirepvp.astralsorcery.common.data.config.registry.sets;
 
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataSet;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Random;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -48,7 +48,7 @@ public class FluidRarityEntry implements ConfigDataSet {
         return rarity;
     }
 
-    public int getRandomAmount(Random rand) {
+    public int getRandomAmount(RandomSource rand) {
         return this.guaranteedAmount + (additionalRandomAmount > 0 ? rand.nextInt(additionalRandomAmount) : 0);
     }
 

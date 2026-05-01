@@ -9,13 +9,13 @@
 package hellfirepvp.astralsorcery.common.tile.base;
 
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -29,18 +29,18 @@ import java.awt.*;
  */
 public abstract class TileFakedState extends TileEntityTick {
 
-    private BlockState fakedState = Blocks.AIR.getDefaultState();
+    private BlockState fakedState = Blocks.AIR.defaultBlockState();
     private Color overlayColor = Color.WHITE;
 
-    protected TileFakedState(TileEntityType<?> tileEntityTypeIn) {
-        super(tileEntityTypeIn);
+    protected TileFakedState(BlockEntityType<?> tileEntityTypeIn, BlockPos pos, BlockState state) {
+        super(tileEntityTypeIn, pos, state);
     }
 
     public boolean revert() {
-        if (this.getWorld().isRemote()) {
+        if (this.getLevel().isClientSide()) {
             return false;
         }
-        return this.getWorld().setBlockState(this.getPos(), this.getFakedState(), Constants.BlockFlags.DEFAULT_AND_RERENDER);
+        return this.level.setBlock(this.worldPosition, this.getFakedState(), 3);
     }
 
     @Nonnull
@@ -64,15 +64,18 @@ public abstract class TileFakedState extends TileEntityTick {
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
-        this.fakedState = NBTHelper.getBlockStateFromTag(compound.getCompound("fakedState"), Blocks.AIR.getDefaultState());
+        // En la 1.20.1, si el tag no existe, el helper retorna el estado por defecto o necesitas validarlo tú
+        BlockState readState = NBTHelper.getBlockStateFromTag(compound.getCompound("fakedState"));
+        this.fakedState = readState != null ? readState : Blocks.AIR.defaultBlockState();
+
         this.overlayColor = new Color(compound.getInt("color"), false);
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         NBTHelper.setBlockState(compound, "fakedState", this.fakedState);

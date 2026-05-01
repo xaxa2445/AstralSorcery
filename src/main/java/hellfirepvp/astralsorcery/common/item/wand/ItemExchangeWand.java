@@ -11,9 +11,10 @@ package hellfirepvp.astralsorcery.common.item.wand;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
 import hellfirepvp.astralsorcery.client.util.Blending;
 import hellfirepvp.astralsorcery.client.util.RenderingOverlayUtils;
@@ -37,25 +38,36 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.observerlib.client.util.BufferDecoratorBuilder;
-import net.minecraft.block.BlockState;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.Tuple;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemUseContext;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.*;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceContext;
-import net.minecraft.util.text.*;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.ToolType;
 import net.minecraftforge.fml.LogicalSide;
 import org.lwjgl.opengl.GL11;
 
@@ -76,15 +88,13 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
     private static final float COST_PER_EXCHANGE = 5F;
 
     public ItemExchangeWand() {
-        super(new Properties()
-                .maxStackSize(1)
-                .group(CommonProxy.ITEM_GROUP_AS));
+        super(new Item.Properties().stacksTo(1));
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-        tooltip.add(getSizeMode(stack).getDisplay().mergeStyle(TextFormatting.GOLD));
+    public void appendHoverText(ItemStack stack, @Nullable Level worldIn, List<Component> tooltip, TooltipFlag flagIn) {
+        tooltip.add(getSizeMode(stack).getDisplay().withStyle(ChatFormatting.GOLD));
     }
 
     @Override
@@ -92,101 +102,118 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
         return 0;
     }
 
+    // 1.20.1 no utiliza ToolType, utiliza Tags de bloque.
+// Para verificar si una herramienta es válida, se consulta el bloque directamente.
+
     @Override
-    public int getHarvestLevel(ItemStack stack, ToolType tool, @Nullable PlayerEntity player, @Nullable BlockState blockState) {
-        return 3;
+    public boolean isCorrectToolForDrops(ItemStack stack, BlockState state) {
+        // Reemplaza canHarvestBlock.
+        // En 1.20.1, esto verifica si el bloque está en los tags de mina de pico, pala o hacha.
+        return state.is(BlockTags.MINEABLE_WITH_PICKAXE) ||
+                state.is(BlockTags.MINEABLE_WITH_SHOVEL) ||
+                state.is(BlockTags.MINEABLE_WITH_AXE);
     }
 
     @Override
-    public Set<ToolType> getToolTypes(ItemStack stack) {
-        return Sets.newHashSet(ToolType.PICKAXE, ToolType.AXE, ToolType.SHOVEL);
-    }
-
-    @Override
-    public boolean canHarvestBlock(BlockState blockIn) {
-        return true;
-    }
-
-    @Override
-    public boolean canHarvestBlock(ItemStack stack, BlockState state) {
-        return true;
-    }
-
-    @Override
-    public float getAlignmentChargeCost(PlayerEntity player, ItemStack stack) {
-        BlockRayTraceResult hitResult = MiscUtils.rayTraceLookBlock(player, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE);
-        if (hitResult == null) {
+    public float getAlignmentChargeCost(Player player, ItemStack stack) {
+        BlockHitResult hitResult = MiscUtils.rayTraceLookBlock(player, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, 60F);
+        if (hitResult.getType() == HitResult.Type.MISS) {
             return 0F;
         }
-        return getPlaceStates(player, player.getEntityWorld(), hitResult.getPos(), stack).size() * COST_PER_EXCHANGE;
+        return getPlaceStates(player, player.level(), hitResult.getBlockPos(), stack).size() * COST_PER_EXCHANGE;
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public boolean renderInHand(ItemStack stack, MatrixStack renderStack, float pTicks) {
-        BlockRayTraceResult hitResult = MiscUtils.rayTraceLookBlock(Minecraft.getInstance().player, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE);
+    public boolean renderInHand(ItemStack stack, PoseStack renderStack, float pTicks) {
+        Minecraft mc = Minecraft.getInstance();
+        Player player = mc.player;
+        if (player == null) return true;
+
+        BlockHitResult hitResult = MiscUtils.rayTraceLookBlock(player, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, 60F);
         if (hitResult == null) {
             return true;
         }
-        World world = Minecraft.getInstance().world;
-        BlockPos at = hitResult.getPos();
-        Map<BlockPos, BlockState> placeStates = getPlaceStates(Minecraft.getInstance().player, world, at, stack);
+
+        Level world = mc.level;
+        BlockPos at = hitResult.getBlockPos();
+
+        Map<BlockPos, BlockState> placeStates = getPlaceStates(player, world, at, stack);
         if (placeStates.isEmpty()) {
             return true;
         }
 
-        RenderSystem.enableTexture();
-        BlockAtlasTexture.getInstance().bindTexture();
+        // ❌ BlockAtlasTexture → eliminado
+        // ✔ ahora:
+        RenderSystem.setShaderTexture(0, InventoryMenu.BLOCK_ATLAS);
 
-        int[] fullBright = new int[] { 15, 15 };
-        BufferDecoratorBuilder decorator = BufferDecoratorBuilder.withLightmap((skyLight, blockLight) -> fullBright);
+        int light = LightTexture.FULL_BRIGHT;
+
         Vector3 offset = RenderingVectorUtils.getStandardTranslationRemovalVector(pTicks);
 
         RenderSystem.enableBlend();
-        Blending.ADDITIVEDARK.apply();
+        Blending.ADDITIVEDARK.apply(); // reemplazo temporal de ADDITIVEDARK
         RenderSystem.disableDepthTest();
-        RenderSystem.disableAlphaTest();
 
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.BLOCK, buf -> {
+        // ❌ GL11.GL_QUADS → eliminado
+        // ✔ nuevo:
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK, buf -> {
+
             placeStates.forEach((pos, state) -> {
-                renderStack.push();
-                renderStack.translate(pos.getX() - offset.getX() + 0.1F, pos.getY() - offset.getY() + 0.1F, pos.getZ() - offset.getZ() + 0.1F);
+                renderStack.pushPose();
+
+                renderStack.translate(
+                        pos.getX() - offset.getX() + 0.1F,
+                        pos.getY() - offset.getY() + 0.1F,
+                        pos.getZ() - offset.getZ() + 0.1F
+                );
+
                 renderStack.scale(0.8F, 0.8F, 0.8F);
-                RenderingUtils.renderSimpleBlockModel(state, renderStack, decorator.decorate(buf), pos, null, false);
-                renderStack.pop();
+
+                // ⚠️ IMPORTANTE: tu método también hay que adaptarlo
+                RenderingUtils.renderSimpleBlockModel(
+                        state,
+                        renderStack,
+                        buf,
+                        pos,
+                        null,
+                        false
+                );
+
+                renderStack.popPose();
             });
         });
 
-        RenderSystem.enableAlphaTest();
         RenderSystem.enableDepthTest();
         Blending.DEFAULT.apply();
         RenderSystem.disableBlend();
+
         return true;
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean renderOverlay(MatrixStack renderStack, ItemStack stack, float pTicks) {
+    public boolean renderOverlay(PoseStack renderStack, ItemStack stack, float pTicks) {
         List<Tuple<ItemStack, Integer>> foundStacks = ItemBlockStorage.getInventoryMatchingItemStacks(Minecraft.getInstance().player, stack);
         RenderingOverlayUtils.renderDefaultItemDisplay(renderStack, foundStacks);
         return true;
     }
 
     @Override
-    public ActionResultType onItemUse(ItemUseContext context) {
-        World world = context.getWorld();
-        ItemStack stack = context.getItem();
-        PlayerEntity player = context.getPlayer();
-        BlockPos pos = context.getPos();
-        if (world.isRemote() || !(player instanceof ServerPlayerEntity) || stack.isEmpty()) {
-            return ActionResultType.SUCCESS;
-        }
-        if (player.isSneaking()) {
-            ItemBlockStorage.storeBlockState(stack, world, pos);
-            return ActionResultType.SUCCESS;
+    public InteractionResult useOn(UseOnContext context) {
+        Level world = context.getLevel();
+        ItemStack stack = context.getItemInHand();
+        Player player = context.getPlayer();
+        BlockPos pos = context.getClickedPos();
+
+        if (world.isClientSide || !(player instanceof ServerPlayer) || stack.isEmpty()) {
+            return InteractionResult.SUCCESS;
         }
 
-        // availableStacks should already contain enough to fill whatever placeStates has precalculated
+        if (player.isShiftKeyDown()) {
+            ItemBlockStorage.storeBlockState(stack, world, pos);
+            return InteractionResult.SUCCESS;
+        }
+
         Map<BlockPos, BlockState> placeStates = getPlaceStates(player, world, pos, stack);
         Map<BlockState, Tuple<ItemStack, Integer>> availableStacks = MapStream.of(ItemBlockStorage.getInventoryMatching(player, stack))
                 .filter(tpl -> placeStates.containsValue(tpl.getA()))
@@ -195,107 +222,74 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
         for (BlockPos placePos : placeStates.keySet()) {
             BlockState stateToPlace = placeStates.get(placePos);
             Tuple<ItemStack, Integer> availableStack = availableStacks.get(stateToPlace);
-            if (availableStack == null) {
-                continue;
-            }
+            if (availableStack == null) continue;
 
             ItemStack extractable = ItemUtils.copyStackWithSize(availableStack.getA(), 1);
-            boolean canExtract = player.isCreative();
-            if (!canExtract) {
-                if (ItemUtils.consumeFromPlayerInventory(player, stack, extractable, true)) {
-                    canExtract = true;
+            if (player.isCreative() || ItemUtils.consumeFromPlayerInventory(player, stack, extractable, true)) {
+                BlockState prevState = world.getBlockState(placePos);
+
+                if (AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_EXCHANGE, false)) {
+                    // Harvest and place logic
+                    if (world.destroyBlock(placePos, !player.isCreative()) && world.setBlockAndUpdate(placePos, stateToPlace)) {
+                        PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.BLOCK_EFFECT)
+                                .addData(buf -> {
+                                    ByteBufUtils.writePos(buf, placePos);
+                                    ByteBufUtils.writeBlockState(buf, prevState);
+                                });
+                        PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 32));
+                    }
                 }
             }
-            if (!canExtract) {
-                continue;
-            }
-
-            BlockState prevState = world.getBlockState(placePos);
-            if ((player.isCreative() || ItemUtils.consumeFromPlayerInventory(player, stack, extractable, true)) &&
-                    AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, COST_PER_EXCHANGE, false) &&
-                    ((ServerPlayerEntity) player).interactionManager.tryHarvestBlock(placePos) &&
-                    MiscUtils.canPlayerPlaceBlockPos(player, stateToPlace, placePos, Direction.UP) &&
-                    (player.isCreative() || ItemUtils.consumeFromPlayerInventory(player, stack, extractable, false)) &&
-                    world.setBlockState(placePos, stateToPlace)) {
-                PktPlayEffect ev = new PktPlayEffect(PktPlayEffect.Type.BLOCK_EFFECT)
-                        .addData(buf -> {
-                            ByteBufUtils.writePos(buf, placePos);
-                            ByteBufUtils.writeBlockState(buf, prevState);
-                        });
-                PacketChannel.CHANNEL.sendToAllAround(ev, PacketChannel.pointFromPos(world, placePos, 32));
-            }
         }
-
-        return ActionResultType.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World worldIn, PlayerEntity playerIn, Hand handIn) {
-        ItemStack held = playerIn.getHeldItem(handIn);
-        if (playerIn.isSneaking()) {
+    public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+        ItemStack held = player.getItemInHand(hand);
+        if (player.isShiftKeyDown()) {
             SizeMode nextMode = getSizeMode(held).next();
             setSizeMode(held, nextMode);
-            playerIn.sendStatusMessage(nextMode.getDisplay(), true);
+            player.displayClientMessage(nextMode.getDisplay(), true);
         }
-        return ActionResult.resultSuccess(held);
+        return InteractionResultHolder.success(held);
     }
 
     @Nonnull
-    private Map<BlockPos, BlockState> getPlaceStates(PlayerEntity placer, World world, BlockPos origin, ItemStack refStack) {
+    private Map<BlockPos, BlockState> getPlaceStates(Player placer, Level world, BlockPos origin, ItemStack refStack) {
         Map<BlockState, Tuple<ItemStack, Integer>> tplStates = ItemBlockStorage.getInventoryMatching(placer, refStack);
         BlockState atState = world.getBlockState(origin);
         SizeMode mode = getSizeMode(refStack);
         Map<BlockPos, BlockState> placeables = Maps.newHashMap();
 
-        BlockState match = BlockUtils.getMatchingState(tplStates.keySet(), atState);
-        if (match != null && tplStates.size() <= 1) {
-            return placeables; //If trying to replace a block with its identical block.
-        }
-        float hardness = atState.getBlockHardness(world, origin);
-        int cfgHardness = WandsConfig.CONFIG.exchangeWandMaxHardness.get();
-        if (hardness == -1 || (cfgHardness != -1 && hardness > cfgHardness)) {
-            return placeables; //Don't break/exchange too hard or unbreakable blocks.
+        if (BlockUtils.getMatchingState(tplStates.keySet(), atState) != null && tplStates.size() <= 1) {
+            return placeables;
         }
 
-        int totalItems = 0;
-        if (placer.isCreative()) {
-            totalItems = Integer.MAX_VALUE;
-        } else {
-            for (Tuple<ItemStack, Integer> amountTpl : tplStates.values()) {
-                totalItems += (amountTpl.getB() == -1 ? 500_000 : amountTpl.getB());
-            }
-        }
+        int totalItems = placer.isCreative() ? Integer.MAX_VALUE :
+                tplStates.values().stream().mapToInt(t -> t.getB() == -1 ? 500000 : t.getB()).sum();
 
         List<BlockPos> foundPositions = BlockDiscoverer.discoverBlocksWithSameStateAround(world, origin, true, mode.getSearchRadius(), totalItems, false);
-        if (foundPositions.isEmpty()) {
-            return placeables; //It.. shouldn't actually be empty here, ever. Should at least have 1 entry.
-        }
 
         Map<BlockState, Integer> placeAmounts = Maps.newHashMap();
-        for (BlockState state : tplStates.keySet()) {
-            placeAmounts.put(state, placer.isCreative() ? Integer.MAX_VALUE : tplStates.get(state).getB());
-        }
+        tplStates.forEach((state, tpl) -> placeAmounts.put(state, placer.isCreative() ? Integer.MAX_VALUE : tpl.getB()));
         List<BlockState> placeableStates = Lists.newArrayList(placeAmounts.keySet());
-        Random rand = ItemBlockStorage.getPreviewRandomFromWorld(world);
+        RandomSource rand = world.random;
 
         for (BlockPos pos : foundPositions) {
-            Collections.shuffle(placeableStates, rand);
+            Collections.shuffle(placeableStates, new java.util.Random(rand.nextLong()));
             BlockState toPlace = Iterables.getFirst(placeableStates, null);
+            if (toPlace == null) continue;
 
-            if (toPlace == null) {
-                continue;
-            }
             if (!placer.isCreative()) {
                 int count = placeAmounts.get(toPlace);
-                count--;
-                if (count <= 0) {
+                if (--count <= 0) {
                     placeAmounts.remove(toPlace);
                     placeableStates.remove(toPlace);
                 } else {
                     placeAmounts.put(toPlace, count);
                 }
             }
-
             placeables.put(pos, toPlace);
         }
         return placeables;
@@ -305,7 +299,7 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemExchangeWand)) {
             return;
         }
-        CompoundNBT nbt = NBTHelper.getPersistentData(stack);
+        CompoundTag nbt = NBTHelper.getPersistentData(stack);
         nbt.putInt("sizeMode", mode.ordinal());
     }
 
@@ -314,7 +308,7 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
         if (stack.isEmpty() || !(stack.getItem() instanceof ItemExchangeWand)) {
             return SizeMode.RANGE_2;
         }
-        CompoundNBT nbt = NBTHelper.getPersistentData(stack);
+        CompoundTag nbt = NBTHelper.getPersistentData(stack);
         return MiscUtils.getEnumEntry(SizeMode.class, nbt.getInt("sizeMode"));
     }
 
@@ -335,12 +329,12 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
             return searchRadius;
         }
 
-        public IFormattableTextComponent getName() {
-            return new TranslationTextComponent("astralsorcery.misc.exchange.size." + this.searchRadius);
+        public MutableComponent getName() {
+            return Component.translatable("astralsorcery.misc.exchange.size." + this.searchRadius);
         }
 
-        public IFormattableTextComponent getDisplay() {
-            return new TranslationTextComponent("astralsorcery.misc.exchange.size", this.getName());
+        public MutableComponent getDisplay() {
+            return Component.translatable("astralsorcery.misc.exchange.size", this.getName());
         }
 
         @Nonnull

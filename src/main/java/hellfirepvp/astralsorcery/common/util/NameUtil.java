@@ -9,6 +9,7 @@
 package hellfirepvp.astralsorcery.common.util;
 
 import com.google.common.base.CaseFormat;
+import com.google.common.base.Function;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import net.minecraft.resources.ResourceLocation;
 
@@ -22,6 +23,8 @@ import javax.annotation.Nullable;
  * Date: 23.09.2019 / 18:09
  */
 public class NameUtil {
+
+    public static final Function<String, ResourceLocation> AS_RESOURCE = AstralSorcery::key;
 
     public static ResourceLocation prefixPath(ResourceLocation key, String prefix) {
         // En 1.20.1, el constructor sigue aceptando (namespace, path)

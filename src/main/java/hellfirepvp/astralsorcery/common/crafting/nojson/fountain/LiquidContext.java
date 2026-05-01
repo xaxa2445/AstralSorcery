@@ -9,8 +9,9 @@
 package hellfirepvp.astralsorcery.common.crafting.nojson.fountain;
 
 import hellfirepvp.astralsorcery.common.util.block.BlockGeometry;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+
 
 import java.util.List;
 import java.util.Random;
@@ -30,7 +31,7 @@ public class LiquidContext extends FountainEffect.EffectContext {
     public Object fountainSprite;
 
     public LiquidContext(BlockPos fountainPos) {
-        this.digPositions = BlockGeometry.getVerticalCone(fountainPos.down(3), 5);
+        this.digPositions = BlockGeometry.getVerticalCone(fountainPos.below(3), 5);
     }
 
     public List<BlockPos> getDigPositions() {
@@ -47,8 +48,8 @@ public class LiquidContext extends FountainEffect.EffectContext {
     }
 
     @Override
-    public void readFromNBT(CompoundNBT compound) {}
+    public void readFromNBT(CompoundTag compound) {}
 
     @Override
-    public void writeToNBT(CompoundNBT compound) {}
+    public void writeToNBT(CompoundTag compound) {}
 }

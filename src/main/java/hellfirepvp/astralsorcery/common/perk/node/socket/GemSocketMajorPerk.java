@@ -17,6 +17,7 @@ import hellfirepvp.astralsorcery.common.perk.tree.PerkTreeGem;
 import hellfirepvp.astralsorcery.common.perk.tree.PerkTreePoint;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -70,11 +71,13 @@ public class GemSocketMajorPerk extends MajorPerk implements GemSocketPerk {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean addLocalizedTooltip(Collection<Component> tooltip) {
+    public boolean addLocalizedTooltip(Collection<MutableComponent> tooltip) {
+        // En 1.20.1, la firma suele usar MutableComponent para permitir encadenamiento de estilos (.withStyle)
         if (super.addLocalizedTooltip(tooltip)) {
-            tooltip.add(Component.literal(""));
+            tooltip.add(Component.empty()); // Espaciador visual
         }
-        // Verificamos si el jugador tiene visibilidad del nodo antes de mostrar los datos de la gema
+
+        // Verificamos visibilidad mediante el método heredado de ProgressGatedPerk
         if (canSeeClient()) {
             this.addTooltipInfo(tooltip);
         }

@@ -12,7 +12,9 @@ import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataAdapter;
 import hellfirepvp.astralsorcery.common.data.config.registry.sets.OreItemRarityEntry;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.item.Item;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.RandomSequence;
+import net.minecraft.world.item.Item;
 import net.minecraftforge.common.Tags;
 
 import javax.annotation.Nullable;
@@ -41,7 +43,7 @@ public class OreItemRarityRegistry extends ConfigDataAdapter<OreItemRarityEntry>
     }
 
     @Nullable
-    public Item getRandomItem(Random rand) {
+    public Item getRandomItem(RandomSource rand) {
         List<OreItemRarityEntry> entries = this.getConfiguredValues();
         Set<OreItemRarityEntry> visitedEntires = new HashSet<>();
 

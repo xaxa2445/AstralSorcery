@@ -41,7 +41,10 @@ public class RegistryMantleEffects {
     }
 
     private static <T extends MantleEffect> T register(T effect) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(effect);
+        // Al igual que en los registros anteriores, usamos el RegistryPrimer con 3 argumentos.
+        // Se asume que MantleEffect tiene un método getID() o getRegistryName().
+        AstralSorcery.getProxy().getRegistryPrimer().register(MantleEffect.class, effect, effect.getID());
         return effect;
     }
 }
+

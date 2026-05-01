@@ -8,8 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.event.helper;
 
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -29,11 +29,11 @@ public class EventHelperDamageCancelling {
 
     private EventHelperDamageCancelling() {}
 
-    public static void markInvulnerableToNextDamage(PlayerEntity player, DamageSource source) {
-        if (player.getEntityWorld().isRemote()) {
+    public static void markInvulnerableToNextDamage(Player player, DamageSource source) {
+        if (player.level().isClientSide()) {
             return;
         }
-        invulnerableTypes.computeIfAbsent(player.getUniqueID(), uuid -> new HashSet<>()).add(source);
+        invulnerableTypes.computeIfAbsent(player.getUUID(), uuid -> new HashSet<>()).add(source);
     }
 
     public static void attachListeners(IEventBus bus) {
@@ -42,24 +42,26 @@ public class EventHelperDamageCancelling {
     }
 
     private static void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        PlayerEntity player = event.player;
-        if (event.phase == TickEvent.Phase.END && !player.getEntityWorld().isRemote()) {
-            if (player.isOnGround()) {
-                Set<DamageSource> sources = invulnerableTypes.getOrDefault(event.player.getUniqueID(), Collections.emptySet());
-                sources.remove(DamageSource.FALL);
+        Player player = event.player;
+        if (event.phase == TickEvent.Phase.END && !player.level().isClientSide()) {
+            if (player.onGround()) {
+                Set<DamageSource> sources = invulnerableTypes.getOrDefault(event.player.getUUID(), Collections.emptySet());
+                sources.remove(player.damageSources().fall());
             }
         }
     }
 
     private static void onLivingDamage(LivingHurtEvent event) {
-        if (!(event.getEntityLiving() instanceof PlayerEntity)) {
+        if (!(event.getEntity() instanceof Player player)) {
             return;
         }
-        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
-        Set<DamageSource> sources = invulnerableTypes.getOrDefault(player.getUniqueID(), Collections.emptySet());
+
+        Set<DamageSource> sources =
+                invulnerableTypes.getOrDefault(player.getUUID(), Collections.emptySet());
+
         if (sources.remove(event.getSource())) {
             if (sources.isEmpty()) {
-                invulnerableTypes.remove(player.getUniqueID());
+                invulnerableTypes.remove(player.getUUID());
             }
 
             event.setCanceled(true);

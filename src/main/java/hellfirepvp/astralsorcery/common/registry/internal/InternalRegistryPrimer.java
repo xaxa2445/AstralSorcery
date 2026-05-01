@@ -16,10 +16,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.IForgeRegistry;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,16 +27,25 @@ import java.util.Map;
  */
 public class InternalRegistryPrimer {
 
-    private final Map<Class<?>, List<Object>> primed = new HashMap<>();
+    private final Map<Class<?>, List<Entry<?>>> primed = new HashMap<>();
 
-    public <V> V register(Class<V> type, V entry) {
-        List<Object> entries = primed.computeIfAbsent(type, k -> Lists.newLinkedList());
-        entries.add(entry);
-        return entry;
+    public static class Entry<T> {
+        public final ResourceLocation id;
+        public final T obj;
+
+        public Entry(ResourceLocation id, T obj) {
+            this.id = id;
+            this.obj = obj;
+        }
     }
 
-    public <T> List<T> getEntries(Class<T> type) {
-        return (List<T>) (List<?>) primed.getOrDefault(type, Collections.emptyList());
+    public <T> void register(Class<T> type, T obj, ResourceLocation id) {
+        List<Entry<?>> entries = primed.computeIfAbsent(type, k -> new ArrayList<>());
+        entries.add(new Entry<>(id, obj));
     }
 
+    @SuppressWarnings("unchecked")
+    public <T> List<Entry<T>> getEntries(Class<T> type) {
+        return (List<Entry<T>>) (List<?>) primed.getOrDefault(type, Collections.emptyList());
+    }
 }

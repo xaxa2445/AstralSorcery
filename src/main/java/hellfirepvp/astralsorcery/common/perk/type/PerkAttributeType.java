@@ -57,6 +57,10 @@ public class PerkAttributeType implements ReadWriteLockable {
         this.attachListeners(MinecraftForge.EVENT_BUS);
     }
 
+    public ResourceLocation getID() {
+        return this.getRegistryName();
+    }
+
     public PerkAttributeType setRegistryName(ResourceLocation name) {
         this.registryName = name;
         return this;

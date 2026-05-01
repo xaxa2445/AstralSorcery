@@ -8,7 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.lib;
 
-import net.minecraft.block.material.Material;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -21,8 +21,8 @@ public class MaterialsAS {
 
     private MaterialsAS() {}
 
-    public static Material MARBLE;
-    public static Material BLACK_MARBLE;
-    public static Material INFUSED_WOOD;
+    public static BlockBehaviour.Properties MARBLE;
+    public static BlockBehaviour.Properties BLACK_MARBLE;
+    public static BlockBehaviour.Properties INFUSED_WOOD;
 
 }

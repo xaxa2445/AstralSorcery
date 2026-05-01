@@ -116,7 +116,7 @@ public class MiscUtils {
     // --- SECCIÓN: COLECCIONES Y ALEATORIEDAD ---
 
     @Nullable
-    public static <T> T getRandomEntry(Collection<T> collection, Random rand) {
+    public static <T> T getRandomEntry(Collection<T> collection, RandomSource rand) {
         if (collection == null || collection.isEmpty()) {
             return null;
         }

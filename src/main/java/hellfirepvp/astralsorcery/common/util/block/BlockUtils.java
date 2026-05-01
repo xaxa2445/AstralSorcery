@@ -147,6 +147,16 @@ public class BlockUtils {
         return !state.getFluidState().isEmpty() && state.getBlock() == state.getFluidState().createLegacyBlock().getBlock();
     }
 
+    @Nullable
+    public static BlockState getMatchingState(Collection<BlockState> applicableStates, @Nullable BlockState test) {
+        for (BlockState state : applicableStates) {
+            if (matchStateExact(state, test)) {
+                return state;
+            }
+        }
+        return null;
+    }
+
     public static boolean matchStateExact(@Nullable BlockState state, @Nullable BlockState stateToTest) {
         if (state == stateToTest) return true;
         if (state == null || stateToTest == null) return false;

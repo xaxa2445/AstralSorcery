@@ -8,9 +8,9 @@
 
 package hellfirepvp.astralsorcery.common.block.base;
 
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.block.material.PushReaction;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -21,7 +21,7 @@ import net.minecraft.block.material.PushReaction;
  */
 public class MaterialBuilderAS {
 
-    private final MaterialColor color;
+    private final MapColor color;
     private PushReaction pushReaction = PushReaction.NORMAL;
     private boolean blocksMovement = true;
     private boolean canBurn = false;
@@ -30,7 +30,7 @@ public class MaterialBuilderAS {
     private boolean isSolid = true;
     private boolean isOpaque = true;
 
-    public MaterialBuilderAS(MaterialColor color) {
+    public MaterialBuilderAS(MapColor color) {
         this.color = color;
     }
 
@@ -74,15 +74,27 @@ public class MaterialBuilderAS {
         return this;
     }
 
-    public Material build() {
-        return new Material(
-                this.color,
-                this.isLiquid,
-                this.isSolid,
-                this.blocksMovement,
-                this.isOpaque,
-                this.canBurn,
-                this.isReplaceable,
-                this.pushReaction);
+    public BlockBehaviour.Properties build() {
+        BlockBehaviour.Properties props = BlockBehaviour.Properties.of()
+                .mapColor(this.color)
+                .pushReaction(this.pushReaction);
+
+        if (this.isLiquid) {
+            props.noCollission().instabreak().liquid();
+        }
+        if (!this.isSolid) {
+            props.noCollission();
+        }
+        if (!this.blocksMovement) {
+            props.noCollission();
+        }
+        if (this.isReplaceable) {
+            props.replaceable();
+        }
+        if (this.canBurn) {
+            props.ignitedByLava();
+        }
+
+        return props;
     }
 }

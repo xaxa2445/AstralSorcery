@@ -81,8 +81,9 @@ public class RenderingGuiUtils {
         });
     }
 
-    public static DrawBuilder rect(VertexConsumer buf, GuiGraphics graphic , WidthHeightScreen screen) {
-        return rect(buf, graphic.pose().last().pose(),
+    public static DrawBuilder rect(VertexConsumer buf, GuiGraphics graphics, WidthHeightScreen screen) {
+        // Obtenemos la matriz 4x4 de la pose actual del stack de GuiGraphics
+        return rect(buf, graphics.pose().last().pose(),
                 (float) screen.getGuiLeft(),
                 (float) screen.getGuiTop(),
                 (float) screen.getGuiZLevel(),
@@ -90,16 +91,23 @@ public class RenderingGuiUtils {
                 (float) screen.getGuiHeight());
     }
 
-    public static DrawBuilder rect(VertexConsumer buf, Matrix4f renderStack, WidthHeightScreen screen) {
-        return rect(buf, renderStack, screen.getGuiLeft(), screen.getGuiTop(), screen.getGuiZLevel(), screen.getGuiWidth(), screen.getGuiHeight());
+    public static DrawBuilder rect(VertexConsumer buf, Matrix4f matrix, WidthHeightScreen screen) {
+        return rect(buf, matrix,
+                (float) screen.getGuiLeft(),
+                (float) screen.getGuiTop(),
+                (float) screen.getGuiZLevel(),
+                (float) screen.getGuiWidth(),
+                (float) screen.getGuiHeight());
     }
 
     public static DrawBuilder rect(VertexConsumer buf, GuiGraphics graphics, float offsetX, float offsetY, float offsetZ, float width, float height) {
+        // GuiGraphics.pose() devuelve el PoseStack
         return rect(buf, graphics.pose().last().pose(), offsetX, offsetY, offsetZ, width, height);
     }
 
-    public static DrawBuilder rect(VertexConsumer buf, Matrix4f renderStack, float offsetX, float offsetY, float offsetZ, float width, float height) {
-        return new DrawBuilder(buf, renderStack, offsetX, offsetY, offsetZ, width, height);
+    public static DrawBuilder rect(VertexConsumer buf, Matrix4f matrix, float offsetX, float offsetY, float offsetZ, float width, float height) {
+        // Asegúrate de que el constructor de DrawBuilder acepte org.joml.Matrix4f
+        return new DrawBuilder(buf, matrix, offsetX, offsetY, offsetZ, width, height);
     }
 
     public static class DrawBuilder {

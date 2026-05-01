@@ -75,9 +75,7 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        PoseStack poseStack = graphics.pose();
-
+    public void render(PoseStack  poseStack, int mouseX, int mouseY, float partialTicks) {
         drawConstellationBackground(poseStack);
         drawDefault(poseStack, TexturesAS.TEX_GUI_BOOK_FRAME_FULL, mouseX, mouseY);
 

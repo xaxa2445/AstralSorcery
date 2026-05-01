@@ -69,7 +69,9 @@ public class RegistryPerkAttributeTypes {
     }
 
     private static <T extends PerkAttributeType> T register(T type) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(type);
+        // Al igual que con los Conversores y Modificadores, usamos el RegistryPrimer
+        // Asegúrate de que PerkAttributeType tenga el método getID() o getRegistryName()
+        AstralSorcery.getProxy().getRegistryPrimer().register(PerkAttributeType.class, type, type.getID());
         return type;
     }
 }

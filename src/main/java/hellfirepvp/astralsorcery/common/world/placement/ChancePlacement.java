@@ -9,12 +9,9 @@
 package hellfirepvp.astralsorcery.common.world.placement;
 
 import hellfirepvp.astralsorcery.common.world.placement.config.ChanceConfig;
-import net.minecraft.core.BlockPos;
-import net.minecraft.util.RandomSource;
-import net.minecraft.world.level.levelgen.placement.PlacementContext;
-import net.minecraft.world.level.levelgen.placement.PlacementModifier;
-import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
-import com.mojang.serialization.Codec;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.gen.placement.ConfiguredPlacement;
+import net.minecraft.world.gen.placement.SimplePlacement;
 
 import java.util.Random;
 import java.util.stream.Stream;
@@ -26,29 +23,18 @@ import java.util.stream.Stream;
  * Created by HellFirePvP
  * Date: 19.11.2020 / 22:45
  */
-public class ChancePlacement extends PlacementModifier {
+public class ChancePlacement extends SimplePlacement<ChanceConfig> {
 
-    public static final Codec<ChancePlacement> CODEC = ChanceConfig.CODEC.xmap(ChancePlacement::new, (p) -> p.config);
-
-    private final ChanceConfig config;
-
-    public ChancePlacement(float chance) {
-        this(new ChanceConfig(chance));
+    public ChancePlacement() {
+        super(ChanceConfig.CODEC);
     }
 
-    public ChancePlacement(ChanceConfig config) {
-        this.config = config;
+    public ConfiguredPlacement<ChanceConfig> withChance(float chance) {
+        return this.configure(new ChanceConfig(chance));
     }
 
     @Override
-    public Stream<BlockPos> getPositions(PlacementContext context, RandomSource random, BlockPos pos) {
-        return this.config.test(random) ? Stream.of(pos) : Stream.empty();
-    }
-
-    @Override
-    public PlacementModifierType<?> type() {
-        // Aquí deberías retornar tu tipo registrado, por ahora usamos un placeholder
-        // o el registro correspondiente a tu mod.
-        return PlacementModifierType.COUNT; // Solo para que compile, cámbialo por el tuyo.
+    protected Stream<BlockPos> getPositions(Random random, ChanceConfig config, BlockPos pos) {
+        return config.test(random) ? Stream.of(pos) : Stream.empty();
     }
 }

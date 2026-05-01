@@ -146,7 +146,8 @@ public interface GemSocketPerk {
     }
 
     @OnlyIn(Dist.CLIENT)
-    default public <T extends AbstractPerk & GemSocketPerk> void addTooltipInfo(Collection<Component> tooltip) {
+// Usamos un comodín que acepte MutableComponent o cualquier superclase (como Component)
+    default public <T extends AbstractPerk & GemSocketPerk> void addTooltipInfo(Collection<? super MutableComponent> tooltip) {
         if (!(this instanceof AbstractPerk)) {
             return;
         }
@@ -163,22 +164,23 @@ public interface GemSocketPerk {
             if (perkData.hasPerkEffect(thisPerk)) {
                 tooltip.add(Component.translatable("perk.info.astralsorcery.gem.content.empty").withStyle(ChatFormatting.GRAY));
 
+                // En 1.20.1, el chequeo del inventario se mantiene similar, pero validando el ItemStack
                 boolean has = !ItemUtils.findItemsIndexedInPlayerInventory(Minecraft.getInstance().player, stack -> {
-                    if (stack.isEmpty() || !(stack.getItem() instanceof GemSocketItem)) {
+                    if (stack.isEmpty() || !(stack.getItem() instanceof GemSocketItem gemItem)) {
                         return false;
                     }
-                    GemSocketItem item = (GemSocketItem) stack.getItem();
-                    return item.canBeInserted(stack, thisPerk, Minecraft.getInstance().player, ResearchHelper.getClientProgress(), LogicalSide.CLIENT);
+                    return gemItem.canBeInserted(stack, thisPerk, Minecraft.getInstance().player, ResearchHelper.getClientProgress(), LogicalSide.CLIENT);
                 }).isEmpty();
+
                 if (!has) {
                     tooltip.add(Component.translatable("perk.info.astralsorcery.gem.content.empty.none")
                             .withStyle(ChatFormatting.RED));
                 }
             }
         } else {
-            if (contained.getItem() instanceof GemSocketItem) {
-                GemSocketItem item = (GemSocketItem) contained.getItem();
-                List<Component> additionalToolTip = new ArrayList<>();
+            if (contained.getItem() instanceof GemSocketItem item) {
+                // Cambiamos a MutableComponent para los tooltips adicionales
+                List<MutableComponent> additionalToolTip = new ArrayList<>();
                 item.addTooltip(contained, thisPerk, additionalToolTip);
                 if (!additionalToolTip.isEmpty()) {
                     tooltip.addAll(additionalToolTip);
@@ -188,6 +190,7 @@ public interface GemSocketPerk {
 
             tooltip.add(Component.translatable("perk.info.astralsorcery.gem.content.item", contained.getDisplayName())
                     .withStyle(ChatFormatting.GRAY));
+
             if (perkData.hasPerkEffect(thisPerk)) {
                 tooltip.add(Component.translatable("perk.info.astralsorcery.gem.remove").withStyle(ChatFormatting.GRAY));
             }

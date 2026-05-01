@@ -68,6 +68,10 @@ public abstract class MantleEffect implements ITickHandler {
         this.attachTickHandlers(AstralSorcery.getProxy().getTickManager()::register);
     }
 
+    public ResourceLocation getID() {
+        return this.registryName;
+    }
+
     public final IWeakConstellation getAssociatedConstellation() {
         return this.constellation;
     }

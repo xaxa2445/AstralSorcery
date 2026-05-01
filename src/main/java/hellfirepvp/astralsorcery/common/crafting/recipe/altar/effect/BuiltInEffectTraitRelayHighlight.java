@@ -47,6 +47,10 @@ public class BuiltInEffectTraitRelayHighlight extends AltarRecipeEffect {
         super(id);
     }
 
+    public BuiltInEffectTraitRelayHighlight() {
+        super(null); // El ID se asignará durante el proceso de registro de Forge
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public void onTick(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state) {
