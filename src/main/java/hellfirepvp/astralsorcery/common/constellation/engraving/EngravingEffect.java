@@ -20,6 +20,7 @@ import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.*;
@@ -68,7 +69,7 @@ public class EngravingEffect {
 
         public boolean supports(@Nonnull ItemStack stack);
 
-        public ItemStack apply(@Nonnull ItemStack stack, float percent, Random rand);
+        public ItemStack apply(@Nonnull ItemStack stack, float percent, RandomSource rand);
 
     }
 
@@ -108,14 +109,16 @@ public class EngravingEffect {
             }
             Item item = stack.getItem();
             if (this.applicableTypes.isEmpty()) {
-                for (EnchantmentCategory type : EnchantmentCategory.values()) {
+
+                for (EnchantmentCategory type : this.applicableTypes) {
                     if (type.canEnchant(item)) {
                         return true;
                     }
-                    if (item instanceof TypeEnchantableItem && ((TypeEnchantableItem) item).canEnchantItem(stack, type)) {
+                    if (item instanceof TypeEnchantableItem tei && tei.canEnchantItem(stack, type)) {
                         return true;
                     }
                 }
+                return false;
             }
             for (EnchantmentCategory type : this.applicableTypes) {
                 if (type.canEnchant(item)) {
@@ -129,7 +132,7 @@ public class EngravingEffect {
         }
 
         @Override
-        public ItemStack apply(@Nonnull ItemStack stack, float percent, Random rand) {
+        public ItemStack apply(@Nonnull ItemStack stack, float percent, RandomSource rand) {
             float rValue = percent * (Math.max(0, this.max - this.min));
             if (this.formatToInteger) {
                 rValue = Math.round(rValue);
@@ -180,7 +183,7 @@ public class EngravingEffect {
                 if (this.ignoreCompat) {
                     continue;
                 }
-                if (toApply.isCompatibleWith(applied) && !(stack.getItem() instanceof EnchantedBookItem)) {
+                if (!toApply.isCompatibleWith(applied) && !(stack.getItem() instanceof EnchantedBookItem)) {
                     return false;
                 }
             }
@@ -188,7 +191,7 @@ public class EngravingEffect {
         }
 
         @Override
-        public ItemStack apply(@Nonnull ItemStack stack, float percent, Random rand) {
+        public ItemStack apply(@Nonnull ItemStack stack, float percent, RandomSource rand) {
             int level = this.min + Math.round(percent * (Math.max(0, this.max - this.min)));
             if (stack.getItem() instanceof BookItem) {
                 stack = ItemUtils.changeItem(stack, Items.ENCHANTED_BOOK);
@@ -236,7 +239,7 @@ public class EngravingEffect {
         }
 
         @Override
-        public ItemStack apply(@Nonnull ItemStack stack, float percent, Random rand) {
+        public ItemStack apply(@Nonnull ItemStack stack, float percent, RandomSource rand) {
             List<MobEffectInstance> existing = PotionUtils.getMobEffects(stack);
             MobEffect targetEffect = this.effect.get();
             if (!MiscUtils.contains(existing, e -> e.getEffect().equals(targetEffect))) {
@@ -249,7 +252,7 @@ public class EngravingEffect {
                 existing.add(new MobEffectInstance(EffectsAS.EFFECT_CHEAT_DEATH, 3600, 0, true, false, true));
             }
             PotionUtils.setCustomEffects(stack, existing);
-            stack.getTag().putInt("CustomPotionColor", ColorsAS.DYE_ORANGE.getRGB());
+            stack.getOrCreateTag().putInt("CustomPotionColor", ColorsAS.DYE_ORANGE.getRGB());
             //TODO meh.. they changed displayname stuff :V RIP
             stack.setHoverName(Component.translatable("potion.astralsorcery.crafted.name").withStyle(ChatFormatting.GOLD));
             return stack;

@@ -108,7 +108,7 @@ public class KeyAddEnchantment extends KeyPerk {
         if (perkData.has("enchantments")) {
             JsonArray array = GsonHelper.getAsJsonArray(perkData, "enchantments");
             for (int i = 0; i < array.size(); i++) {
-                JsonObject serializedEnchantment = GsonHelper.getAsJsonObject(array.get(i), "enchantments[%s]");
+                JsonObject serializedEnchantment = GsonHelper.convertToJsonObject(array.get(i), "enchantments[%s]");
 
                 String typeKey = GsonHelper.getAsString(serializedEnchantment, "type");
                 DynamicEnchantmentType type;
@@ -144,7 +144,7 @@ public class KeyAddEnchantment extends KeyPerk {
                 JsonObject serializedEnchantment = new JsonObject();
 
                 serializedEnchantment.addProperty("type", enchantment.getType().name());
-                ResourceLocation key = ForgeRegistries.ENCHANTMENTS.getKey(ench.getEnchantment());
+                ResourceLocation key = ForgeRegistries.ENCHANTMENTS.getKey(enchantment.getEnchantment());
                 if (enchantment.getEnchantment() != null) {
                     serializedEnchantment.addProperty("enchantment", key.toString());
                 }

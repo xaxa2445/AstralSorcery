@@ -23,8 +23,9 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.base.TileEntityTick;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -43,20 +44,20 @@ public class TileCelestialCrystals extends TileEntityTick implements CrystalAttr
 
     private CrystalAttributes attributes = null;
 
-    public TileCelestialCrystals() {
-        super(TileEntityTypesAS.CELESTIAL_CRYSTAL_CLUSTER);
+    public TileCelestialCrystals(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.CELESTIAL_CRYSTAL_CLUSTER, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!getWorld().isRemote()) {
+        if (!getLevel().isClientSide()) {
             if (getGrowth() < 4 && doesSeeSky()) {
                 this.tryGrowWithChance(TICK_GROWTH_CHANCE);
             }
         } else {
-            BlockState downState = getWorld().getBlockState(getPos().down());
+            BlockState downState = getLevel().getBlockState(getBlockPos().below());
             if (downState.getBlock() instanceof BlockStarmetalOre) {
                 playStarmetalParticles();
             }
@@ -102,15 +103,15 @@ public class TileCelestialCrystals extends TileEntityTick implements CrystalAttr
     }
 
     public void tryGrowWithChance(int growthChance) {
-        BlockState downState = getWorld().getBlockState(getPos().down());
+        BlockState downState = getLevel().getBlockState(getBlockPos().below());
         if (downState.getBlock() instanceof BlockStarmetalOre) {
             growthChance *= 0.6;
 
             if (rand.nextInt(400) == 0) {
-                getWorld().setBlockState(getPos().down(), CraftingConfig.CONFIG.getStarmetalRevertBlockState());
+                getLevel().setBlock(getBlockPos().below(), CraftingConfig.CONFIG.getStarmetalRevertBlockState(), 3);
             }
         }
-        float distribution = DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+        float distribution = DayTimeHelper.getCurrentDaytimeDistribution(getLevel());
         growthChance *= (1F - (0.5F * distribution));
 
         this.grow(growthChance);
@@ -126,17 +127,17 @@ public class TileCelestialCrystals extends TileEntityTick implements CrystalAttr
     }
 
     public int getGrowth() {
-        BlockState current = getWorld().getBlockState(getPos());
-        return current.get(BlockCelestialCrystalCluster.STAGE);
+        BlockState current = getLevel().getBlockState(getBlockPos());
+        return current.getValue(BlockCelestialCrystalCluster.STAGE);
     }
 
     public void setGrowth(int stage) {
-        BlockState next = BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.getDefaultState().with(BlockCelestialCrystalCluster.STAGE, stage);
-        getWorld().setBlockState(getPos(), next);
+        BlockState next = BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.defaultBlockState().setValue(BlockCelestialCrystalCluster.STAGE, stage);
+        getLevel().setBlock(getBlockPos(), next, 3);
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         if (this.attributes != null) {
@@ -147,7 +148,7 @@ public class TileCelestialCrystals extends TileEntityTick implements CrystalAttr
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.attributes = CrystalAttributes.getCrystalAttributes(compound);

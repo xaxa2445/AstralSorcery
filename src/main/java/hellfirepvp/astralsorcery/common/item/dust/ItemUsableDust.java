@@ -30,7 +30,8 @@ import net.minecraft.core.dispenser.DispenseItemBehavior;
 public abstract class ItemUsableDust extends Item implements DispenseItemBehavior {
 
     public ItemUsableDust() {
-        super(new Properties().arch$tab(CommonProxy.ITEM_GROUP_AS)); // 👈 luego te explico esto
+        // En 1.20.1, las propiedades ya no suelen llevar la pestaña aquí
+        super(new Item.Properties());
     }
 
     abstract boolean dispense(BlockSource source);

@@ -18,10 +18,11 @@ import hellfirepvp.astralsorcery.common.constellation.star.StarLocation;
 import hellfirepvp.astralsorcery.common.constellation.world.WorldContext;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.lib.TagsAS;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.Items;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.Tags;
 
 import static hellfirepvp.astralsorcery.common.lib.ColorsAS.*;
@@ -261,7 +262,7 @@ public class RegistryConstellations {
         // HOR/Horologium
         horologium = new Constellation.WeakSpecial("horologium", CONSTELLATION_HOROLOGIUM) {
             @Override
-            public boolean doesShowUp(World world, long day) {
+            public boolean doesShowUp(Level world, long day) {
                 WorldContext ctx = SkyHandler.getContext(world);
                 if (ctx != null) {
                     return ctx.getCelestialEventHandler().getSolarEclipse().isActiveDay();
@@ -270,7 +271,7 @@ public class RegistryConstellations {
             }
 
             @Override
-            public float getDistribution(World world, long day, boolean showsUp) {
+            public float getDistribution(Level world, long day, boolean showsUp) {
                 return showsUp ? 1F : 0.25F;
             }
         };
@@ -343,13 +344,13 @@ public class RegistryConstellations {
         // LEP/Lepus
         pelotrio = new Constellation.WeakSpecial("pelotrio", CONSTELLATION_PELOTRIO) {
             @Override
-            public boolean doesShowUp(World world, long day) {
+            public boolean doesShowUp(Level world, long day) {
                 MoonPhase phase = MoonPhase.fromWorld(world);
                 return phase == MoonPhase.NEW || phase == MoonPhase.FULL;
             }
 
             @Override
-            public float getDistribution(World world, long day, boolean showingUp) {
+            public float getDistribution(Level world, long day, boolean showingUp) {
                 if (showingUp) return 1F;
                 MoonPhase current = MoonPhase.fromWorld(world);
                 if (current == MoonPhase.WANING_1_2 || current == MoonPhase.WAXING_1_2) {
@@ -472,7 +473,20 @@ public class RegistryConstellations {
     }
 
     private static void register(IConstellation cst) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(cst);
+        // En 1.20.1, si IConstellation no tiene getRegistryName,
+        // se suele usar el nombre definido en la instancia de Constellation
+        String name = ((Constellation) cst).getSimpleName();
+        ResourceLocation key = AstralSorcery.key(name);
+
+        // El orden de los parámetros en el InternalRegistryPrimer para 1.20.1 es:
+        // 1. La Clase del registro (IConstellation.class)
+        // 2. La instancia (cst)
+        // 3. La ubicación/ID (key)
+        AstralSorcery.getProxy().getRegistryPrimer().register(
+                IConstellation.class,
+                cst,
+                key
+        );
     }
 }
 

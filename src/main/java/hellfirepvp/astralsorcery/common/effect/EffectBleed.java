@@ -32,7 +32,10 @@ public class EffectBleed extends EffectCustomTexture {
 
     public EffectBleed() {
         super(MobEffectCategory.HARMFUL, ColorsAS.EFFECT_BLEED);
+        MinecraftForge.EVENT_BUS.register(this);
     }
+
+
 
     @Override
     public boolean isDurationEffectTick(int duration, int amplifier) {

@@ -15,6 +15,7 @@ import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffect
 import hellfirepvp.astralsorcery.common.constellation.effect.aoe.*;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.util.block.ILocatable;
+import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
 import java.util.function.Function;
@@ -33,18 +34,18 @@ public class RegistryConstellationEffects {
     private RegistryConstellationEffects() {}
 
     public static void init() {
-        AEVITAS    = register(makeProvider(ConstellationsAS.aevitas,    CEffectAevitas::new));
-        ARMARA     = register(makeProvider(ConstellationsAS.armara,     CEffectArmara::new));
-        BOOTES     = register(makeProvider(ConstellationsAS.bootes,     CEffectBootes::new));
-        DISCIDIA   = register(makeProvider(ConstellationsAS.discidia,   CEffectDiscidia::new));
-        EVORSIO    = register(makeProvider(ConstellationsAS.evorsio,    CEffectEvorsio::new));
-        FORNAX     = register(makeProvider(ConstellationsAS.fornax,     CEffectFornax::new));
-        HOROLOGIUM = register(makeProvider(ConstellationsAS.horologium, CEffectHorologium::new));
-        LUCERNA    = register(makeProvider(ConstellationsAS.lucerna,    CEffectLucerna::new));
-        MINERALIS  = register(makeProvider(ConstellationsAS.mineralis,  CEffectMineralis::new));
-        OCTANS     = register(makeProvider(ConstellationsAS.octans,     CEffectOctans::new));
-        PELOTRIO   = register(makeProvider(ConstellationsAS.pelotrio,   CEffectPelotrio::new));
-        VICIO      = register(makeProvider(ConstellationsAS.vicio,      CEffectVicio::new));
+        AEVITAS    = register("aevitas",    makeProvider(ConstellationsAS.aevitas,    CEffectAevitas::new));
+        ARMARA     = register("armara",     makeProvider(ConstellationsAS.armara,     CEffectArmara::new));
+        BOOTES     = register("bootes",     makeProvider(ConstellationsAS.bootes,     CEffectBootes::new));
+        DISCIDIA   = register("discidia",   makeProvider(ConstellationsAS.discidia,   CEffectDiscidia::new));
+        EVORSIO    = register("evorsio",    makeProvider(ConstellationsAS.evorsio,    CEffectEvorsio::new));
+        FORNAX     = register("fornax",     makeProvider(ConstellationsAS.fornax,     CEffectFornax::new));
+        HOROLOGIUM = register("horologium", makeProvider(ConstellationsAS.horologium, CEffectHorologium::new));
+        LUCERNA    = register("lucerna",    makeProvider(ConstellationsAS.lucerna,    CEffectLucerna::new));
+        MINERALIS  = register("mineralis",  makeProvider(ConstellationsAS.mineralis,  CEffectMineralis::new));
+        OCTANS     = register("octans",     makeProvider(ConstellationsAS.octans,     CEffectOctans::new));
+        PELOTRIO   = register("pelotrio",   makeProvider(ConstellationsAS.pelotrio,   CEffectPelotrio::new));
+        VICIO      = register("vicio",      makeProvider(ConstellationsAS.vicio,      CEffectVicio::new));
     }
 
     private static ConstellationEffectProvider makeProvider(IWeakConstellation cst, Function<ILocatable, ? extends ConstellationEffect> effectProvider) {
@@ -56,8 +57,15 @@ public class RegistryConstellationEffects {
         };
     }
 
-    private static <T extends ConstellationEffectProvider> T register(T effectProvider) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(ConstellationEffectProvider.class, effectProvider);
+    private static <T extends ConstellationEffectProvider> T register(String name, T effectProvider) {
+        ResourceLocation key = AstralSorcery.key(name);
+
+        // Reordenando los argumentos según la firma detectada:
+        // 1. La clase (ConstellationEffectProvider.class)
+        // 2. La instancia (effectProvider)
+        // 3. La ubicación (key)
+        AstralSorcery.getProxy().getRegistryPrimer().register(ConstellationEffectProvider.class, effectProvider, key);
+
         return effectProvider;
     }
 }

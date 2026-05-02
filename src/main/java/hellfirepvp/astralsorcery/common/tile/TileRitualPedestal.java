@@ -263,7 +263,7 @@ public class TileRitualPedestal extends TileReceiverBase<StarlightReceiverRitual
 
         if (rand.nextInt(chance) == 0) {
             Vector3 from = new Vector3(this).add(0.5, 0.05, 0.5);
-            MiscUtils.applyRandomOffset(from, rand, 0.05F);
+            MiscUtils.applyRandomOffset(from, (RandomSource) rand, 0.05F);
 
             EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                     .setOwner(this.ownerUUID)
@@ -300,7 +300,7 @@ public class TileRitualPedestal extends TileReceiverBase<StarlightReceiverRitual
             if (!activeMirrors.isEmpty() && DayTimeHelper.isNight(getLevel())) {
                 if (rand.nextInt(chance * 2) == 0) {
                     Vector3 from = new Vector3(this).add(0.5, 0.1, 0.5);
-                    MiscUtils.applyRandomOffset(from, rand, 2F);
+                    MiscUtils.applyRandomOffset(from, (RandomSource) rand, 2F);
                     from.setY(getBlockPos().getY() - 0.6 + 1 * rand.nextFloat() * (rand.nextBoolean() ? 1 : -1));
 
                     EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
@@ -380,7 +380,7 @@ public class TileRitualPedestal extends TileReceiverBase<StarlightReceiverRitual
                     if (activeMirrors.isEmpty()) {
                         to = new Vector3(this).add(0.5, 3.5 + rand.nextFloat() * 2.5, 0.5);
                     } else {
-                        BlockPos mirror = MiscUtils.getRandomEntry(activeMirrors, rand).offset(this.getBlockPos());
+                        BlockPos mirror = MiscUtils.getRandomEntry(activeMirrors, (RandomSource) rand).offset(this.getBlockPos());
                         to = new Vector3(mirror).add(0.5, 0.5, 0.5);
                     }
 

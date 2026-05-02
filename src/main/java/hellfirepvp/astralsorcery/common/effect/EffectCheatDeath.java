@@ -17,6 +17,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -36,6 +37,7 @@ public class EffectCheatDeath extends EffectCustomTexture {
 
     public EffectCheatDeath() {
         super(MobEffectCategory.BENEFICIAL, ColorsAS.EFFECT_CHEAT_DEATH);
+        MinecraftForge.EVENT_BUS.register(this);
     }
 
     @Override

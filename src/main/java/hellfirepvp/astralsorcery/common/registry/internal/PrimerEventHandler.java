@@ -8,6 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.registry.internal;
 
+import com.mojang.serialization.Codec;
 import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.constellation.effect.ConstellationEffectProvider;
 import hellfirepvp.astralsorcery.common.constellation.engraving.EngravingEffect;
@@ -60,6 +61,17 @@ public class PrimerEventHandler {
     }
 
     private void onRegister(RegisterEvent event) {
+
+        if (event.getRegistryKey().equals(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS)) {
+            // Llamamos al init de Loot que ahora usa Codecs
+            RegistryLoot.init();
+
+            // Registramos los Codecs acumulados en el Primer
+            event.register(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, helper -> {
+                fillRegistry(helper, (Class) Codec.class);
+            });
+        }
+
         // ITEMS
         event.register(ForgeRegistries.Keys.ITEMS, helper -> {
             RegistryItems.registerItems();
@@ -94,12 +106,6 @@ public class PrimerEventHandler {
         event.register(ForgeRegistries.Keys.ENTITY_TYPES, helper -> {
             RegistryEntities.init();
             fillRegistry(helper, (Class) EntityType.class);
-        });
-
-        // EFFECTS
-        event.register(ForgeRegistries.Keys.MOB_EFFECTS, helper -> {
-            RegistryEffects.init();
-            fillRegistry(helper, MobEffect.class);
         });
 
         // ENCHANTMENTS

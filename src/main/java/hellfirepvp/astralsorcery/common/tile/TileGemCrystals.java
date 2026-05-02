@@ -18,7 +18,9 @@ import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.base.TileEntityTick;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -33,15 +35,15 @@ public class TileGemCrystals extends TileEntityTick {
 
     public static final int TICK_GROWTH_CHANCE = 10_000;
 
-    public TileGemCrystals() {
-        super(TileEntityTypesAS.GEM_CRYSTAL_CLUSTER);
+    public TileGemCrystals(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.GEM_CRYSTAL_CLUSTER, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!getWorld().isRemote()) {
+        if (!getLevel().isClientSide()) {
             if (getGrowth().getGrowthStage() < 2 && doesSeeSky()) {
                 this.tryGrowWithChance(TICK_GROWTH_CHANCE);
             } else if (getGrowth().getGrowthStage() == 2) {
@@ -60,8 +62,8 @@ public class TileGemCrystals extends TileEntityTick {
     private void playHarvestEffects() {
         Vector3 pos = new Vector3(this)
                 .add(0.5, 0.5, 0.5)
-                .add(this.getBlockState().getOffset(getWorld(), getPos()));
-        MiscUtils.applyRandomOffset(pos, rand, 0.5F);
+                .add(this.getBlockState().getOffset(getLevel(), getBlockPos()));
+        MiscUtils.applyRandomOffset(pos, (RandomSource) rand, 0.5F);
 
         EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                 .spawn(pos)
@@ -71,7 +73,7 @@ public class TileGemCrystals extends TileEntityTick {
     }
 
     public void tryGrowWithChance(int growthChance) {
-        float distribution = DayTimeHelper.getCurrentDaytimeDistribution(getWorld());
+        float distribution = DayTimeHelper.getCurrentDaytimeDistribution(getLevel());
         growthChance *= (1F - (0.2F * distribution));
 
         this.grow(growthChance);
@@ -79,17 +81,17 @@ public class TileGemCrystals extends TileEntityTick {
 
     public void grow(int chance) {
         if (rand.nextInt(Math.max(chance, 1)) == 0) {
-            setGrowth(getGrowth().grow(getWorld()));
+            setGrowth(getGrowth().grow(getLevel()));
         }
     }
 
     public BlockGemCrystalCluster.GrowthStageType getGrowth() {
-        BlockState current = getWorld().getBlockState(getPos());
-        return current.get(BlockGemCrystalCluster.STAGE);
+        BlockState current = getLevel().getBlockState(getBlockPos());
+        return current.getValue(BlockGemCrystalCluster.STAGE);
     }
 
     public void setGrowth(BlockGemCrystalCluster.GrowthStageType stage) {
-        BlockState next = BlocksAS.GEM_CRYSTAL_CLUSTER.getDefaultState().with(BlockGemCrystalCluster.STAGE, stage);
-        getWorld().setBlockState(getPos(), next);
+        BlockState next = BlocksAS.GEM_CRYSTAL_CLUSTER.defaultBlockState().setValue(BlockGemCrystalCluster.STAGE, stage);
+        this.level.setBlock(this.worldPosition, next, 3);
     }
 }

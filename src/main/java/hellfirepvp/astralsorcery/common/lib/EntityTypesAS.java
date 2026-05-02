@@ -32,110 +32,19 @@ public class EntityTypesAS {
     public static final DeferredRegister<EntityType<?>> ENTITY_TYPES =
             DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, AstralSorcery.MODID);
 
-    public static final RegistryObject<EntityType<EntityIlluminationSpark>> ILLUMINATION_SPARK =
-            ENTITY_TYPES.register("illumination_spark", () ->
-                    EntityType.Builder
-                            .of(EntityIlluminationSpark::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .clientTrackingRange(4)
-                            .updateInterval(10)
-                            .build("illumination_spark")
-            );
+    public static RegistryObject<EntityType<EntityIlluminationSpark>> ILLUMINATION_SPARK;
+    public static RegistryObject<EntityType<EntityNocturnalSpark>> NOCTURNAL_SPARK;
+    public static RegistryObject<EntityType<EntityFlare>> FLARE;
+    public static RegistryObject<EntityType<EntitySpectralTool>> SPECTRAL_TOOL;
+    public static RegistryObject<EntityType<EntityShootingStar>> SHOOTING_STAR;
 
-    public static final RegistryObject<EntityType<EntityNocturnalSpark>> NOCTURNAL_SPARK =
-            ENTITY_TYPES.register("nocturnal_spark", () ->
-                    EntityType.Builder
-                            .of(EntityNocturnalSpark::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("nocturnal_spark")
-            );
+    // Items
+    public static RegistryObject<EntityType<EntityCrystal>> ITEM_CRYSTAL;
+    public static RegistryObject<EntityType<EntityItemHighlighted>> ITEM_HIGHLIGHT;
+    public static RegistryObject<EntityType<EntityItemExplosionResistant>> ITEM_EXPLOSION_RESISTANT;
+    public static RegistryObject<EntityType<EntityStarmetal>> ITEM_STARMETAL_INGOT;
 
-    public static final RegistryObject<EntityType<EntityFlare>> FLARE =
-            ENTITY_TYPES.register("flare", () ->
-                    EntityType.Builder
-                            .of(EntityFlare::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("flare")
-            );
-
-    public static final RegistryObject<EntityType<EntitySpectralTool>> SPECTRAL_TOOL =
-            ENTITY_TYPES.register("spectral_tool", () ->
-                    EntityType.Builder
-                            .of(EntitySpectralTool::new, MobCategory.MISC)
-                            .sized(0.5F, 0.5F)
-                            .build("spectral_tool")
-            );
-
-    public static final RegistryObject<EntityType<EntityShootingStar>> SHOOTING_STAR =
-            ENTITY_TYPES.register("shooting_star", () ->
-                    EntityType.Builder
-                            .of(EntityShootingStar::new, MobCategory.MISC)
-                            .sized(0.5F, 0.5F)
-                            .build("shooting_star")
-            );
-
-    // =========================
-    // ITEMS (entities)
-    // =========================
-
-    public static final RegistryObject<EntityType<EntityCrystal>> ITEM_CRYSTAL =
-            ENTITY_TYPES.register("item_crystal", () ->
-                    EntityType.Builder
-                            .of(EntityCrystal::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("item_crystal")
-            );
-
-    public static final RegistryObject<EntityType<EntityItemHighlighted>> ITEM_HIGHLIGHT =
-            ENTITY_TYPES.register("item_highlight", () ->
-                    EntityType.Builder
-                            .of(EntityItemHighlighted::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("item_highlight")
-            );
-
-    public static final RegistryObject<EntityType<EntityItemExplosionResistant>> ITEM_EXPLOSION_RESISTANT =
-            ENTITY_TYPES.register("item_explosion_resistant", () ->
-                    EntityType.Builder
-                            .of(EntityItemExplosionResistant::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("item_explosion_resistant")
-            );
-
-    public static final RegistryObject<EntityType<EntityDazzlingGem>> ITEM_DAZZLING_GEM =
-            ENTITY_TYPES.register("item_dazzling_gem", () ->
-                    EntityType.Builder
-                            .of(EntityDazzlingGem::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("item_dazzling_gem")
-            );
-
-    public static final RegistryObject<EntityType<EntityStarmetal>> ITEM_STARMETAL_INGOT =
-            ENTITY_TYPES.register("item_starmetal_ingot", () ->
-                    EntityType.Builder
-                            .of(EntityStarmetal::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("item_starmetal_ingot")
-            );
-
-    // =========================
-    // TECH
-    // =========================
-
-    public static final RegistryObject<EntityType<EntityObservatoryHelper>> OBSERVATORY_HELPER =
-            ENTITY_TYPES.register("observatory_helper", () ->
-                    EntityType.Builder
-                            .of(EntityObservatoryHelper::new, MobCategory.MISC)
-                            .sized(1F, 1F)
-                            .build("observatory_helper")
-            );
-
-    public static final RegistryObject<EntityType<EntityGrapplingHook>> GRAPPLING_HOOK =
-            ENTITY_TYPES.register("grappling_hook", () ->
-                    EntityType.Builder
-                            .of(EntityGrapplingHook::new, MobCategory.MISC)
-                            .sized(0.25F, 0.25F)
-                            .build("grappling_hook")
-            );
-
+    // Tech
+    public static RegistryObject<EntityType<EntityObservatoryHelper>> OBSERVATORY_HELPER;
+    public static RegistryObject<EntityType<EntityGrapplingHook>> GRAPPLING_HOOK;
 }

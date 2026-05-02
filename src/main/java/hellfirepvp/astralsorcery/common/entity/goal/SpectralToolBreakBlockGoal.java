@@ -17,15 +17,16 @@ import hellfirepvp.astralsorcery.common.util.block.BlockPredicate;
 import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.controller.MovementController;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.EnumSet;
 
@@ -42,29 +43,29 @@ public class SpectralToolBreakBlockGoal extends SpectralToolGoal {
 
     public SpectralToolBreakBlockGoal(EntitySpectralTool entity, double speed) {
         super(entity, speed);
-        this.setMutexFlags(EnumSet.of(Flag.MOVE, Flag.TARGET, Flag.LOOK));
+        this.setFlags(EnumSet.of(Flag.MOVE, Flag.TARGET, Flag.LOOK));
     }
 
     private BlockPredicate breakableSimpleBlocks() {
         return (world, pos, state) -> {
-            return MiscUtils.getTileAt(world, pos, TileEntity.class, false) == null &&
+            return MiscUtils.getTileAt(world, pos, BlockEntity.class, false) == null &&
                     pos.getY() >= this.getEntity().getStartPosition().getY() &&
-                    !state.isAir(world, pos) &&
-                    state.getBlockHardness(world, pos) != -1 &&
-                    state.getBlockHardness(world, pos) <= 10 &&
+                    !state.isAir() &&
+                    state.getDestroySpeed(world, pos) != -1 &&
+                    state.getDestroySpeed(world, pos) <= 10 &&
                     BlockUtils.canToolBreakBlockWithoutPlayer(world, pos, state, new ItemStack(Items.DIAMOND_PICKAXE));
         };
     }
 
     @Override
-    public boolean shouldExecute() {
-        MovementController ctrl = this.getEntity().getMoveHelper();
+    public boolean canUse() {
+        MoveControl ctrl = this.getEntity().getMoveControl();
 
-        if (!ctrl.isUpdating()) {
+        if (!ctrl.hasWanted()) {
             return true;
         } else {
             BlockPos validPos = BlockDiscoverer.searchAreaForFirst(
-                    this.getEntity().getEntityWorld(),
+                    this.getEntity().level(),
                     this.getEntity().getStartPosition(),
                     8,
                     Vector3.atEntityCorner(this.getEntity()),
@@ -74,16 +75,16 @@ public class SpectralToolBreakBlockGoal extends SpectralToolGoal {
     }
 
     @Override
-    public boolean shouldContinueExecuting() {
+    public boolean canContinueToUse() {
         return this.selectedBreakPos != null;
     }
 
     @Override
-    public void startExecuting() {
-        super.startExecuting();
+    public void start() {
+        super.start();
 
         BlockPos validPos = BlockDiscoverer.searchAreaForFirst(
-                this.getEntity().getEntityWorld(),
+                this.getEntity().level(),
                 this.getEntity().getStartPosition(),
                 8,
                 Vector3.atEntityCorner(this.getEntity()),
@@ -92,7 +93,7 @@ public class SpectralToolBreakBlockGoal extends SpectralToolGoal {
         if (validPos != null) {
             this.selectedBreakPos = validPos;
 
-            this.getEntity().getMoveHelper().setMoveTo(
+            this.getEntity().getMoveControl().setWantedPosition(
                     this.selectedBreakPos.getX() + 0.5,
                     this.selectedBreakPos.getY() + 0.5,
                     this.selectedBreakPos.getZ() + 0.5,
@@ -101,8 +102,8 @@ public class SpectralToolBreakBlockGoal extends SpectralToolGoal {
     }
 
     @Override
-    public void resetTask() {
-        super.resetTask();
+    public void stop() {
+        super.stop();
 
         this.selectedBreakPos = null;
         this.actionCooldown = 0;
@@ -112,22 +113,22 @@ public class SpectralToolBreakBlockGoal extends SpectralToolGoal {
     public void tick() {
         super.tick();
 
-        if (!shouldContinueExecuting()) {
+        if (!canContinueToUse()) {
             return;
         }
 
         if (this.actionCooldown < 0) {
-            this.actionCooldown = 0; //lol. wtf.
+            this.actionCooldown = 0;
         }
 
-        World world = this.getEntity().getEntityWorld();
+        Level world = this.getEntity().level();
         boolean resetTimer = false;
 
-        if (world.isAirBlock(this.selectedBreakPos)) {
+        if (world.isEmptyBlock(this.selectedBreakPos)) {
             this.selectedBreakPos = null;
             resetTimer = true;
         } else {
-            this.getEntity().getMoveHelper().setMoveTo(
+            this.getEntity().getMoveControl().setWantedPosition(
                     this.selectedBreakPos.getX() + 0.5,
                     this.selectedBreakPos.getY() + 0.5,
                     this.selectedBreakPos.getZ() + 0.5,
@@ -135,26 +136,30 @@ public class SpectralToolBreakBlockGoal extends SpectralToolGoal {
 
             if (Vector3.atEntityCorner(this.getEntity()).distanceSquared(this.selectedBreakPos) <= 9) {
                 this.actionCooldown++;
-                if (this.actionCooldown >= MantleEffectPelotrio.CONFIG.ticksPerPickaxeBlockBreak.get() && world instanceof ServerWorld) {
+                if (this.actionCooldown >= MantleEffectPelotrio.CONFIG.ticksPerPickaxeBlockBreak.get() && world instanceof ServerLevel serverLevel) {
                     LivingEntity owner = this.getEntity().getOwningEntity();
-                    if (owner instanceof PlayerEntity) {
+
+                    if (owner instanceof Player) {
                         BlockDropCaptureAssist.startCapturing();
                     }
+
+                    BlockState state = world.getBlockState(this.selectedBreakPos);
                     if (BlockUtils.breakBlockWithoutPlayer(
-                            (ServerWorld) world,
+                            serverLevel,
                             this.selectedBreakPos,
-                            world.getBlockState(this.selectedBreakPos),
+                            state,
                             this.getEntity().getItem(),
-                            true,
-                            true,
-                            true)) {
+                            true,   // boolean breakBlock
+                            true    // boolean ignoreHarvest
+                    )) {
                         resetTimer = true;
                     }
-                    if (owner instanceof PlayerEntity) {
+
+                    if (owner instanceof Player player) {
                         for (ItemStack dropped : BlockDropCaptureAssist.getCapturedStacksAndStop()) {
-                            ItemStack remainder = ItemUtils.dropItemToPlayer((PlayerEntity) owner, dropped);
+                            ItemStack remainder = ItemUtils.dropItemToPlayer(player, dropped);
                             if (!remainder.isEmpty()) {
-                                ItemUtils.dropItemNaturally(world, owner.getPosX(), owner.getPosY(), owner.getPosZ(), remainder);
+                                ItemUtils.dropItemNaturally(world, owner.getX(), owner.getY(), owner.getZ(), remainder);
                             }
                         }
                     }

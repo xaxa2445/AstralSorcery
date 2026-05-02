@@ -14,10 +14,10 @@ import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ProgressionTier;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraftforge.fml.ModContainer;
 
 import java.awt.*;
@@ -74,7 +74,7 @@ public abstract class Constellation extends BaseConstellation implements IConste
                 .collect(Collectors.toList());
     }
 
-    public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
+    public boolean canDiscover(Player player, PlayerProgress progress) {
         return true;
         //return !Mods.GAMESTAGES.isPresent() ||
         //        (player != null && canDiscoverGameStages(player, progress));
@@ -154,7 +154,7 @@ public abstract class Constellation extends BaseConstellation implements IConste
         }
 
         @Override
-        public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
+        public boolean canDiscover(Player player, PlayerProgress progress) {
             return true;
         }
 
@@ -176,7 +176,7 @@ public abstract class Constellation extends BaseConstellation implements IConste
         }
 
         @Override
-        public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
+        public boolean canDiscover(Player player, PlayerProgress progress) {
             return super.canDiscover(player, progress) &&
                     progress.getTierReached().isThisLaterOrEqual(ProgressionTier.ATTUNEMENT) &&
                     progress.wasOnceAttuned();
@@ -228,7 +228,7 @@ public abstract class Constellation extends BaseConstellation implements IConste
                 while (index >= MoonPhase.values().length) {
                     index -= MoonPhase.values().length;
                 }
-                index = MathHelper.clamp(index, 0, MoonPhase.values().length - 1);
+                index = Mth.clamp(index, 0, MoonPhase.values().length - 1);
                 MoonPhase offset = MoonPhase.values()[index];
                 if (!shifted.contains(offset)) {
                     shifted.add(offset);
@@ -238,7 +238,7 @@ public abstract class Constellation extends BaseConstellation implements IConste
         }
 
         @Override
-        public boolean canDiscover(PlayerEntity player, PlayerProgress progress) {
+        public boolean canDiscover(Player player, PlayerProgress progress) {
             return super.canDiscover(player, progress) &&
                     progress.wasOnceAttuned() &&
                     progress.getTierReached().isThisLaterOrEqual(ProgressionTier.TRAIT_CRAFT);

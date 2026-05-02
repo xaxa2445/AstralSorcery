@@ -22,17 +22,17 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.*;
-import net.minecraft.entity.ai.attributes.AttributeModifierMap;
-import net.minecraft.entity.ai.attributes.Attributes;
-import net.minecraft.entity.ai.controller.FlyingMovementController;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.control.FlyingMoveControl;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -47,9 +47,9 @@ import java.util.function.BiFunction;
  * Created by HellFirePvP
  * Date: 22.02.2020 / 14:25
  */
-public class EntitySpectralTool extends FlyingEntity {
+public class EntitySpectralTool extends FlyingMob {
 
-    private static final DataParameter<ItemStack> ITEM = EntityDataManager.createKey(EntitySpectralTool.class, DataSerializers.ITEMSTACK);
+    private static final EntityDataAccessor<ItemStack> ITEM = SynchedEntityData.defineId(EntitySpectralTool.class, EntityDataSerializers.ITEM_STACK);
 
     private LivingEntity owningEntity = null;
     private SpectralToolGoal task = null;
@@ -58,70 +58,70 @@ public class EntitySpectralTool extends FlyingEntity {
 
     private int idleTime = 0;
 
-    public EntitySpectralTool(World worldIn) {
-        super(EntityTypesAS.SPECTRAL_TOOL, worldIn);
-        this.moveController = new FlyingMovementController(this, 10, false);
+    public EntitySpectralTool(EntityType<? extends EntitySpectralTool> type, Level worldIn) {
+        super(type, worldIn);
+        this.moveControl = new FlyingMoveControl(this, 10, false);
     }
 
-    public EntitySpectralTool(World worldIn, BlockPos spawnPos, LivingEntity owner, ToolTask task) {
-        this(worldIn);
-        this.setPosition(spawnPos.getX() + 0.5, spawnPos.getY() + 0.5, spawnPos.getZ());
+    public EntitySpectralTool(Level worldIn, BlockPos spawnPos, LivingEntity owner, ToolTask task) {
+        this(EntityTypesAS.SPECTRAL_TOOL.get(), worldIn);
+        this.setPos(spawnPos.getX() + 0.5, spawnPos.getY() + 0.5, spawnPos.getZ());
         this.setItem(task.displayStack);
         this.startPosition = spawnPos;
         this.owningEntity = owner;
         this.task = task.createGoal(this);
         this.goalSelector.addGoal(1, this.task);
-        this.remainingTime = task.maxAge + rand.nextInt(task.maxAge);
+        this.remainingTime = task.maxAge + worldIn.random.nextInt(task.maxAge);
     }
 
-    public static EntityType.IFactory<EntitySpectralTool> factory() {
-        return (type, world) -> new EntitySpectralTool(world);
-    }
-
-    public static AttributeModifierMap.MutableAttribute createAttributes() {
-        return MobEntity.func_233666_p_()
-                .createMutableAttribute(Attributes.MAX_HEALTH, 3)
-                .createMutableAttribute(Attributes.FLYING_SPEED, 0.85);
+    public static AttributeSupplier.Builder createAttributes() {
+        return Mob.createMobAttributes()
+                .add(Attributes.MAX_HEALTH, 3.0D)
+                .add(Attributes.FLYING_SPEED, 0.85D);
     }
 
     @Override
-    protected void registerData() {
-        super.registerData();
-
-        this.getDataManager().register(ITEM, ItemStack.EMPTY);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        this.entityData.define(ITEM, ItemStack.EMPTY);
     }
 
     @Override
-    public boolean canCollide(Entity entity) {
-        return !(entity instanceof PlayerEntity);
+    public boolean canCollideWith(Entity entity) {
+        return !(entity instanceof Player);
     }
 
     @Override
-    public boolean canBePushed() {
+    public boolean isPushable() {
         return false;
     }
 
     @Override
-    protected boolean canTriggerWalking() {
-        return false;
+    public boolean isSilent() {
+        return true;
+    }
+
+    @Override
+    protected void playStepSound(net.minecraft.core.BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
+        // No hace sonidos de pasos
     }
 
     @Override
     public void tick() {
         super.tick();
 
-        if (this.getEntityWorld().isRemote()) {
+        if (this.level().isClientSide()) {
             this.tickClient();
         } else {
             if (this.startPosition == null) {
-                this.remove();
+                this.discard();
                 return;
             }
 
-            if (!this.task.shouldExecute()) {
+            if (this.task == null || !this.task.canUse()) {
                 this.idleTime++;
                 if (this.idleTime >= 30) {
-                    this.remove();
+                    this.discard();
                     return;
                 }
             } else {
@@ -130,33 +130,26 @@ public class EntitySpectralTool extends FlyingEntity {
 
             this.remainingTime--;
             if (this.remainingTime <= 0) {
-                DamageUtil.attackEntityFrom(this, CommonProxy.DAMAGE_SOURCE_STELLAR, 50.0F);
+                // En 1.20.1 el DamageSource se obtiene usualmente del level.damageSources()
+                this.hurt(this.level().damageSources().generic(), 50.0F);
             }
         }
     }
 
     @OnlyIn(Dist.CLIENT)
     private void tickClient() {
-        if (rand.nextFloat() < 0.2F) {
+        if (this.random.nextFloat() < 0.2F) {
             Vector3 at = Vector3.atEntityCorner(this)
-                    .add(rand.nextFloat() * 0.3 * (rand.nextBoolean() ? 1 : -1),
-                            rand.nextFloat() * 0.3 * (rand.nextBoolean() ? 1 : -1) + this.getHeight() / 2,
-                            rand.nextFloat() * 0.3 * (rand.nextBoolean() ? 1 : -1));
+                    .add(this.random.nextFloat() * 0.3 * (this.random.nextBoolean() ? 1 : -1),
+                            this.random.nextFloat() * 0.3 * (this.random.nextBoolean() ? 1 : -1) + this.getBbHeight() / 2,
+                            this.random.nextFloat() * 0.3 * (this.random.nextBoolean() ? 1 : -1));
 
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(at)
                     .alpha(VFXAlphaFunction.FADE_OUT)
                     .color(VFXColorFunction.constant(ColorsAS.CONSTELLATION_TYPE_WEAK))
-                    .setScaleMultiplier(0.35F + rand.nextFloat() * 0.25F)
-                    .setMaxAge(30 + rand.nextInt(20));
-            if (rand.nextBoolean()) {
-                EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                        .spawn(at)
-                        .alpha(VFXAlphaFunction.FADE_OUT)
-                        .color(VFXColorFunction.WHITE)
-                        .setScaleMultiplier(0.2F + rand.nextFloat() * 0.15F)
-                        .setMaxAge(20 + rand.nextInt(10));
-            }
+                    .setScaleMultiplier(0.35F + this.random.nextFloat() * 0.25F)
+                    .setMaxAge(30 + this.random.nextInt(20));
         }
     }
 
@@ -168,26 +161,28 @@ public class EntitySpectralTool extends FlyingEntity {
         return owningEntity;
     }
 
-    private void setItem(@Nonnull ItemStack tool) {
-        this.dataManager.set(ITEM, tool);
+    public void setItem(@Nonnull ItemStack tool) {
+        this.entityData.set(ITEM, tool);
     }
 
     @Nonnull
     public ItemStack getItem() {
-        return this.dataManager.get(ITEM);
+        return this.entityData.get(ITEM);
     }
 
     @Override
-    public void applyEntityCollision(Entity entityIn) {
-        if (!(entityIn instanceof PlayerEntity || entityIn instanceof EntitySpectralTool)) {
-            super.applyEntityCollision(entityIn);
+    public void push(Entity entityIn) {
+        // Evita que la herramienta empuje al jugador o a otras herramientas espectrales
+        if (!(entityIn instanceof Player || entityIn instanceof EntitySpectralTool)) {
+            super.push(entityIn);
         }
     }
 
     @Override
-    protected void collideWithEntity(Entity entityIn) {
-        if (!(entityIn instanceof PlayerEntity || entityIn instanceof EntitySpectralTool)) {
-            super.applyEntityCollision(entityIn);
+    protected void doPush(Entity entityIn) {
+        // Evita que la herramienta sea empujada por el jugador o por otras herramientas espectrales
+        if (!(entityIn instanceof Player || entityIn instanceof EntitySpectralTool)) {
+            super.doPush(entityIn);
         }
     }
 

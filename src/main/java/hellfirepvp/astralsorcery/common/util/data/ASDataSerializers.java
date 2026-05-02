@@ -8,9 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.util.data;
 
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.IDataSerializer;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.syncher.EntityDataSerializer;
 import net.minecraftforge.fluids.FluidStack;
 
 /**
@@ -22,70 +21,59 @@ import net.minecraftforge.fluids.FluidStack;
  */
 public class ASDataSerializers {
 
-    public static IDataSerializer<Long> LONG = new IDataSerializer<Long>() {
+    public static final EntityDataSerializer<Long> LONG = new EntityDataSerializer<>() {
         @Override
-        public void write(PacketBuffer buf, Long value) {
-            buf.writeLongLE(value);
+        public void write(FriendlyByteBuf buf, Long value) {
+            buf.writeLong(value);
         }
 
         @Override
-        public Long read(PacketBuffer buf) {
-            return buf.readLongLE();
+        public Long read(FriendlyByteBuf buf) {
+            return buf.readLong();
         }
 
         @Override
-        public DataParameter<Long> createKey(int id) {
-            return new DataParameter<>(id, this);
-        }
-
-        @Override
-        public Long copyValue(Long value) {
-            return new Long(value);
+        public Long copy(Long value) {
+            return value;
         }
     };
 
-    public static IDataSerializer<Vector3> VECTOR = new IDataSerializer<Vector3>() {
+    public static final EntityDataSerializer<Vector3> VECTOR = new EntityDataSerializer<>() {
         @Override
-        public void write(PacketBuffer buf, Vector3 value) {
+        public void write(FriendlyByteBuf buf, Vector3 value) {
             buf.writeDouble(value.getX());
             buf.writeDouble(value.getY());
             buf.writeDouble(value.getZ());
         }
 
         @Override
-        public Vector3 read(PacketBuffer buf) {
-            return new Vector3(buf.readDouble(), buf.readDouble(), buf.readDouble());
+        public Vector3 read(FriendlyByteBuf buf) {
+            return new Vector3(
+                    buf.readDouble(),
+                    buf.readDouble(),
+                    buf.readDouble()
+            );
         }
 
         @Override
-        public DataParameter<Vector3> createKey(int id) {
-            return new DataParameter<>(id, this);
-        }
-
-        @Override
-        public Vector3 copyValue(Vector3 value) {
+        public Vector3 copy(Vector3 value) {
             return value.clone();
         }
     };
 
-    public static IDataSerializer<FluidStack> FLUID = new IDataSerializer<FluidStack>() {
+    public static final EntityDataSerializer<FluidStack> FLUID = new EntityDataSerializer<>() {
         @Override
-        public void write(PacketBuffer buf, FluidStack value) {
-            ByteBufUtils.writeFluidStack(buf, value);
+        public void write(FriendlyByteBuf buf, FluidStack value) {
+            buf.writeFluidStack(value);
         }
 
         @Override
-        public FluidStack read(PacketBuffer buf) {
-            return ByteBufUtils.readFluidStack(buf);
+        public FluidStack read(FriendlyByteBuf buf) {
+            return buf.readFluidStack();
         }
 
         @Override
-        public DataParameter<FluidStack> createKey(int id) {
-            return new DataParameter<>(id, this);
-        }
-
-        @Override
-        public FluidStack copyValue(FluidStack value) {
+        public FluidStack copy(FluidStack value) {
             return value.copy();
         }
     };

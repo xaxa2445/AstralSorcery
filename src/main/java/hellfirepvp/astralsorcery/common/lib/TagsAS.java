@@ -9,11 +9,13 @@
 package hellfirepvp.astralsorcery.common.lib;
 
 import hellfirepvp.astralsorcery.common.base.Mods;
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ITag;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 
 import static hellfirepvp.astralsorcery.common.base.Mods.ASTRAL_SORCERY;
 import static hellfirepvp.astralsorcery.common.base.Mods.CURIOS;
@@ -31,36 +33,38 @@ public class TagsAS {
 
     public static class Blocks {
 
-        public static final ITag.INamedTag<Block> MARBLE = blockTagForge("marble");
-        public static final ITag.INamedTag<Block> ORES = blockTagForge("ores");
+        public static final TagKey<Block> MARBLE = blockTagForge("marble");
+        public static final TagKey<Block> ORES = blockTagForge("ores");
 
     }
 
     public static class Items {
 
-        public static final ITag.INamedTag<Item> CURIOS_NECKLACE = itemTag(CURIOS, "necklace");
+        public static final TagKey<Item> CURIOS_NECKLACE = itemTag(CURIOS, "necklace");
 
-        public static final ITag.INamedTag<Item> FORGE_GEM_AQUAMARINE = itemTagForge("gems/aquamarine");
+        public static final TagKey<Item> FORGE_GEM_AQUAMARINE = itemTagForge("gems/aquamarine");
 
-        public static final ITag.INamedTag<Item> DUSTS_STARDUST = itemTag(ASTRAL_SORCERY, "stardust");
-        public static final ITag.INamedTag<Item> INGOTS_STARMETAL = itemTag(ASTRAL_SORCERY, "starmetal");
-        public static final ITag.INamedTag<Item> COLORED_LENS = itemTag(ASTRAL_SORCERY, "colored_lens");
+        public static final TagKey<Item> DUSTS_STARDUST = itemTag(ASTRAL_SORCERY, "stardust");
+        public static final TagKey<Item> INGOTS_STARMETAL = itemTag(ASTRAL_SORCERY, "starmetal");
+        public static final TagKey<Item> COLORED_LENS = itemTag(ASTRAL_SORCERY, "colored_lens");
 
     }
 
-    private static ITag.INamedTag<Block> blockTagForge(String name) {
+    private static TagKey<Block> blockTagForge(String name) {
         return blockTag(Mods.FORGE, name);
     }
 
-    private static ITag.INamedTag<Block> blockTag(Mods mod, String name) {
-        return BlockTags.makeWrapperTag(mod.key(name).toString());
+    private static TagKey<Block> blockTag(Mods mod, String name) {
+        // En 1.20.1 se usa TagKey.create apuntando al registro correspondiente
+        return BlockTags.create(new ResourceLocation(mod.getModId(), name));
     }
 
-    private static ITag.INamedTag<Item> itemTagForge(String name) {
+    private static TagKey<Item> itemTagForge(String name) {
         return itemTag(Mods.FORGE, name);
     }
 
-    private static ITag.INamedTag<Item> itemTag(Mods mod, String name) {
-        return ItemTags.makeWrapperTag(mod.key(name).toString());
+    private static TagKey<Item> itemTag(Mods mod, String name) {
+        // En 1.20.1 se usa TagKey.create apuntando al registro correspondiente
+        return ItemTags.create(new ResourceLocation(mod.getModId(), name));
     }
 }

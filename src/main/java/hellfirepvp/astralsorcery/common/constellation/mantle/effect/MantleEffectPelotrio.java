@@ -14,20 +14,21 @@ import hellfirepvp.astralsorcery.common.entity.EntitySpectralTool;
 import hellfirepvp.astralsorcery.common.item.armor.ItemMantle;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.world.IWorld;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.PickaxeItem;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ToolType;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -54,22 +55,21 @@ public class MantleEffectPelotrio extends MantleEffect {
     }
 
     private void onHurt(LivingAttackEvent event) {
-        World world = event.getEntityLiving().getEntityWorld();
-        if (world.isRemote()) {
+        Level world = event.getEntity().getCommandSenderWorld();
+        if (world.isClientSide()) {
             return;
         }
 
-        LivingEntity attacked = event.getEntityLiving();
-        Entity attacker = event.getSource().getTrueSource();
-        if (attacker instanceof PlayerEntity) {
-            if (attacked instanceof ServerPlayerEntity && MiscUtils.isPlayerFakeMP((ServerPlayerEntity) attacked)) {
+        LivingEntity attacked = event.getEntity();
+        Entity attacker = event.getSource().getEntity();
+        if (attacker instanceof Player player) {
+            if (attacked instanceof ServerPlayer && MiscUtils.isPlayerFakeMP((ServerPlayer) attacked)) {
                 return;
             }
-            PlayerEntity player = (PlayerEntity) attacker;
 
             if (ItemMantle.getEffect(player, ConstellationsAS.pelotrio) != null && rand.nextFloat() < CONFIG.chanceSpawnSword.get()) {
                 if (AlignmentChargeHandler.INSTANCE.hasCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerSword.get())) {
-                    if (world.addEntity(new EntitySpectralTool(world, player.getPosition().up(), player, EntitySpectralTool.ToolTask.createAttackTask()))) {
+                    if (world.addFreshEntity(new EntitySpectralTool(world, player.blockPosition().above(), player, EntitySpectralTool.ToolTask.createAttackTask()))) {
                         AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerSword.get(), false);
                     }
                 }
@@ -78,38 +78,36 @@ public class MantleEffectPelotrio extends MantleEffect {
     }
 
     private void onBreak(BlockEvent.BreakEvent event) {
-        IWorld world = event.getWorld();
-        if (world.isRemote() || !(world instanceof World)) {
+        Level world = (Level) event.getLevel();
+        if (world.isClientSide() || !(world instanceof Level)) {
             return;
         }
 
-        PlayerEntity player = event.getPlayer();
-        if ((!(player instanceof ServerPlayerEntity) || !MiscUtils.isPlayerFakeMP((ServerPlayerEntity) player)) &&
+        Player player = event.getPlayer();
+        if ((!(player instanceof ServerPlayer) || !MiscUtils.isPlayerFakeMP((ServerPlayer) player)) &&
                 ItemMantle.getEffect(player, ConstellationsAS.pelotrio) != null) {
 
             BlockState state = event.getState();
+            BlockPos pos = event.getPos();
 
-            if ((state.getHarvestTool() == ToolType.AXE || !state.getRequiresTool()) &&
-                    (state.isIn(BlockTags.LOGS) || state.isIn(BlockTags.LEAVES)) &&
-                    !player.getHeldItemMainhand().isEmpty() &&
-                    player.getHeldItemMainhand().getToolTypes().contains(ToolType.AXE)) {
+            if ((state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES)) &&
+                    player.getMainHandItem().getItem() instanceof AxeItem) {
 
-                if (rand.nextFloat() < CONFIG.chanceSpawnAxe.get()) {
+                if (world.random.nextFloat() < CONFIG.chanceSpawnAxe.get()) {
                     if (AlignmentChargeHandler.INSTANCE.hasCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerAxe.get())) {
-                        if (world.addEntity(new EntitySpectralTool((World) world, player.getPosition(), player, EntitySpectralTool.ToolTask.createLogTask()))) {
+                        EntitySpectralTool axe = new EntitySpectralTool(world, pos, player, EntitySpectralTool.ToolTask.createLogTask());
+                        if (world.addFreshEntity(axe)) {
                             AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerAxe.get(), false);
                         }
                     }
                 }
                 return;
             }
-            if ((state.getHarvestTool() == ToolType.PICKAXE || !state.getRequiresTool()) &&
-                    !player.getHeldItemMainhand().isEmpty() &&
-                    player.getHeldItemMainhand().getToolTypes().contains(ToolType.PICKAXE)) {
-
-                if (rand.nextFloat() < CONFIG.chanceSpawnPickaxe.get()) {
+            if (state.is(BlockTags.MINEABLE_WITH_PICKAXE) && player.getMainHandItem().getItem() instanceof PickaxeItem) {
+                if (world.random.nextFloat() < CONFIG.chanceSpawnPickaxe.get()) {
                     if (AlignmentChargeHandler.INSTANCE.hasCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerPickaxe.get())) {
-                        if (world.addEntity(new EntitySpectralTool((World) world, player.getPosition(), player, EntitySpectralTool.ToolTask.createPickaxeTask()))) {
+                        EntitySpectralTool pickaxe = new EntitySpectralTool(world, pos, player, EntitySpectralTool.ToolTask.createPickaxeTask());
+                        if (world.addFreshEntity(pickaxe)) {
                             AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerPickaxe.get(), false);
                         }
                     }
@@ -120,7 +118,7 @@ public class MantleEffectPelotrio extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
         this.playCapeSparkles(player, 0.15F);

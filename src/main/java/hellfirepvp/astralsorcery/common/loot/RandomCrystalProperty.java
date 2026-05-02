@@ -14,11 +14,11 @@ import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeGenItem;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.crystal.CrystalGenerator;
 import hellfirepvp.astralsorcery.common.lib.LootAS;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootContext;
-import net.minecraft.loot.LootFunction;
-import net.minecraft.loot.LootFunctionType;
-import net.minecraft.loot.conditions.ILootCondition;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -27,34 +27,38 @@ import net.minecraft.loot.conditions.ILootCondition;
  * Created by HellFirePvP
  * Date: 21.07.2019 / 08:50
  */
-public class RandomCrystalProperty extends LootFunction {
+public class RandomCrystalProperty extends LootItemConditionalFunction {
 
-    private RandomCrystalProperty(ILootCondition[] conditions) {
+    private RandomCrystalProperty(LootItemCondition[] conditions) {
         super(conditions);
     }
 
     @Override
-    public LootFunctionType getFunctionType() {
+    public LootItemFunctionType getType() {
         return LootAS.Functions.RANDOM_CRYSTAL_PROPERTIES;
     }
 
     @Override
-    protected ItemStack doApply(ItemStack itemStack, LootContext lootContext) {
-        if (itemStack.getItem() instanceof CrystalAttributeGenItem) {
+    protected ItemStack run(ItemStack itemStack, LootContext lootContext) {
+        // Uso de Pattern Matching de Java 17 para simplificar el acceso al ítem
+        if (itemStack.getItem() instanceof CrystalAttributeGenItem genItem) {
             CrystalAttributes attr = CrystalGenerator.generateNewAttributes(itemStack);
-            ((CrystalAttributeGenItem) itemStack.getItem()).setAttributes(itemStack, attr);
+            genItem.setAttributes(itemStack, attr);
         }
         return itemStack;
     }
 
-    public static LootFunction.Builder<?> builder() {
-        return builder(RandomCrystalProperty::new);
+    public static LootItemConditionalFunction.Builder<?> builder() {
+        return simpleBuilder(RandomCrystalProperty::new);
     }
 
-    public static class Serializer extends LootFunction.Serializer<RandomCrystalProperty> {
+    /**
+     * Serializador GSON compatible con la estructura de la clase base en tu entorno 1.20.1.
+     */
+    public static class Serializer extends LootItemConditionalFunction.Serializer<RandomCrystalProperty> {
 
         @Override
-        public RandomCrystalProperty deserialize(JsonObject jsonObject, JsonDeserializationContext jsonDeserializationContext, ILootCondition[] iLootConditions) {
+        public RandomCrystalProperty deserialize(JsonObject jsonObject, JsonDeserializationContext jsonDeserializationContext, LootItemCondition[] iLootConditions) {
             return new RandomCrystalProperty(iLootConditions);
         }
     }

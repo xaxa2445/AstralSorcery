@@ -8,10 +8,11 @@
 
 package hellfirepvp.astralsorcery.common.enchantment;
 
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
+
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
 import net.minecraftforge.fml.LogicalSide;
 
 /**
@@ -23,10 +24,10 @@ import net.minecraftforge.fml.LogicalSide;
  */
 public abstract class EnchantmentPlayerTick extends Enchantment {
 
-    protected EnchantmentPlayerTick(Rarity rarityIn, EnchantmentType typeIn, EquipmentSlotType[] slots) {
+    protected EnchantmentPlayerTick(Rarity rarityIn, EnchantmentCategory typeIn, EquipmentSlot[] slots) {
         super(rarityIn, typeIn, slots);
     }
 
-    public abstract void tick(PlayerEntity player, LogicalSide side, int level);
+    public abstract void tick(Player player, LogicalSide side, int level);
 
 }

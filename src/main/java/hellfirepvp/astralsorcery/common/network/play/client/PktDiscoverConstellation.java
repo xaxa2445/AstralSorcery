@@ -56,12 +56,16 @@ public class PktDiscoverConstellation extends ASPacket<PktDiscoverConstellation>
         return (packet, context, side) -> {
             context.enqueueWork(() -> {
                 if (side == LogicalSide.SERVER) {
-                    PlayerEntity player = context.getSender();
+                    Player player = context.getSender();
                     PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
                     if (prog.isValid() &&
                             packet.constellation.canDiscover(player, prog) &&
                             ResearchManager.discoverConstellation(packet.constellation, player)) {
-                        ResearchHelper.sendConstellationDiscoveryMessage(player, packet.constellation);
+
+                        ResearchHelper.sendConstellationDiscoveryMessage(
+                                player.createCommandSourceStack(),
+                                packet.constellation
+                        );
                     }
                 }
             });

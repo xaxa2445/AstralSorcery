@@ -31,16 +31,18 @@ public class ItemNocturnalPowder extends ItemUsableDust {
     boolean dispense(BlockSource source) {
         BlockPos pos = source.getPos();
         Direction face = source.getBlockState().getValue(DispenserBlock.FACING);
+        Level level = source.getLevel(); // En 1.20.1 se usa level() en BlockSource
 
-        Level level = source.getLevel();
-
+        // Usamos el constructor que definimos previamente en EntityNocturnalSpark
         EntityNocturnalSpark spark = new EntityNocturnalSpark(
-                level,
                 pos.getX() + 0.5,
                 pos.getY() + 0.5,
-                pos.getZ() + 0.5
+                pos.getZ() + 0.5,
+                level
         );
 
+        // shoot() en proyectiles ahora suele llamarse shoot() o shootFromRotation()
+        // pero la firma manual con coordenadas sigue siendo válida en ThrowableItemProjectile
         spark.shoot(
                 face.getStepX(),
                 face.getStepY() + 0.1F,
@@ -53,10 +55,10 @@ public class ItemNocturnalPowder extends ItemUsableDust {
         return true;
     }
 
-
     @Override
     boolean rightClickAir(Level level, Player player, ItemStack stack) {
-        EntityNocturnalSpark spark = new EntityNocturnalSpark(level, player);
+        // Usamos el constructor que acepta al lanzador (Player)
+        EntityNocturnalSpark spark = new EntityNocturnalSpark(player, level);
         level.addFreshEntity(spark);
         return true;
     }
@@ -65,8 +67,12 @@ public class ItemNocturnalPowder extends ItemUsableDust {
     boolean rightClickBlock(UseOnContext ctx) {
         Level level = ctx.getLevel();
         BlockPos pos = ctx.getClickedPos().relative(ctx.getClickedFace());
+        Player player = ctx.getPlayer();
 
-        EntityNocturnalSpark spark = new EntityNocturnalSpark(level, ctx.getPlayer());
+        // Creamos la chispa vinculada al jugador si existe
+        EntityNocturnalSpark spark = player != null ?
+                new EntityNocturnalSpark(player, level) :
+                new EntityNocturnalSpark(level);
 
         spark.setPos(
                 pos.getX() + 0.5,
@@ -74,7 +80,8 @@ public class ItemNocturnalPowder extends ItemUsableDust {
                 pos.getZ() + 0.5
         );
 
-        spark.setSpawning(); // 👈 esto depende de tu clase, está bien si existe
+        // Activamos el estado de spawneo que definimos en la entidad
+        spark.setSpawning();
 
         level.addFreshEntity(spark);
         return true;

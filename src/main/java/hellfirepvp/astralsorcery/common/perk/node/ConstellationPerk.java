@@ -15,8 +15,8 @@ import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.perk.modifier.AttributeModifierPerk;
 import hellfirepvp.astralsorcery.common.perk.tree.PerkTreeConstellation;
 import hellfirepvp.astralsorcery.common.perk.tree.PerkTreePoint;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -64,7 +64,7 @@ public class ConstellationPerk extends AttributeModifierPerk {
         this.constellation = null;
 
         if (perkData.has("constellation")) {
-            String cstKey = JSONUtils.getString(perkData, "constellation");
+            String cstKey = GsonHelper.getAsString(perkData, "constellation");
             IConstellation cst = ConstellationRegistry.getConstellation(new ResourceLocation(cstKey));
             if (cst == null) {
                 throw new JsonParseException("Unknown constellation: " + cstKey);

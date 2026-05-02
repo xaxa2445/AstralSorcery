@@ -9,7 +9,7 @@
 package hellfirepvp.astralsorcery.common.entity.goal;
 
 import hellfirepvp.astralsorcery.common.entity.EntitySpectralTool;
-import net.minecraft.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.Goal;
 
 import java.util.EnumSet;
 
@@ -30,7 +30,7 @@ public abstract class SpectralToolGoal extends Goal {
     public SpectralToolGoal(EntitySpectralTool entity, double speed) {
         this.entity = entity;
         this.speed = speed;
-        this.setMutexFlags(EnumSet.of(Flag.MOVE, Flag.TARGET, Flag.LOOK));
+        this.setFlags(EnumSet.of(Flag.MOVE, Flag.TARGET, Flag.LOOK));
     }
 
     public EntitySpectralTool getEntity() {

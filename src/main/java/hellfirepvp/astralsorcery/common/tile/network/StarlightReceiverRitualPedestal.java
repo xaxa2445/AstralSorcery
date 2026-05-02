@@ -36,6 +36,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -267,7 +268,7 @@ public class StarlightReceiverRitualPedestal extends SimpleTransmissionReceiver<
         lblWhile: while (offset == null && c > 0) {
             c--;
 
-            BlockPos test = MiscUtils.getRandomEntry(TileRitualPedestal.RITUAL_CIRCLE_OFFSETS, r);
+            BlockPos test = MiscUtils.getRandomEntry(TileRitualPedestal.RITUAL_CIRCLE_OFFSETS, (RandomSource) r);
             RaytraceAssist ray = new RaytraceAssist(getLocationPos(), getLocationPos().offset(test));
             Vector3 from = new Vector3(0.5, 0.7, 0.5);
             Vector3 newDir = new Vector3(test).add(0.5, 0.5, 0.5).subtract(from);

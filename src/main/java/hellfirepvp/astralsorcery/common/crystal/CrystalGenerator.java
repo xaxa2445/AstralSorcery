@@ -11,8 +11,10 @@ package hellfirepvp.astralsorcery.common.crystal;
 import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.ItemStack;
+
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -71,7 +73,7 @@ public class CrystalGenerator {
             return attr; //Can't upgrade 'to' something then.
         }
         int existing = attr.getTotalTierLevel();
-        int expected = MathHelper.clamp(existing + 1,
+        int expected = Mth.clamp(existing + 1,
                 ((CrystalAttributeGenItem) stack.getItem()).getGeneratedPropertyTiers(),
                 ((CrystalAttributeGenItem) stack.getItem()).getMaxPropertyTiers());
         int generate = expected - attr.getTotalTierLevel();
@@ -88,11 +90,11 @@ public class CrystalGenerator {
 
     @Nullable
     public static CrystalProperty getRandomProperty() {
-        return getRandomProperty(RAND);
+        return getRandomProperty((RandomSource) RAND);
     }
 
     @Nullable
-    public static CrystalProperty getRandomProperty(Random random) {
+    public static CrystalProperty getRandomProperty(RandomSource random) {
         if (random.nextFloat() <= CHANCE_PHYSICAL_PROPERTIES) {
             return MiscUtils.getRandomEntry(PHYSICAL_PROPERTIES, random);
         }
@@ -155,9 +157,9 @@ public class CrystalGenerator {
         List<CrystalProperty> existing = builder.getProperties();
         existing.removeIf(o -> !properties.contains(o));
         existing.removeIf(property -> builder.getPropertyLvl(property, 0) >= property.getMaxTier());
-        CrystalProperty propExisting = MiscUtils.getRandomEntry(existing, random);
+        CrystalProperty propExisting = MiscUtils.getRandomEntry(existing, (RandomSource) random);
         CrystalProperty prop = (random.nextFloat() <= 0.85F && propExisting != null) ? propExisting :
-                MiscUtils.getRandomEntry(properties, random);
+                MiscUtils.getRandomEntry(properties, (RandomSource) random);
         int existingLvl = builder.getPropertyLvl(prop, 0);
         if (existingLvl < prop.getMaxTier()) {
             builder.addProperty(prop, 1);

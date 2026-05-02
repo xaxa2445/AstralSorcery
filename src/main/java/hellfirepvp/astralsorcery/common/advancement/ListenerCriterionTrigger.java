@@ -11,10 +11,10 @@ package hellfirepvp.astralsorcery.common.advancement;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import net.minecraft.advancements.ICriterionInstance;
-import net.minecraft.advancements.ICriterionTrigger;
-import net.minecraft.advancements.PlayerAdvancements;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.advancements.CriterionTrigger;
+import net.minecraft.advancements.CriterionTriggerInstance;
+import net.minecraft.server.PlayerAdvancements;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,7 @@ import java.util.function.Predicate;
  * Created by HellFirePvP
  * Date: 30.05.2019 / 16:44
  */
-public abstract class ListenerCriterionTrigger<T extends ICriterionInstance> implements ICriterionTrigger<T> {
+public abstract class ListenerCriterionTrigger<T extends CriterionTriggerInstance> implements CriterionTrigger<T> {
 
     protected final Map<PlayerAdvancements, Listeners<T>> listeners = Maps.newHashMap();
     private final ResourceLocation id;
@@ -42,7 +42,8 @@ public abstract class ListenerCriterionTrigger<T extends ICriterionInstance> imp
         return id;
     }
 
-    public final void addListener(PlayerAdvancements playerAdvancementsIn, ICriterionTrigger.Listener<T> listener) {
+    @Override
+    public final void addPlayerListener(PlayerAdvancements playerAdvancementsIn, CriterionTrigger.Listener<T> listener) {
         Listeners<T> listeners = this.listeners.get(playerAdvancementsIn);
 
         if (listeners == null) {
@@ -53,7 +54,8 @@ public abstract class ListenerCriterionTrigger<T extends ICriterionInstance> imp
         listeners.add(listener);
     }
 
-    public final void removeListener(PlayerAdvancements playerAdvancementsIn, ICriterionTrigger.Listener<T> listener) {
+    @Override
+    public final void removePlayerListener(PlayerAdvancements playerAdvancementsIn, CriterionTrigger.Listener<T> listener) {
         Listeners<T> listeners = this.listeners.get(playerAdvancementsIn);
 
         if (listeners != null) {
@@ -65,11 +67,12 @@ public abstract class ListenerCriterionTrigger<T extends ICriterionInstance> imp
         }
     }
 
-    public final void removeAllListeners(PlayerAdvancements playerAdvancementsIn) {
+    @Override
+    public final void removePlayerListeners(PlayerAdvancements playerAdvancementsIn) {
         this.listeners.remove(playerAdvancementsIn);
     }
 
-    public static class Listeners<T extends ICriterionInstance> {
+    public static class Listeners<T extends CriterionTriggerInstance> {
 
         private final PlayerAdvancements playerAdvancements;
         private final Set<Listener<T>> listeners = Sets.newHashSet();
@@ -82,25 +85,25 @@ public abstract class ListenerCriterionTrigger<T extends ICriterionInstance> imp
             return this.listeners.isEmpty();
         }
 
-        public final void add(ICriterionTrigger.Listener<T> listener) {
+        public final void add(CriterionTrigger.Listener<T> listener) {
             this.listeners.add(listener);
         }
 
-        public final void remove(ICriterionTrigger.Listener<T> listener) {
+        public final void remove(CriterionTrigger.Listener<T> listener) {
             this.listeners.remove(listener);
         }
 
         public final void trigger(Predicate<T> test) {
             List<Listener<T>> list = Lists.newArrayList();
 
-            for (ICriterionTrigger.Listener<T> listener : this.listeners) {
-                if (test.test(listener.getCriterionInstance())) {
+            for (CriterionTrigger.Listener<T> listener : this.listeners) {
+                if (test.test(listener.getTriggerInstance())) {
                     list.add(listener);
                 }
             }
 
-            for (ICriterionTrigger.Listener<T> listener1 : list) {
-                listener1.grantCriterion(this.playerAdvancements);
+            for (CriterionTrigger.Listener<T> listener1 : list) {
+                listener1.run(this.playerAdvancements);
             }
         }
     }

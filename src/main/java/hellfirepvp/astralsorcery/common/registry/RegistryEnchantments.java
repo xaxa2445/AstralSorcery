@@ -11,7 +11,7 @@ package hellfirepvp.astralsorcery.common.registry;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.enchantment.EnchantmentNightVision;
 import hellfirepvp.astralsorcery.common.enchantment.EnchantmentScorchingHeat;
-import net.minecraft.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantment;
 
 import static hellfirepvp.astralsorcery.common.lib.EnchantmentsAS.*;
 
@@ -30,15 +30,17 @@ public class RegistryEnchantments {
      * @see hellfirepvp.astralsorcery.common.loot.global.LootModifierScorchingHeat
      */
     public static void init() {
-        NIGHT_VISION = register(new EnchantmentNightVision())
-                .setRegistryName(AstralSorcery.key("night_vision"));
-        SCORCHING_HEAT = register(new EnchantmentScorchingHeat())
-                .setRegistryName(AstralSorcery.key("scorching_heat"));
+        NIGHT_VISION = register("night_vision", new EnchantmentNightVision());
+        SCORCHING_HEAT = register("scorching_heat", new EnchantmentScorchingHeat());
     }
 
-    private static <T extends Enchantment> T register(T effect) {
-        AstralSorcery.getProxy().getRegistryPrimer().register(effect);
-        return effect;
+    private static <T extends Enchantment> T register(String name, T enchantment) {
+        AstralSorcery.getProxy().getRegistryPrimer().register(
+                Enchantment.class,
+                enchantment,
+                AstralSorcery.key(name)
+        );
+        return enchantment;
     }
 
 }

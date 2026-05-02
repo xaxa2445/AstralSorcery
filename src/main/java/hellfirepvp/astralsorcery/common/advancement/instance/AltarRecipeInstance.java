@@ -13,16 +13,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import hellfirepvp.astralsorcery.common.advancement.AltarCraftTrigger;
 import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipe;
-import net.minecraft.advancements.criterion.CriterionInstance;
-import net.minecraft.advancements.criterion.EntityPredicate;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.loot.ConditionArraySerializer;
-import net.minecraft.tags.Tag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.advancements.critereon.*;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,13 +30,18 @@ import java.util.stream.Collectors;
  * Created by HellFirePvP
  * Date: 11.05.2020 / 20:28
  */
-public class AltarRecipeInstance extends CriterionInstance {
+public class AltarRecipeInstance extends AbstractCriterionTriggerInstance {
 
     private final Set<ResourceLocation> recipeNames = new HashSet<>();
     private final List<Ingredient> recipeOutputs = new ArrayList<>();
 
+    public AltarRecipeInstance(ContextAwarePredicate player, ResourceLocation id) {
+        super(id, player);
+    }
+
+    // Constructor para facilitar las fábricas estáticas
     private AltarRecipeInstance(ResourceLocation id) {
-        super(id, EntityPredicate.AndPredicate.ANY_AND);
+        this(ContextAwarePredicate.ANY, id);
     }
 
     public static AltarRecipeInstance craftRecipe(ResourceLocation... recipeIds) {
@@ -55,20 +56,13 @@ public class AltarRecipeInstance extends CriterionInstance {
         return instance;
     }
 
-    public static AltarRecipeInstance withOutput(IItemProvider... outputs) {
-        return withOutput(Ingredient.fromItems(outputs));
+    public static AltarRecipeInstance withOutput(ItemLike... outputs) {
+        return withOutput(Ingredient.of(outputs));
     }
-
-    public static AltarRecipeInstance withOutput(ItemStack... outputs) {
-        return withOutput(Ingredient.fromStacks(outputs));
-    }
-
-    public static AltarRecipeInstance withOutput(Tag<Item>... outputs) {
-        return withOutput(Arrays.stream(outputs).map(Ingredient::fromTag).collect(Collectors.toList()));
-    }
-
     public static AltarRecipeInstance withOutput(Ingredient... outputs) {
-        return withOutput(Arrays.asList(outputs));
+        AltarRecipeInstance instance = new AltarRecipeInstance(AltarCraftTrigger.ID);
+        instance.recipeOutputs.addAll(Arrays.asList(outputs));
+        return instance;
     }
 
     public static AltarRecipeInstance withOutput(List<Ingredient> outputs) {
@@ -78,8 +72,8 @@ public class AltarRecipeInstance extends CriterionInstance {
     }
 
     @Override
-    public JsonObject serialize(ConditionArraySerializer conditions) {
-        JsonObject out = super.serialize(conditions);
+    public JsonObject serializeToJson(SerializationContext context) {
+        JsonObject out = super.serializeToJson(context);
         if (!this.recipeNames.isEmpty()) {
             JsonArray names = new JsonArray();
             for (ResourceLocation name : this.recipeNames) {
@@ -90,24 +84,38 @@ public class AltarRecipeInstance extends CriterionInstance {
         if (!this.recipeOutputs.isEmpty()) {
             JsonArray outputs = new JsonArray();
             for (Ingredient output : this.recipeOutputs) {
-                outputs.add(output.serialize());
+                outputs.add(output.toJson());
             }
             out.add("recipeOutputs", outputs);
         }
         return out;
     }
 
-    public static AltarRecipeInstance deserialize(ResourceLocation id, JsonObject json) {
-        AltarRecipeInstance instance = new AltarRecipeInstance(id);
-        JsonArray recipeNames = JSONUtils.getJsonArray(json, "recipeNames", new JsonArray());
-        for (int idx = 0; idx < recipeNames.size(); idx++) {
-            JsonElement element = recipeNames.get(idx);
-            String key = JSONUtils.getString(element, String.format("recipeNames[%s]", idx));
-            instance.recipeNames.add(new ResourceLocation(key));
+    public static AltarRecipeInstance deserialize(JsonObject json, ContextAwarePredicate player, SerializationContext context) {
+        // En 1.20.1 el ID suele venir del trigger, pero aquí lo manejamos por compatibilidad
+        AltarRecipeInstance instance = new AltarRecipeInstance(player, AltarCraftTrigger.ID);
+
+        JsonArray names = GsonHelper.getAsJsonArray(json, "recipeNames", new JsonArray());
+        for (int i = 0; i < names.size(); i++) {
+            instance.recipeNames.add(new ResourceLocation(names.get(i).getAsString()));
         }
-        for (JsonElement element : JSONUtils.getJsonArray(json, "recipeOutputs", new JsonArray())) {
-            instance.recipeOutputs.add(Ingredient.deserialize(element));
+
+        JsonArray outputs = GsonHelper.getAsJsonArray(json, "recipeOutputs", new JsonArray());
+        for (JsonElement element : outputs) {
+            instance.recipeOutputs.add(Ingredient.fromJson(element));
         }
+        return instance;
+    }
+
+    public static AltarRecipeInstance deserialize(JsonObject json, DeserializationContext context) {
+        // 1.20.1 usa ContextAwarePredicate.ANY por defecto si no se especifica el jugador en el JSON
+        return deserialize(json, ContextAwarePredicate.ANY, context);
+    }
+
+    // Y el método que ya tenías debería verse así para que no haya error de tipos:
+    public static AltarRecipeInstance deserialize(JsonObject json, ContextAwarePredicate player, DeserializationContext context) {
+        AltarRecipeInstance instance = new AltarRecipeInstance(player, AltarCraftTrigger.ID);
+        // ... resto de tu lógica de lectura de JSON ...
         return instance;
     }
 

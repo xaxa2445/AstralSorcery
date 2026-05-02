@@ -14,13 +14,13 @@ import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeItem;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributeTile;
 import hellfirepvp.astralsorcery.common.crystal.CrystalAttributes;
 import hellfirepvp.astralsorcery.common.lib.LootAS;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootContext;
-import net.minecraft.loot.LootFunction;
-import net.minecraft.loot.LootFunctionType;
-import net.minecraft.loot.LootParameters;
-import net.minecraft.loot.conditions.ILootCondition;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.storage.loot.LootContext;
+import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction;
+import net.minecraft.world.level.storage.loot.functions.LootItemFunctionType;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -29,40 +29,46 @@ import net.minecraft.tileentity.TileEntity;
  * Created by HellFirePvP
  * Date: 16.08.2019 / 06:18
  */
-public class CopyCrystalProperties extends LootFunction {
+public class CopyCrystalProperties extends LootItemConditionalFunction {
 
-    private CopyCrystalProperties(ILootCondition[] conditionsIn) {
+    private CopyCrystalProperties(LootItemCondition[] conditionsIn) {
         super(conditionsIn);
     }
 
     @Override
-    public LootFunctionType getFunctionType() {
+    public LootItemFunctionType getType() {
         return LootAS.Functions.COPY_CRYSTAL_PROPERTIES;
     }
 
     @Override
-    protected ItemStack doApply(ItemStack stack, LootContext context) {
-        if (context.has(LootParameters.BLOCK_ENTITY)) {
-            TileEntity tile = context.get(LootParameters.BLOCK_ENTITY);
-            if (tile instanceof CrystalAttributeTile && stack.getItem() instanceof CrystalAttributeItem) {
-                CrystalAttributes attr = ((CrystalAttributeTile) tile).getAttributes();
+    protected ItemStack run(ItemStack stack, LootContext context) {
+        // En 1.20.1: LootParameters.BLOCK_ENTITY -> LootContextParams.BLOCK_ENTITY
+        if (context.hasParam(LootContextParams.BLOCK_ENTITY)) {
+            BlockEntity tile = context.getParamOrNull(LootContextParams.BLOCK_ENTITY);
+
+            // Aplicamos Pattern Matching de Java 17 para evitar casts manuales
+            if (tile instanceof CrystalAttributeTile crystalTile && stack.getItem() instanceof CrystalAttributeItem crystalItem) {
+                CrystalAttributes attr = crystalTile.getAttributes();
                 if (attr == null) {
-                    attr = ((CrystalAttributeTile) tile).getMissingAttributes();
+                    attr = crystalTile.getMissingAttributes();
                 }
-                ((CrystalAttributeItem) stack.getItem()).setAttributes(stack, attr);
+                crystalItem.setAttributes(stack, attr);
             }
         }
         return stack;
     }
 
-    public static LootFunction.Builder<?> builder() {
-        return builder(CopyCrystalProperties::new);
+    public static LootItemConditionalFunction.Builder<?> builder() {
+        return simpleBuilder(CopyCrystalProperties::new);
     }
 
-    public static class Serializer extends LootFunction.Serializer<CopyCrystalProperties> {
+    /**
+     * Serializador compatible con la clase base LootItemConditionalFunction.
+     */
+    public static class Serializer extends LootItemConditionalFunction.Serializer<CopyCrystalProperties> {
 
         @Override
-        public CopyCrystalProperties deserialize(JsonObject jsonObject, JsonDeserializationContext ctx, ILootCondition[] conditions) {
+        public CopyCrystalProperties deserialize(JsonObject jsonObject, JsonDeserializationContext ctx, LootItemCondition[] conditions) {
             return new CopyCrystalProperties(conditions);
         }
     }

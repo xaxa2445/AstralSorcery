@@ -16,12 +16,11 @@ import hellfirepvp.astralsorcery.datagen.data.perks.AstralPerkTreeProvider;
 import hellfirepvp.astralsorcery.datagen.data.recipes.AstralRecipeProvider;
 import hellfirepvp.astralsorcery.datagen.data.tags.AstralBlockTagsProvider;
 import hellfirepvp.astralsorcery.datagen.data.tags.AstralItemTagsProvider;
-import net.minecraft.data.BlockTagsProvider;
-import net.minecraft.data.DataGenerator;
+import net.minecraft.data.PackOutput;
 import net.minecraftforge.common.data.ExistingFileHelper;
+import net.minecraftforge.data.event.GatherDataEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.GatherDataEvent;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -40,21 +39,37 @@ public class AstralDataGenerator {
             return;
         }
 
-        DataGenerator gen = event.getGenerator();
+        PackOutput output = event.getGenerator().getPackOutput();
         ExistingFileHelper fileHelper = event.getExistingFileHelper();
 
         if (event.includeServer()) {
-            gen.addProvider(new AstralAdvancementProvider(gen));
-            BlockTagsProvider blockTagGen = new AstralBlockTagsProvider(gen, fileHelper);
-            gen.addProvider(blockTagGen);
-            gen.addProvider(new AstralItemTagsProvider(gen, blockTagGen, fileHelper));
-            gen.addProvider(new AstralLootTableProvider(gen));
-            gen.addProvider(new AstralRecipeProvider(gen));
-            gen.addProvider(new AstralPerkTreeProvider(gen));
+
+            // 👇 ADVANCEMENTS (IMPORTANTE: wrapper nuevo)
+            event.getGenerator().addProvider(true,
+                    new net.minecraft.data.advancements.AdvancementProvider(
+                            output,
+                            event.getLookupProvider(),
+                            java.util.List.of(new AstralAdvancementProvider())
+                    )
+            );
+
+            // TAGS
+            AstralBlockTagsProvider blockTags = new AstralBlockTagsProvider(output, event.getLookupProvider(), fileHelper);
+            event.getGenerator().addProvider(true, blockTags);
+            event.getGenerator().addProvider(true,
+                    new AstralItemTagsProvider(output, event.getLookupProvider(), blockTags, fileHelper)
+            );
+
+            // OTROS
+            event.getGenerator().addProvider(true, new AstralLootTableProvider(output));
+            event.getGenerator().addProvider(true, new AstralRecipeProvider(output));
+            event.getGenerator().addProvider(true, new AstralPerkTreeProvider(output));
         }
 
         if (event.includeClient()) {
-            gen.addProvider(new AstralBlockStateMappingProvider(gen, fileHelper));
+            event.getGenerator().addProvider(true,
+                    new AstralBlockStateMappingProvider(output, fileHelper)
+            );
         }
     }
 }

@@ -93,7 +93,7 @@ public class ItemKnowledgeShare extends Item {
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
-        ItemStack stack = context.getItem();
+        ItemStack stack = context.getItemInHand();
         Player player = context.getPlayer();
 
         if (stack.isEmpty() || player == null || context.getLevel().isClientSide) {

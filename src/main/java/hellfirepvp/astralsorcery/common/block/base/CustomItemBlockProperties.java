@@ -9,7 +9,6 @@
 package hellfirepvp.astralsorcery.common.block.base;
 
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import net.minecraftforge.client.extensions.common.IClientItemExtensions;
@@ -19,7 +18,6 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -40,12 +38,7 @@ public interface CustomItemBlockProperties extends CustomItemBlock {
     }
 
     @Nullable
-    default Item getCraftingRemainingItem() { // getContainerItem -> getCraftingRemainingItem
-        return null;
-    }
-
-    @Nullable
-    default CreativeModeTab getCreativeTab() { // ItemGroup -> CreativeModeTab
+    default Item getContainerItem() {
         return null;
     }
 
@@ -58,14 +51,7 @@ public interface CustomItemBlockProperties extends CustomItemBlock {
         return false;
     }
 
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-            @Override
-            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                return MiRenderizadorPersonalizado.INSTANCE;
-            }
-        });
+    default int getBurnTime() {
+        return -1;
     }
-
 }

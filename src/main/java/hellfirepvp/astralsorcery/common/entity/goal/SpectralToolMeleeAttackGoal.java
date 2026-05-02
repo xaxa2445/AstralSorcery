@@ -11,14 +11,17 @@ package hellfirepvp.astralsorcery.common.entity.goal;
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.constellation.mantle.effect.MantleEffectPelotrio;
 import hellfirepvp.astralsorcery.common.entity.EntitySpectralTool;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
+import hellfirepvp.astralsorcery.common.util.DamageHelper;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.controller.MovementController;
-import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.phys.AABB;
 
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -34,47 +37,55 @@ public class SpectralToolMeleeAttackGoal extends SpectralToolGoal {
 
     public SpectralToolMeleeAttackGoal(EntitySpectralTool entity, double speed) {
         super(entity, speed);
+        this.setFlags(EnumSet.of(Flag.MOVE, Flag.TARGET, Flag.LOOK));
     }
 
     private LivingEntity findClosestAttackableEntity() {
-        List<LivingEntity> entities = this.getEntity().getEntityWorld().getEntitiesWithinAABB(
+        // En 1.20.1 se usa AABB y el método getEntitiesOfClass
+        List<LivingEntity> entities = this.getEntity().level().getEntitiesOfClass(
                 LivingEntity.class,
-                new AxisAlignedBB(0, 0, 0, 0, 0, 0).grow(8).offset(this.getEntity().getPosition()),
-                e -> e != null && e.isAlive() && e.getType().getClassification() == EntityClassification.MONSTER
+                this.getEntity().getBoundingBox().inflate(8), // Inflate reemplaza a grow().offset()
+                e -> e != null && e.isAlive() && e.getType().getCategory() == MobCategory.MONSTER
         );
-        return EntityUtils.selectClosest(entities, entity -> (double) entity.getDistance(this.getEntity()));
+        return EntityUtils.selectClosest(entities, entity -> (double) entity.distanceTo(this.getEntity()));
     }
 
 
     @Override
-    public boolean shouldExecute() {
-        MovementController ctrl = this.getEntity().getMoveHelper();
+    public boolean canUse() {
+        MoveControl ctrl = this.getEntity().getMoveControl();
 
-        if (!ctrl.isUpdating()) {
+        if (!ctrl.hasWanted()) {
             return true;
         } else {
             return this.findClosestAttackableEntity() != null;
         }
     }
 
-    public boolean shouldContinueExecuting() {
+    @Override
+    public boolean canContinueToUse() {
         return selectedTarget != null;
     }
 
     @Override
-    public void startExecuting() {
-        super.startExecuting();
+    public void start() {
+        super.start();
 
         LivingEntity target = this.findClosestAttackableEntity();
         if (target != null) {
             this.selectedTarget = target;
-            this.getEntity().getMoveHelper().setMoveTo(selectedTarget.getPosX(), selectedTarget.getPosY() + selectedTarget.getHeight() / 2, selectedTarget.getPosZ(), this.getSpeed());
+            this.getEntity().getMoveControl().setWantedPosition(
+                    selectedTarget.getX(),
+                    selectedTarget.getY() + selectedTarget.getBbHeight() / 2,
+                    selectedTarget.getZ(),
+                    this.getSpeed()
+            );
         }
     }
 
     @Override
-    public void resetTask() {
-        super.resetTask();
+    public void stop() {
+        super.stop();
 
         this.selectedTarget = null;
         this.actionCooldown = 0;
@@ -84,12 +95,12 @@ public class SpectralToolMeleeAttackGoal extends SpectralToolGoal {
     public void tick() {
         super.tick();
 
-        if (!shouldContinueExecuting()) {
+        if (!canContinueToUse()) {
             return;
         }
 
         if (this.actionCooldown < 0) {
-            this.actionCooldown = 0; //lol. wtf.
+            this.actionCooldown = 0;
         }
 
         boolean resetTimer = false;
@@ -98,12 +109,18 @@ public class SpectralToolMeleeAttackGoal extends SpectralToolGoal {
             this.selectedTarget = null;
             resetTimer = true;
         } else {
-            this.getEntity().getMoveHelper().setMoveTo(selectedTarget.getPosX(), selectedTarget.getPosY() + selectedTarget.getHeight() / 2, selectedTarget.getPosZ(), this.getSpeed());
+            this.getEntity().getMoveControl().setWantedPosition(
+                    selectedTarget.getX(),
+                    selectedTarget.getY() + selectedTarget.getBbHeight() / 2,
+                    selectedTarget.getZ(),
+                    this.getSpeed()
+            );
 
             if (Vector3.atEntityCorner(this.getEntity()).distanceSquared(this.selectedTarget) <= 16) {
                 this.actionCooldown++;
                 if (this.actionCooldown >= MantleEffectPelotrio.CONFIG.ticksPerSwordAttack.get()) {
-                    DamageUtil.attackEntityFrom(this.selectedTarget, CommonProxy.DAMAGE_SOURCE_STELLAR, MantleEffectPelotrio.CONFIG.swordDamage.get().floatValue());
+                    // Asegúrate de que DamageUtil y CommonProxy estén actualizados a los nuevos DamageSource de 1.20.1
+                    DamageUtil.attackEntityFrom(this.selectedTarget, DamageHelper.stellar(this.getEntity().level()), MantleEffectPelotrio.CONFIG.swordDamage.get().floatValue());
                     resetTimer = true;
                 }
             }

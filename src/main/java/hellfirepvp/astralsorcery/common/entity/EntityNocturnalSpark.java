@@ -70,22 +70,30 @@ public class EntityNocturnalSpark extends ThrowableItemProjectile {
     }
 
     public EntityNocturnalSpark(Level level) {
-        this(EntityTypesAS.NOCTURNAL_SPARK, level);
+        this(EntityTypesAS.NOCTURNAL_SPARK.get(), level);
     }
 
     public EntityNocturnalSpark(double x, double y, double z, Level level) {
-        this(EntityTypesAS.NOCTURNAL_SPARK, level);
+        this(EntityTypesAS.NOCTURNAL_SPARK.get(), level);
         this.setPos(x, y, z);
     }
 
     public EntityNocturnalSpark(LivingEntity thrower, Level level) {
-        this(EntityTypesAS.NOCTURNAL_SPARK, level);
+        this(EntityTypesAS.NOCTURNAL_SPARK.get(), level);
         this.setOwner(thrower);
         this.shootFromRotation(thrower, thrower.getXRot(), thrower.getYRot(), 0F, 0.7F, 0.9F);
     }
 
     @Override
+    protected net.minecraft.world.item.Item getDefaultItem() {
+        // Si tienes el ítem de Nocturnal Powder registrado, úsalo aquí.
+        // De lo contrario, Items.AIR evita que se renderice un ítem físico.
+        return net.minecraft.world.item.Items.AIR;
+    }
+
+    @Override
     protected void defineSynchedData() {
+        super.defineSynchedData();
         this.entityData.define(SPAWNING, false);
     }
 
@@ -134,7 +142,7 @@ public class EntityNocturnalSpark extends ThrowableItemProjectile {
                 );
 
                 for (BlockPos light : lightPositions) {
-                    if (!BlockUtils.breakBlockWithoutPlayer(sWorld, light, sWorld.getBlockState(light), null, true, true)) {
+                    if (!BlockUtils.breakBlockWithoutPlayer(sWorld, light, sWorld.getBlockState(light), net.minecraft.world.item.ItemStack.EMPTY, true, true)) {
                         sWorld.removeBlock(light, false);
                     }
                 }
@@ -181,40 +189,46 @@ public class EntityNocturnalSpark extends ThrowableItemProjectile {
                 }
             }
         } else {
-            FXFacingParticle p;
+            Vec3 motion = this.getDeltaMovement(); // Obtenemos el movimiento actual
+
             for (int i = 0; i < 6; i++) {
-                p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                FXFacingParticle p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                         .spawn(Vector3.atEntityCorner(this))
                         .setMotion(new Vector3(
-                            0.04F - rand.nextFloat() * 0.08F,
-                            0.04F - rand.nextFloat() * 0.08F,
-                            0.04F - rand.nextFloat() * 0.08F
-                        ))
-                        .setScaleMultiplier(0.25F);
-                randomizeColor(p);
+                                0.04F - rand.nextFloat() * 0.08F,
+                                0.04F - rand.nextFloat() * 0.08F,
+                                0.04F - rand.nextFloat() * 0.08F
+                        ));
+                p.setScaleMultiplier(0.25F);
+                this.randomizeColor(p); // Aplicamos el color manualmente
             }
 
-            p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+            // Partícula central
+            FXFacingParticle pCentral = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(Vector3.atEntityCorner(this));
-            p.setScaleMultiplier(0.6F);
-            randomizeColor(p);
+            pCentral.setScaleMultiplier(0.6F);
+            this.randomizeColor(pCentral);
 
-            p = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
-                    .spawn(Vector3.atEntityCorner(this).add(getMotion().mul(0.5, 0.5, 0.5)));
-            p.setScaleMultiplier(0.6F);
-            randomizeColor(p);
+            // Partícula de estela (trail) basada en el movimiento
+            FXFacingParticle pTrail = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
+                    .spawn(Vector3.atEntityCorner(this).add(motion.x * 0.5, motion.y * 0.5, motion.z * 0.5));
+            pTrail.setScaleMultiplier(0.6F);
+            this.randomizeColor(pTrail);
         }
     }
 
     private void spawnCycle() {
         if (rand.nextInt(12) == 0 && level() instanceof ServerLevel sWorld) {
             BlockPos pos = this.blockPosition();
-            pos.offset(rand.nextInt(2) - rand.nextInt(2), 1, rand.nextInt(2) - rand.nextInt(2));
+            // En 1.20.1, offset() devuelve un nuevo BlockPos, asegúrate de reasignarlo
+            pos = pos.offset(rand.nextInt(2) - rand.nextInt(2), 1, rand.nextInt(2) - rand.nextInt(2));
             pos = BlockUtils.firstSolidDown(level(), pos).above();
 
-            if (pos.distSqr(this.getPosition()) >= 16) {
+            // OPCIÓN RECOMENDADA: Usar distanceToSqr para evitar el error de argumentos
+            if (this.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) >= 256) { // 16 al cuadrado es 256
                 return;
             }
+
             EntityUtils.performWorldSpawningAt(
                     sWorld,
                     pos,
@@ -255,7 +269,7 @@ public class EntityNocturnalSpark extends ThrowableItemProjectile {
     }
 
     @Override
-    public Packet<?> getAddEntityPacket() {
-        return NetworkHooks.getEntitySpawningPacket(this);
+    public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> getAddEntityPacket() {
+        return net.minecraftforge.network.NetworkHooks.getEntitySpawningPacket(this);
     }
 }

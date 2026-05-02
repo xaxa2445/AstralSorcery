@@ -23,10 +23,14 @@ import hellfirepvp.astralsorcery.common.entity.item.EntityItemHighlighted;
 import hellfirepvp.astralsorcery.common.entity.item.EntityStarmetal;
 import hellfirepvp.astralsorcery.common.entity.technical.EntityGrapplingHook;
 import hellfirepvp.astralsorcery.common.entity.technical.EntityObservatoryHelper;
+import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
@@ -45,119 +49,113 @@ public class RegistryEntities {
     private RegistryEntities() {}
 
     public static void init() {
-        NOCTURNAL_SPARK = register("nocturnal_spark",
-                EntityType.Builder.create(EntityNocturnalSpark.factory(), EntityClassification.MISC)
-                        .disableSummoning()
-                        .immuneToFire()
+        NOCTURNAL_SPARK = EntityTypesAS.ENTITY_TYPES.register("nocturnal_spark", () ->
+                EntityType.Builder.<EntityNocturnalSpark>of((type, level) ->
+                                new EntityNocturnalSpark(type, level), MobCategory.MISC)
+                        .noSummon()
+                        .fireImmune()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(32)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityNocturnalSpark(world))
-                        .size(0.1F, 0.1F));
-        ILLUMINATION_SPARK = register("illumination_spark",
-                EntityType.Builder.create(EntityIlluminationSpark.factory(), EntityClassification.MISC)
-                        .disableSummoning()
-                        .immuneToFire()
+                        .sized(0.25F, 0.25F)
+                        .build("nocturnal_spark") // Importante: build() devuelve el EntityType
+        );
+        ILLUMINATION_SPARK = ENTITY_TYPES.register("illumination_spark", () ->
+                EntityType.Builder.<EntityIlluminationSpark>of((type, level) ->
+                                new EntityIlluminationSpark(type, level), MobCategory.MISC)
+                        .noSummon()
+                        .fireImmune()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(32)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityIlluminationSpark(world))
-                        .size(0.1F, 0.1F));
-        FLARE = register("flare",
-                EntityType.Builder.create(EntityFlare.factory(), EntityClassification.MISC)
-                        .immuneToFire()
+                        .sized(0.1F, 0.1F)
+                        .build("illumination_spark"));
+
+        FLARE = ENTITY_TYPES.register("flare", () ->
+                EntityType.Builder.<EntityFlare>of((type, level) ->
+                                new EntityFlare(type, level), MobCategory.MISC)
+                        .fireImmune()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(64)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityFlare(world))
-                        .size(0.4F, 0.4F));
-        SPECTRAL_TOOL = register("spectral_tool",
-                EntityType.Builder.create(EntitySpectralTool.factory(), EntityClassification.MISC)
-                        .disableSummoning()
-                        .immuneToFire()
+                        .sized(0.4F, 0.4F)
+                        .build("flare"));
+
+        SPECTRAL_TOOL = ENTITY_TYPES.register("spectral_tool", () ->
+                EntityType.Builder.<EntitySpectralTool>of((type, level) ->
+                                new EntitySpectralTool(type, level), MobCategory.MISC)
+                        .noSummon()
+                        .fireImmune()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(32)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntitySpectralTool(world))
-                        .size(0.6F, 0.8F));
+                        .sized(0.6F, 0.8F)
+                        .build("spectral_tool"));
 
         ITEM_HIGHLIGHT = register("item_highlighted",
-                EntityType.Builder.create(EntityItemHighlighted.factoryHighlighted(), EntityClassification.MISC)
-                        .disableSummoning()
+                EntityType.Builder.of(EntityItemHighlighted.factoryHighlighted(), MobCategory.MISC)
+                        .noSummon()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(16)
                         .setCustomClientFactory((spawnEntity, world) -> new EntityItemHighlighted(ITEM_HIGHLIGHT, world))
                         .size(0.25F, 0.25F));
-        ITEM_EXPLOSION_RESISTANT = register("item_explosion_resistant",
-                EntityType.Builder.create(EntityItemExplosionResistant.factoryExplosionResistant(), EntityClassification.MISC)
-                        .disableSummoning()
+
+        ITEM_EXPLOSION_RESISTANT = ENTITY_TYPES.register("item_explosion_resistant", () ->
+                EntityType.Builder.<EntityItemExplosionResistant>of((type, level) ->
+                                new EntityItemExplosionResistant(type, level), MobCategory.MISC)
+                        .noSummon()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(16)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityItemExplosionResistant(ITEM_EXPLOSION_RESISTANT, world))
-                        .size(0.25F, 0.25F));
-        ITEM_CRYSTAL = register("item_crystal",
-                EntityType.Builder.create(EntityCrystal.factoryCrystal(), EntityClassification.MISC)
-                        .disableSummoning()
+                        .sized(0.25F, 0.25F)
+                        .build("item_explosion_resistant"));
+
+        ITEM_CRYSTAL = ENTITY_TYPES.register("item_crystal", () ->
+                EntityType.Builder.<EntityCrystal>of((type, level) ->
+                                new EntityCrystal(type, level), MobCategory.MISC)
+                        .noSummon()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(16)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityCrystal(ITEM_CRYSTAL, world))
-                        .size(0.5F, 0.5F));
-        ITEM_STARMETAL_INGOT = register("item_starmetal",
-                EntityType.Builder.create(EntityStarmetal.factoryStarmetalIngot(), EntityClassification.MISC)
-                        .disableSummoning()
+                        .sized(0.5F, 0.5F)
+                        .build("item_crystal"));
+
+        ITEM_STARMETAL_INGOT = ENTITY_TYPES.register("item_starmetal", () ->
+                EntityType.Builder.<EntityStarmetal>of((type, level) ->
+                                new EntityStarmetal(type, level), MobCategory.MISC)
+                        .noSummon()
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(16)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityStarmetal(ITEM_STARMETAL_INGOT, world))
-                        .size(0.5F, 0.5F));
-        OBSERVATORY_HELPER = register("observatory_helper",
-                EntityType.Builder.create(EntityObservatoryHelper.factory(), EntityClassification.MISC)
-                        .disableSummoning()
+                        .sized(0.5F, 0.5F)
+                        .build("item_starmetal"));
+
+        GRAPPLING_HOOK = ENTITY_TYPES.register("grappling_hook", () ->
+                EntityType.Builder.<EntityGrapplingHook>of((type, level) ->
+                                new EntityGrapplingHook(type, level), MobCategory.MISC)
+                        .noSummon()
+                        .fireImmune()
                         .setUpdateInterval(1)
-                        .immuneToFire()
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(64)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityObservatoryHelper(world))
-                        .size(0, 0));
-        GRAPPLING_HOOK = register("grappling_hook",
-                EntityType.Builder.create(EntityGrapplingHook.factory(), EntityClassification.MISC)
-                        .disableSummoning()
-                        .setUpdateInterval(1)
-                        .immuneToFire()
-                        .setShouldReceiveVelocityUpdates(true)
-                        .setTrackingRange(64)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityGrapplingHook(world))
-                        .size(0.1F, 0.1F));
+                        .sized(0.1F, 0.1F)
+                        .build("grappling_hook"));
     }
 
     public static void initAttributes(EntityAttributeCreationEvent event) {
-        event.put(FLARE, EntityFlare.createAttributes().create());
-        event.put(SPECTRAL_TOOL, EntitySpectralTool.createAttributes().create());
+        event.put(FLARE.get(), EntityFlare.createAttributes().build());
+        event.put(SPECTRAL_TOOL.get(), EntitySpectralTool.createAttributes().build());
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public static void initClient() {
-        RenderingRegistry.registerEntityRenderingHandler(NOCTURNAL_SPARK, new RenderEntityEmpty.Factory());
-        RenderingRegistry.registerEntityRenderingHandler(ILLUMINATION_SPARK, new RenderEntityEmpty.Factory());
-        RenderingRegistry.registerEntityRenderingHandler(FLARE, new RenderEntityEmpty.Factory());
-        RenderingRegistry.registerEntityRenderingHandler(SPECTRAL_TOOL, new RenderEntitySpectralTool.Factory());
+    private static <E extends Entity> EntityType<E> register(String name, EntityType.Builder<E> builder) {
+        ResourceLocation id = AstralSorcery.key(name);
 
-        RenderingRegistry.registerEntityRenderingHandler(ITEM_HIGHLIGHT, new RenderEntityItemHighlighted.Factory());
-        RenderingRegistry.registerEntityRenderingHandler(ITEM_EXPLOSION_RESISTANT, new RenderEntityItemHighlighted.Factory());
-        RenderingRegistry.registerEntityRenderingHandler(ITEM_CRYSTAL, new RenderEntityItemHighlighted.Factory());
-        RenderingRegistry.registerEntityRenderingHandler(ITEM_STARMETAL_INGOT, manager -> new ItemRenderer(manager, Minecraft.getInstance().getItemRenderer()));
+        EntityType<E> type = builder.build(id.toString());
 
-        RenderingRegistry.registerEntityRenderingHandler(OBSERVATORY_HELPER, new RenderEntityEmpty.Factory());
-        RenderingRegistry.registerEntityRenderingHandler(GRAPPLING_HOOK, new RenderEntityGrapplingHook.Factory());
-    }
+        AstralSorcery.getProxy().getRegistryPrimer()
+                .register(EntityType.class, type, id);
 
-    private static <E extends Entity> EntityType<E> register(String name, EntityType.Builder<E> typeBuilder) {
-        EntityType<E> type = typeBuilder.build(AstralSorcery.key(name).toString());
-        type.setRegistryName(AstralSorcery.key(name));
-        AstralSorcery.getProxy().getRegistryPrimer().register(type);
         return type;
     }
 }

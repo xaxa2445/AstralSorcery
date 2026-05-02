@@ -58,6 +58,7 @@ public class RegistryFluids {
 
     public static RegistryObject<LiquidBlock> LIQUID_STARLIGHT_BLOCK;
     public static RegistryObject<Item> LIQUID_STARLIGHT_BUCKET;
+    public static final List<Item> FLUID_HOLDER_ITEMS = new LinkedList<>();
 
     public static void register(IEventBus bus) {
         FLUIDS.register(bus);
@@ -90,5 +91,13 @@ public class RegistryFluids {
         LIQUID_STARLIGHT_BUCKET = ITEMS.register("liquid_starlight_bucket",
                 () -> new BucketItem(LIQUID_STARLIGHT_SOURCE,
                         new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
+
+        LIQUID_STARLIGHT_BUCKET = ITEMS.register("liquid_starlight_bucket",
+                () -> {
+                    Item bucket = new BucketItem(LIQUID_STARLIGHT_SOURCE,
+                            new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1));
+                    // Ojo: Esto solo se ejecuta cuando Forge registra el ítem
+                    return bucket;
+                });
     }
 }

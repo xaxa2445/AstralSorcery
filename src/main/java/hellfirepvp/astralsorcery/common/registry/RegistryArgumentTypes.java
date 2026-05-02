@@ -11,10 +11,10 @@ package hellfirepvp.astralsorcery.common.registry;
 import com.mojang.brigadier.arguments.ArgumentType;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.cmd.argument.ArgumentTypeConstellation;
-import net.minecraft.command.arguments.ArgumentSerializer;
-import net.minecraft.command.arguments.ArgumentTypes;
-import net.minecraft.command.arguments.IArgumentSerializer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.commands.synchronization.ArgumentTypeInfo;
+import net.minecraft.commands.synchronization.ArgumentTypeInfos;
+import net.minecraft.commands.synchronization.SingletonArgumentInfo;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -28,10 +28,18 @@ public class RegistryArgumentTypes {
     private RegistryArgumentTypes() {}
 
     public static void init() {
-        register(AstralSorcery.key("constellation"), ArgumentTypeConstellation.class, new ArgumentSerializer<>(ArgumentTypeConstellation::any));
+        register(
+                AstralSorcery.key("constellation"),
+                ArgumentTypeConstellation.class,
+                SingletonArgumentInfo.contextFree(ArgumentTypeConstellation::any)
+        );
     }
 
-    private static <T extends ArgumentType<?>> void register(ResourceLocation key, Class<T> argumentClazz, IArgumentSerializer<T> serializer) {
-        ArgumentTypes.register(key.toString(), argumentClazz, serializer);
+    private static <T extends ArgumentType<?>> void register(
+            ResourceLocation key,
+            Class<T> argumentClass,
+            ArgumentTypeInfo<T, ?> serializer
+    ) {
+        ArgumentTypeInfos.registerByClass(argumentClass, serializer);
     }
 }

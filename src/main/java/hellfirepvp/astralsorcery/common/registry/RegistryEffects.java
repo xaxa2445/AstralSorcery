@@ -11,7 +11,11 @@ package hellfirepvp.astralsorcery.common.registry;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.effect.*;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.RegistryObject;
 
 import static hellfirepvp.astralsorcery.common.lib.EffectsAS.*;
 
@@ -24,18 +28,19 @@ import static hellfirepvp.astralsorcery.common.lib.EffectsAS.*;
  */
 public class RegistryEffects {
 
+    public static final DeferredRegister<MobEffect> EFFECTS =
+            DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, AstralSorcery.MODID);
+
     private RegistryEffects() {}
 
-    public static void init() {
-        EFFECT_BLEED = register(new EffectBleed());
-        EFFECT_CHEAT_DEATH = register(new EffectCheatDeath());
-        EFFECT_DROP_MODIFIER = register(new EffectDropModifier());
-    }
+    public static final RegistryObject<MobEffect> EFFECT_BLEED =
+            EFFECTS.register("bleed", EffectBleed::new);
 
-    private static <T extends EffectCustomTexture> T register(T effect) {
-        effect.setRegistryName(NameUtil.fromClass(effect, "Effect"));
-        effect.attachEventListeners(MinecraftForge.EVENT_BUS);
-        AstralSorcery.getProxy().getRegistryPrimer().register(effect);
-        return effect;
-    }
+    public static final RegistryObject<MobEffect> EFFECT_CHEAT_DEATH =
+            EFFECTS.register("cheat_death", EffectCheatDeath::new);
+
+    public static final RegistryObject<MobEffect> EFFECT_DROP_MODIFIER =
+            EFFECTS.register("drop_modifier", EffectDropModifier::new);
+
+
 }

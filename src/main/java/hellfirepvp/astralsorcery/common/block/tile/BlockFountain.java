@@ -61,7 +61,7 @@ public class BlockFountain extends BaseEntityBlock implements CustomItemBlock {
         return shape;
     }
     @Override
-    public RenderShape getRenderType (BlockState state){
+    public RenderShape getRenderShape (BlockState state){
         return RenderShape.MODEL;
     }
 

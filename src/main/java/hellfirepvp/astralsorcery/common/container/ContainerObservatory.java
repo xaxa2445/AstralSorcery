@@ -26,7 +26,7 @@ public class ContainerObservatory extends ContainerTileEntity<TileObservatory> {
     }
 
     @Override
-    public boolean canInteractWith(PlayerEntity playerIn) {
+    public boolean stillValid(Player playerIn) {
         return true;
     }
 }

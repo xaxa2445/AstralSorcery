@@ -9,7 +9,8 @@
 package hellfirepvp.astralsorcery.common.lib;
 
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.network.datasync.IDataSerializer;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.syncher.EntityDataSerializer;
 import net.minecraftforge.fluids.FluidStack;
 
 /**
@@ -23,8 +24,26 @@ public class DataSerializersAS {
 
     private DataSerializersAS() {}
 
-    public static IDataSerializer<Long> LONG;
-    public static IDataSerializer<Vector3> VECTOR;
-    public static IDataSerializer<FluidStack> FLUID;
+    public static void writeVector(FriendlyByteBuf buf, Vector3 vec) {
+        buf.writeDouble(vec.getX());
+        buf.writeDouble(vec.getY());
+        buf.writeDouble(vec.getZ());
+    }
+
+    public static Vector3 readVector(FriendlyByteBuf buf) {
+        return new Vector3(
+                buf.readDouble(),
+                buf.readDouble(),
+                buf.readDouble()
+        );
+    }
+
+    public static void writeFluid(FriendlyByteBuf buf, FluidStack stack) {
+        buf.writeFluidStack(stack);
+    }
+
+    public static FluidStack readFluid(FriendlyByteBuf buf) {
+        return buf.readFluidStack();
+    }
 
 }

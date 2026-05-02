@@ -18,25 +18,26 @@ import hellfirepvp.astralsorcery.common.network.play.server.PktPlayEffect;
 import hellfirepvp.astralsorcery.common.tile.TileGemCrystals;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.*;
-import net.minecraft.block.material.Material;
-import net.minecraft.item.BlockItem;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.state.EnumProperty;
-import net.minecraft.state.StateContainer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.IStringSerializable;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -49,23 +50,23 @@ import java.util.Locale;
  * Created by HellFirePvP
  * Date: 16.11.2019 / 10:06
  */
-public class BlockGemCrystalCluster extends ContainerBlock implements CustomItemBlock {
+public class BlockGemCrystalCluster extends BaseEntityBlock implements CustomItemBlock {
 
-    private static final VoxelShape STAGE_0       = Block.makeCuboidShape(4, 0, 4, 12,  6, 12);
-    private static final VoxelShape STAGE_1       = Block.makeCuboidShape(4, 0, 4, 12,  8, 12);
-    private static final VoxelShape STAGE_2_SKY   = Block.makeCuboidShape(5, 0, 5, 11, 10, 11);
-    private static final VoxelShape STAGE_2_DAY   = Block.makeCuboidShape(4, 0, 4, 12, 10, 12);
-    private static final VoxelShape STAGE_2_NIGHT = Block.makeCuboidShape(5, 0, 5, 11,  8, 11);
+    private static final VoxelShape STAGE_0       = Block.box(4, 0, 4, 12,  6, 12);
+    private static final VoxelShape STAGE_1       = Block.box(4, 0, 4, 12,  8, 12);
+    private static final VoxelShape STAGE_2_SKY   = Block.box(5, 0, 5, 11, 10, 11);
+    private static final VoxelShape STAGE_2_DAY   = Block.box(4, 0, 4, 12, 10, 12);
+    private static final VoxelShape STAGE_2_NIGHT = Block.box(5, 0, 5, 11,  8, 11);
 
     public static final EnumProperty<GrowthStageType> STAGE = EnumProperty.create("stage", GrowthStageType.class);
 
     public BlockGemCrystalCluster() {
-        super(Properties.create(Material.GLASS, CollectorCrystalType.ROCK_CRYSTAL.getMaterialColor())
-                .hardnessAndResistance(3, 3)
-                .harvestTool(ToolType.PICKAXE)
-                .harvestLevel(1)
+        super(BlockBehaviour.Properties.of()
+                .mapColor(CollectorCrystalType.ROCK_CRYSTAL.getMaterialColor())
+                .strength(3.0F, 3.0F)
                 .sound(SoundType.GLASS)
-                .setLightLevel((state) -> 6));
+                .lightLevel((state) -> 6)
+                .noOcclusion()); // Importante para cristales
     }
 
     @Override
@@ -74,15 +75,15 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
     }
 
     @Override
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(STAGE);
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader world, BlockPos pos, ISelectionContext context) {
-        Vector3d offset = state.getOffset(world, pos);
-        VoxelShape shape = VoxelShapes.fullCube();
-        switch (state.get(STAGE)) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+        Vec3 offset = state.getOffset(world, pos);
+        VoxelShape shape = STAGE_0;;
+        switch (state.getValue(STAGE)) {
             case STAGE_0:
                 shape = STAGE_0;
                 break;
@@ -99,12 +100,7 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
                 shape = STAGE_2_NIGHT;
                 break;
         }
-        return shape.withOffset(offset.x, offset.y, offset.z);
-    }
-
-    @Override
-    public OffsetType getOffsetType() {
-        return OffsetType.XZ;
+        return shape.move(offset.x, offset.y, offset.z);
     }
 
     /*
@@ -115,51 +111,50 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
     }*/
 
     @Override
-    public BlockState updatePostPlacement(BlockState state, Direction placedAgainst, BlockState facingState, IWorld world, BlockPos pos, BlockPos facingPos) {
-        if (!this.isValidPosition(state, world, pos)) {
-            return Blocks.AIR.getDefaultState();
+    public BlockState updateShape(BlockState state, Direction facing, BlockState facingState, LevelAccessor world, BlockPos pos, BlockPos facingPos) {
+        if (!this.canSurvive(state, (LevelReader) world, pos)) {
+            return Blocks.AIR.defaultBlockState();
         }
-        return state;
+        return super.updateShape(state, facing, facingState, world, pos, facingPos);
     }
 
     @Override
-    public boolean isValidPosition(BlockState state, IWorldReader world, BlockPos pos) {
-        return hasSolidSideOnTop(world, pos.down());
+    public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
+        return canSupportCenter(world, pos.below(), Direction.UP);
     }
 
     @Override
-    public void onReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (state.getBlock() != newState.getBlock()) {
-            super.onReplaced(state, world, pos, newState, isMoving);
-
+    public void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!state.is(newState.getBlock())) {
             PktPlayEffect effect = new PktPlayEffect(PktPlayEffect.Type.GEM_CRYSTAL_BREAK)
                     .addData(buf -> {
                         ByteBufUtils.writeVector(buf, new Vector3(pos).add(state.getOffset(world, pos)));
-                        buf.writeInt(state.get(STAGE).ordinal());
+                        buf.writeInt(state.getValue(STAGE).ordinal());
                     });
             PacketChannel.CHANNEL.sendToAllAround(effect, PacketChannel.pointFromPos(world, pos, 32));
+
+            super.onRemove(state, world, pos, newState, isMoving);
         }
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter worldIn, BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader world) {
-        return new TileGemCrystals();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new TileGemCrystals(pos, state);
     }
 
 
-    public static enum GrowthStageType implements IStringSerializable {
-
+    public enum GrowthStageType implements StringRepresentable {
         STAGE_0      (0, Color.WHITE),
         STAGE_1      (1, Color.WHITE),
         STAGE_2_SKY  (2, ColorsAS.GEM_SKY),
@@ -174,46 +169,28 @@ public class BlockGemCrystalCluster extends ContainerBlock implements CustomItem
             this.displayColor = displayColor;
         }
 
-        public Color getDisplayColor() {
-            return displayColor;
+        public Color getDisplayColor() { return displayColor; }
+        public int getGrowthStage() { return growthStage; }
+
+        public GrowthStageType shrink() {
+            // Si es etapa 2 (cristal grande), vuelve a la 1 (cristal pequeño)
+            // Si no, se queda en la 0 (brote)
+            return this.growthStage == 2 ? STAGE_1 : STAGE_0;
         }
 
-        public int getGrowthStage() {
-            return growthStage;
-        }
-
-        public GrowthStageType grow(World world) {
-            if (this == STAGE_0) {
-                return STAGE_1;
-            }
+        public GrowthStageType grow(Level world) {
+            if (this == STAGE_0) return STAGE_1;
             if (this == STAGE_1) {
-                if (DayTimeHelper.isDay(world)) {
-                    return STAGE_2_DAY;
-                }
-                if (DayTimeHelper.isNight(world)) {
-                    return STAGE_2_NIGHT;
-                }
+                if (DayTimeHelper.isDay(world)) return STAGE_2_DAY;
+                if (DayTimeHelper.isNight(world)) return STAGE_2_NIGHT;
                 return STAGE_2_SKY;
             }
             return this;
         }
 
-        public GrowthStageType shrink() {
-            int stage = getGrowthStage();
-            if (stage == 2) {
-                return STAGE_1;
-            }
-            return STAGE_0;
-        }
-
         @Override
-        public String getString() {
+        public String getSerializedName() {
             return name().toLowerCase(Locale.ROOT);
-        }
-
-        @Override
-        public String toString() {
-            return this.getString();
         }
     }
 }

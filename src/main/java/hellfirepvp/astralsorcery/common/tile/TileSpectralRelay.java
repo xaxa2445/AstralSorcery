@@ -34,6 +34,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -183,7 +184,7 @@ public class TileSpectralRelay extends TileEntityTick {
         if (rand.nextBoolean()) {
             Vector3 pos = new Vector3(this).add(0.5, 0, 0.5);
             Vector3 offset = new Vector3(0, 0, 0);
-            MiscUtils.applyRandomOffset(offset, rand, 1.25F);
+            MiscUtils.applyRandomOffset(offset, (RandomSource) rand, 1.25F);
             pos.add(offset.getX(), 0, offset.getZ());
 
             EntityVisualFX vfx = EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)

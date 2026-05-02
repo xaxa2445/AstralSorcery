@@ -8,12 +8,13 @@
 
 package hellfirepvp.astralsorcery.common.enchantment;
 
-import net.minecraft.enchantment.EnchantmentType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraftforge.fml.LogicalSide;
 
 /**
@@ -26,19 +27,19 @@ import net.minecraftforge.fml.LogicalSide;
 public class EnchantmentNightVision extends EnchantmentPlayerTick {
 
     public EnchantmentNightVision() {
-        super(Rarity.VERY_RARE, EnchantmentType.ARMOR_HEAD, new EquipmentSlotType[] { EquipmentSlotType.HEAD });
+        super(Enchantment.Rarity.VERY_RARE, EnchantmentCategory.ARMOR_HEAD, new EquipmentSlot[]{EquipmentSlot.HEAD});
     }
 
     @Override
-    public void tick(PlayerEntity player, LogicalSide side, int level) {
+    public void tick(Player player, LogicalSide side, int level) {
         if (side.isServer()) {
-            player.addPotionEffect(new EffectInstance(Effects.NIGHT_VISION, 300, level - 1, true, false));
+            player.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 300, level - 1, true, false));
         }
     }
 
     @Override
-    public boolean canApply(ItemStack stack) {
-        return this.type.canEnchantItem(stack.getItem());
+    public boolean canEnchant(ItemStack stack) {
+        return this.category.canEnchant(stack.getItem());
     }
 
     @Override

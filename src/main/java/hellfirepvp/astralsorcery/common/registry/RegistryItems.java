@@ -36,17 +36,13 @@ import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
 import hellfirepvp.astralsorcery.common.util.dispenser.FluidContainerDispenseBehavior;
 import net.minecraft.client.renderer.item.ItemProperties; // ItemModelsProperties -> ItemProperties
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.cauldron.CauldronInteraction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.event.RegisterColorHandlersEvent; // ColorHandlerEvent.Item -> RegisterColorHandlersEvent.Item
 
 import java.util.List;
 import java.util.Locale;
@@ -142,9 +138,11 @@ public class RegistryItems {
 
     @OnlyIn(Dist.CLIENT)
     public static void registerColors(net.minecraftforge.client.event.RegisterColorHandlersEvent.Item event) {
-        colorItems.forEach(item ->
-                event.register(item::getColor, item)
-        );
+        colorItems.forEach(item -> {
+            if (item instanceof Item itemLike) {
+                event.register((stack, tintIndex) -> item.getColor(stack, tintIndex), itemLike);
+            }
+        });
     }
 
     //public static void registerDispenseBehaviors() {
@@ -156,100 +154,72 @@ public class RegistryItems {
 
 
     public static void registerItemProperties() {
-
-        ItemProperties.register(INFUSED_GLASS, new ResourceLocation("engraved"),
-                (stack, level, entity, seed) ->
-                        ItemInfusedGlass.getEngraving(stack) != null ? 1F : 0F
+        ItemProperties.register(INFUSED_GLASS, new ResourceLocation(AstralSorcery.MODID, "engraved"),
+                (stack, level, entity, seed) -> ItemInfusedGlass.getEngraving(stack) != null ? 1F : 0F
         );
 
-        ItemProperties.register(KNOWLEDGE_SHARE, new ResourceLocation("written"),
-                (stack, level, entity, seed) ->
-                        ItemKnowledgeShare.isCreative(stack) || ItemKnowledgeShare.getKnowledge(stack) != null ? 1F : 0F
+        ItemProperties.register(KNOWLEDGE_SHARE, new ResourceLocation(AstralSorcery.MODID, "written"),
+                (stack, level, entity, seed) -> ItemKnowledgeShare.isCreative(stack) || ItemKnowledgeShare.getKnowledge(stack) != null ? 1F : 0F
         );
 
-        ItemProperties.register(RESONATOR, new ResourceLocation("upgrade"),
+        ItemProperties.register(RESONATOR, new ResourceLocation(AstralSorcery.MODID, "upgrade"),
                 (stack, level, entity, seed) -> {
-
                     if (!(entity instanceof Player player)) {
-                        return ItemResonator.ResonatorUpgrade.STARLIGHT.ordinal() /
-                                (float) ItemResonator.ResonatorUpgrade.values().length;
+                        return ItemResonator.ResonatorUpgrade.STARLIGHT.ordinal() / (float) ItemResonator.ResonatorUpgrade.values().length;
                     }
-
-                    ItemResonator.ResonatorUpgrade current =
-                            ItemResonator.getCurrentUpgrade(player, stack);
-
-                    return current.ordinal() /
-                            (float) ItemResonator.ResonatorUpgrade.values().length;
+                    return ItemResonator.getCurrentUpgrade(player, stack).ordinal() / (float) ItemResonator.ResonatorUpgrade.values().length;
                 }
         );
 
-        // 🔥 CAMBIO IMPORTANTE: ya no uses Item.getItemFromBlock
         ItemProperties.register(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.asItem(),
-                new ResourceLocation("stage"),
-                (stack, level, entity, seed) ->
-                        (float) stack.getDamageValue() /
-                                BlockCelestialCrystalCluster.STAGE.getPossibleValues().size()
+                new ResourceLocation(AstralSorcery.MODID, "stage"),
+                (stack, level, entity, seed) -> {
+                    // Obtenemos el valor actual del daño (o etapa) y dividimos por el máximo (4)
+                    return (float) stack.getDamageValue() / 4.0F;
+                }
         );
 
         ItemProperties.register(BlocksAS.GEM_CRYSTAL_CLUSTER.asItem(),
-                new ResourceLocation("stage"),
-                (stack, level, entity, seed) ->
-                        (float) stack.getDamageValue() /
-                                BlockGemCrystalCluster.STAGE.getPossibleValues().size()
+                new ResourceLocation(AstralSorcery.MODID, "stage"),
+                (stack, level, entity, seed) -> {
+                    // Como Stage 2 es el máximo crecimiento según tu código anterior, dividimos por 2
+                    return (float) stack.getDamageValue() / 2.0F;
+                }
         );
     }
 
     private static void registerItemBlock(CustomItemBlock block) {
         BlockItem itemBlock = block.createItemBlock(buildItemBlockProperties((Block) block));
-
-        AstralSorcery.getProxy()
-                .getRegistryPrimer()
-                .register(Item.class,
-                        new RegistryAccess.RegistryEntry<>(block.getRegistryName(), itemBlock));
+        // Se registra usando el ResourceLocation del bloque
+        AstralSorcery.getProxy().getRegistryPrimer().register(Item.class, itemBlock, ((Block) block).getLootTable());
     }
 
-    private static <T extends Item> T registerItem(T item) {
-
-        ResourceLocation name = NameUtil.fromClass(item, "Item");
-
-        if (item instanceof IHasRegistryName hasName) {
-            hasName.setRegistryName(name);
-        } else {
-            throw new RuntimeException("Item sin registry name: " + item);
-        }
-
-        AstralSorcery.getProxy().getRegistryPrimer().register(Item.class, item);
+    private static <T extends Item> T registerItem(String name, T item) {
+        ResourceLocation rl = AstralSorcery.key(name);
+        AstralSorcery.getProxy().getRegistryPrimer().register(Item.class, item, rl);
 
         if (item instanceof ItemDynamicColor color) {
             colorItems.add(color);
         }
-
         return item;
     }
 
     private static Item.Properties buildItemBlockProperties(Block block) {
         Item.Properties props = new Item.Properties();
 
-        // ⚠️ Creative tab ahora es diferente (puedes ignorarlo por ahora)
-
         if (block instanceof CustomItemBlockProperties custom) {
-
             if (!custom.canItemBeRepaired()) {
                 props = props.stacksTo(1);
             }
-
             props = props.rarity(custom.getItemRarity());
             props = props.stacksTo(custom.getItemMaxStackSize());
-
             if (custom.getItemMaxDamage() > 0) {
                 props = props.durability(custom.getItemMaxDamage());
             }
-
             if (custom.getContainerItem() != null) {
                 props = props.craftRemainder(custom.getContainerItem());
             }
         }
-
         return props;
     }
 

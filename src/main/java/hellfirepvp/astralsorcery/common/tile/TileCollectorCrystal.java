@@ -33,6 +33,7 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
@@ -91,7 +92,7 @@ public class TileCollectorCrystal extends TileSourceBase<SimpleTransmissionSourc
     private void playEffects() {
         Vector3 thisPos = new Vector3(this).add(0.5F, 0.5F, 0.5F);
         Vector3 particlePos = thisPos.clone();
-        MiscUtils.applyRandomOffset(particlePos, rand, 0.75F);
+        MiscUtils.applyRandomOffset(particlePos, (RandomSource) rand, 0.75F);
 
         if (this.isEnhanced() &&
                 this.doesSeeSky() &&

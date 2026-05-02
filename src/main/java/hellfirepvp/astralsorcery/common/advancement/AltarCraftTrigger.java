@@ -12,10 +12,11 @@ import com.google.gson.JsonObject;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.advancement.instance.AltarRecipeInstance;
 import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipe;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.ConditionArrayParser;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.advancements.critereon.ContextAwarePredicate;
+import net.minecraft.advancements.critereon.DeserializationContext;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -33,14 +34,16 @@ public class AltarCraftTrigger extends ListenerCriterionTrigger<AltarRecipeInsta
     }
 
     @Override
-    public AltarRecipeInstance deserialize(JsonObject object, ConditionArrayParser conditions) {
-        return AltarRecipeInstance.deserialize(getId(), object);
+    public AltarRecipeInstance createInstance(JsonObject json, DeserializationContext context) {
+        // El método ahora solo pide 2 argumentos para cumplir con la interfaz CriterionTrigger
+        return AltarRecipeInstance.deserialize(json, context);
     }
 
-    public void trigger(ServerPlayerEntity player, SimpleAltarRecipe recipe, ItemStack output) {
-        Listeners<AltarRecipeInstance> listeners = this.listeners.get(player.getAdvancements());
-        if (listeners != null) {
-            listeners.trigger((i) -> i.test(recipe, output));
+    public void trigger(ServerPlayer player, SimpleAltarRecipe recipe, ItemStack output) {
+        // Usamos getAdvancements() que ahora devuelve el objeto correcto para los listeners
+        Listeners<AltarRecipeInstance> playerListeners = this.listeners.get(player.getAdvancements());
+        if (playerListeners != null) {
+            playerListeners.trigger((instance) -> instance.test(recipe, output));
         }
     }
 

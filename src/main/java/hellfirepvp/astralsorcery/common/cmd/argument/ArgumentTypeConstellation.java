@@ -16,9 +16,9 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import hellfirepvp.astralsorcery.common.constellation.*;
-import net.minecraft.command.ISuggestionProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class ArgumentTypeConstellation implements ArgumentType<IConstellation> {
 
     public static final SimpleCommandExceptionType CONSTELLATION_NOT_FOUND =
-            new SimpleCommandExceptionType(new TranslationTextComponent("astralsorcery.command.argument.constellation.notfound"));
+            new SimpleCommandExceptionType(Component.translatable("astralsorcery.command.argument.constellation.notfound"));
 
     private final Predicate<IConstellation> filter;
 
@@ -58,13 +58,14 @@ public class ArgumentTypeConstellation implements ArgumentType<IConstellation> {
 
     @Override
     public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
-        return ISuggestionProvider.suggestIterable(
+        return SharedSuggestionProvider.suggest(
                 ConstellationRegistry.getAllConstellations()
                         .stream()
                         .filter(this.filter)
-                        .map(IConstellation::getRegistryName)
+                        .map(c -> c.getRegistryName().toString())
                         .collect(Collectors.toList()),
-                builder);
+                builder
+        );
     }
 
     public static ArgumentTypeConstellation weak() {
