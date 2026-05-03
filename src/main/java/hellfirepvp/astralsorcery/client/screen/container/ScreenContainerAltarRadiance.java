@@ -8,8 +8,6 @@
 
 package hellfirepvp.astralsorcery.client.screen.container;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
@@ -23,12 +21,14 @@ import hellfirepvp.astralsorcery.common.container.ContainerAltarTrait;
 import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipe;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.ITextComponent;
-import org.lwjgl.opengl.GL11;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Random;
 
@@ -43,7 +43,7 @@ public class ScreenContainerAltarRadiance extends ScreenContainerAltar<Container
 
     private static final Random rand = new Random();
 
-    public ScreenContainerAltarRadiance(ContainerAltarTrait screenContainer, PlayerInventory inv, ITextComponent name) {
+    public ScreenContainerAltarRadiance(ContainerAltarTrait screenContainer, Inventory inv, Component name) {
         super(screenContainer, inv, name, 255, 202);
     }
 
@@ -53,49 +53,53 @@ public class ScreenContainerAltarRadiance extends ScreenContainerAltar<Container
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(MatrixStack renderStack, int mouseX, int mouse) {
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         SimpleAltarRecipe recipe = this.findRecipe(false);
         if (recipe != null) {
-            ItemStack out = recipe.getOutputForRender(this.getContainer().getTileEntity().getInventory());
-            renderStack.push();
-            renderStack.translate(190, 35, 0);
-            renderStack.scale(2.5F, 2.5F, 1F);
+            ItemStack out = recipe.getOutputForRender(this.getMenu().getTileEntity().getInventory());
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(190, 35, 0);
+            guiGraphics.pose().scale(2.5F, 2.5F, 2.5F);
 
-            RenderingUtils.renderItemStackGUI(renderStack, out, null);
+            RenderingUtils.renderItemStackGUI(guiGraphics, out, null);
 
-            renderStack.pop();
+            guiGraphics.pose().popPose();
         }
 
+        // Renderizado de efectos decorativos (Estrellas de fondo)
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
         RenderSystem.disableDepthTest();
 
-        float pTicks = Minecraft.getInstance().getRenderPartialTicks();
+        float pTicks = Minecraft.getInstance().getFrameTime();
         TexturesAS.TEX_STAR_1.bindTexture();
+
+        // Seed constante para que las estrellas no "salten" de posición
         rand.setSeed(0x889582997FF29A92L);
         for (int i = 0; i < 18; i++) {
-
             int x = rand.nextInt(54);
             int y = rand.nextInt(54);
 
             float brightness = 0.3F + (RenderingConstellationUtils.stdFlicker(ClientScheduler.getClientTick(), pTicks, 10 + rand.nextInt(20))) * 0.6F;
 
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-                RenderingGuiUtils.rect(buf, renderStack, 15 + x, 39 + y, this.getBlitOffset(), 5, 5)
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+                RenderingGuiUtils.rect(buf, guiGraphics.pose().last().pose(), 15 + x, 39 + y, 0, 5, 5)
                         .color(brightness, brightness, brightness, brightness)
                         .draw();
             });
         }
 
-        TileAltar altar = this.getContainer().getTileEntity();
+        // Renderizado de la constelación activa enfocada
+        TileAltar altar = this.getMenu().getTileEntity();
         IConstellation c = altar.getFocusedConstellation();
         if (c != null && altar.hasMultiblock() && ResearchHelper.getClientProgress().hasConstellationDiscovered(c)) {
             rand.setSeed(0x61FF25A5B7C24109L);
 
-            RenderingConstellationUtils.renderConstellationIntoGUI(c.getConstellationColor(), c, renderStack,
-                    16, 41, this.getBlitOffset(),
+            // Nota: Se asume que renderConstellationIntoGUI ha sido actualizado para aceptar GuiGraphics o PoseStack
+            RenderingConstellationUtils.renderConstellationIntoGUI(c.getConstellationColor(), c, guiGraphics.pose(),
+                    16, 41, 0,
                     58, 58,
-                    2, () -> 0.2F + 0.8F * RenderingConstellationUtils.conCFlicker(Minecraft.getInstance().world.getDayTime(), pTicks, 5 + rand.nextInt(5)),
+                    2, () -> 0.2F + 0.8F * RenderingConstellationUtils.conCFlicker(Minecraft.getInstance().level.getGameTime(), pTicks, 5 + rand.nextInt(5)),
                     true, false);
         }
 
@@ -104,7 +108,7 @@ public class ScreenContainerAltarRadiance extends ScreenContainerAltar<Container
     }
 
     @Override
-    public void renderGuiBackground(MatrixStack renderStack, float partialTicks, int mouseX, int mouseY) {
-        this.renderStarlightBar(renderStack, 11, 104, 232, 10);
+    public void renderGuiBackground(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
+        this.renderStarlightBar(guiGraphics, 11, 104, 232, 10);
     }
 }

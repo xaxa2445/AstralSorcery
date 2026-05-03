@@ -24,6 +24,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -42,13 +43,13 @@ public class TileRitualLink extends TileEntityTick implements LinkableTileEntity
 
     private BlockPos linkedTo = null;
 
-    public TileRitualLink() {
-        super(TileEntityTypesAS.RITUAL_LINK);
+    public TileRitualLink(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.RITUAL_LINK, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
         if (level.isClientSide) {
             playClientEffects();

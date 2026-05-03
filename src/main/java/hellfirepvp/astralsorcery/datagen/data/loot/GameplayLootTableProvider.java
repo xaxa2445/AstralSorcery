@@ -8,9 +8,9 @@
 
 package hellfirepvp.astralsorcery.datagen.data.loot;
 
-import net.minecraft.data.loot.GiftLootTables;
-import net.minecraft.loot.LootTable;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.data.loot.LootTableSubProvider;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.loot.LootTable;
 
 import java.util.function.BiConsumer;
 
@@ -21,10 +21,10 @@ import java.util.function.BiConsumer;
  * Created by HellFirePvP
  * Date: 20.12.2020 / 21:46
  */
-public class GameplayLootTableProvider extends GiftLootTables {
+public class GameplayLootTableProvider implements LootTableSubProvider {
 
     @Override
-    public void accept(BiConsumer<ResourceLocation, LootTable.Builder> registrar) {
-
+    public void generate(BiConsumer<ResourceLocation, LootTable.Builder> registrar) {
+        // vacío si no tienes loot tipo gift/gameplay
     }
 }

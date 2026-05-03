@@ -15,8 +15,9 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInfusion;
 import hellfirepvp.astralsorcery.common.data.research.ResearchNode;
 import hellfirepvp.astralsorcery.common.lib.RecipeTypesAS;
 import hellfirepvp.astralsorcery.common.util.RecipeHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.RecipeManager;
+import net.minecraft.world.item.ItemStack; // Actualizado de net.minecraft.item
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
 
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -43,7 +44,7 @@ public class JournalPageLiquidInfusion implements JournalPage {
                 throw new IllegalStateException("Not connected to a server, but calling GUI code?");
             }
 
-            return mgr.getRecipes(RecipeTypesAS.TYPE_INFUSION.getType()).values()
+            return mgr.getAllRecipesFor((RecipeType<LiquidInfusion>) RecipeTypesAS.TYPE_INFUSION.getType())
                     .stream()
                     .map(r -> (LiquidInfusion) r)
                     .filter(r -> outputTest.test(r.getOutput(ItemStack.EMPTY)))

@@ -10,17 +10,18 @@ package hellfirepvp.astralsorcery.common.entity.item;
 
 import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.util.reflection.ReflectionHelper;
-import net.minecraft.entity.EntitySize;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.Pose;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraftforge.network.NetworkHooks;
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -34,44 +35,44 @@ import java.awt.*;
  */
 public class EntityItemHighlighted extends EntityCustomItemReplacement {
 
-    private static final DataParameter<Integer> DATA_COLOR = EntityDataManager.createKey(EntityItemHighlighted.class, DataSerializers.VARINT);
+    private static final EntityDataAccessor<Integer> DATA_COLOR = SynchedEntityData.defineId(EntityItemHighlighted.class, EntityDataSerializers.INT);
     private static final int NO_COLOR = 0xFF000000;
 
-    public EntityItemHighlighted(EntityType<? extends ItemEntity> type, World world) {
+    public EntityItemHighlighted(EntityType<? extends ItemEntity> type, Level world) {
         super(type, world);
         ReflectionHelper.setSkipItemPhysicsRender(this);
-        recalculateSize();
+        refreshDimensions();
     }
 
-    public EntityItemHighlighted(EntityType<? extends ItemEntity> type, World world, double x, double y, double z) {
+    public EntityItemHighlighted(EntityType<? extends ItemEntity> type, Level world, double x, double y, double z) {
         this(type, world);
-        this.setPosition(x, y, z);
-        this.rotationYaw = this.rand.nextFloat() * 360.0F;
-        this.setMotion(this.rand.nextDouble() * 0.2D - 0.1D, 0.2D, this.rand.nextDouble() * 0.2D - 0.1D);
+        this.setPos(x, y, z);
+        this.setYRot(this.random.nextFloat() * 360.0F);
+        this.setDeltaMovement(this.random.nextDouble() * 0.2D - 0.1D, 0.2D, this.random.nextDouble() * 0.2D - 0.1D);
     }
 
-    public EntityItemHighlighted(EntityType<? extends ItemEntity> type, World world, double x, double y, double z, ItemStack stack) {
+    public EntityItemHighlighted(EntityType<? extends ItemEntity> type, Level world, double x, double y, double z, ItemStack stack) {
         this(type, world, x, y, z);
         this.setItem(stack);
         this.lifespan = stack.isEmpty() ? 6000 : stack.getEntityLifespan(world);
     }
 
-    public static EntityType.IFactory<EntityItemHighlighted> factoryHighlighted() {
-        return (spawnEntity, world) -> new EntityItemHighlighted(EntityTypesAS.ITEM_HIGHLIGHT, world);
+    public static EntityType.EntityFactory<EntityItemHighlighted> factoryHighlighted() {
+        return (type, level) -> new EntityItemHighlighted(type, level);
     }
 
     @Override
-    protected void registerData() {
-        super.registerData();
-        this.getDataManager().register(DATA_COLOR, NO_COLOR);
+    protected void defineSynchedData() { // registerData -> defineSynchedData
+        super.defineSynchedData();
+        this.getEntityData().define(DATA_COLOR, NO_COLOR);
     }
 
     public void applyColor(@Nullable Color color) {
-        this.getDataManager().set(DATA_COLOR, color == null ? NO_COLOR : (color.getRGB() & 0x00FFFFFF));
+        this.getEntityData().set(DATA_COLOR, color == null ? NO_COLOR : (color.getRGB() & 0x00FFFFFF));
     }
 
     public boolean hasColor() {
-        return this.getDataManager().get(DATA_COLOR) != NO_COLOR;
+        return this.getEntityData().get(DATA_COLOR) != NO_COLOR;
     }
 
     @Nullable
@@ -79,38 +80,38 @@ public class EntityItemHighlighted extends EntityCustomItemReplacement {
         if (!hasColor()) {
             return null;
         }
-        int colorInt = this.getDataManager().get(DATA_COLOR);
+        int colorInt = this.getEntityData().get(DATA_COLOR);
         return new Color(colorInt, false);
     }
 
     @Override
     public void tick() {
-        boolean onGround = this.isOnGround();
+        boolean onGroundBefore = this.onGround(); // isOnGround -> onGround()
         super.tick();
-        if (this.isOnGround() != onGround) {
-            recalculateSize();
+        if (this.onGround() != onGroundBefore) {
+            this.refreshDimensions(); // recalculateSize -> refreshDimensions
         }
     }
 
     @Override
     public void setOnGround(boolean grounded) {
-        boolean updateSize = isOnGround() != grounded;
+        boolean updateSize = this.onGround() != grounded;
         super.setOnGround(grounded);
         if (updateSize) {
-            recalculateSize();
+            this.refreshDimensions();
         }
     }
 
     @Override
-    public EntitySize getSize(Pose poseIn) {
-        if (!this.isOnGround()) {
-            return EntityType.ITEM.getSize();
+    public EntityDimensions getDimensions(Pose pose) { // getSize -> getDimensions
+        if (!this.onGround()) {
+            return EntityType.ITEM.getDimensions();
         }
-        return this.getType().getSize();
+        return this.getType().getDimensions();
     }
 
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public Packet<ClientGamePacketListener> getAddEntityPacket() { // createSpawnPacket -> getAddEntityPacket
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 }

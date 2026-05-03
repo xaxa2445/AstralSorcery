@@ -16,17 +16,17 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.PlayerReference;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.server.ServerLifecycleHooks; // Reemplaza LogicalSidedProvider
 
 import javax.annotation.Nonnull;
 import java.util.UUID;
@@ -40,13 +40,13 @@ import java.util.UUID;
  */
 public class PktRevokeGatewayAccess extends ASPacket<PktRevokeGatewayAccess> {
 
-    private RegistryKey<World> dim = null;
+    private ResourceKey<Level> dim = null;
     private BlockPos pos = BlockPos.ZERO;
     private UUID revokeUUID = null;
 
     public PktRevokeGatewayAccess() {}
 
-    public PktRevokeGatewayAccess(RegistryKey<World> dim, BlockPos pos, UUID revokeUUID) {
+    public PktRevokeGatewayAccess(ResourceKey<Level> dim, BlockPos pos, UUID revokeUUID) {
         this.dim = dim;
         this.pos = pos;
         this.revokeUUID = revokeUUID;
@@ -76,13 +76,13 @@ public class PktRevokeGatewayAccess extends ASPacket<PktRevokeGatewayAccess> {
     public Handler<PktRevokeGatewayAccess> handler() {
         return (packet, context, side) -> {
             if (side.isServer()) {
-                PlayerEntity sender = context.getSender();
+                Player sender = context.getSender();
                 if (sender == null) {
                     return;
                 }
 
-                MinecraftServer srv = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-                World world = srv.getWorld(packet.dim);
+                MinecraftServer srv = ServerLifecycleHooks.getCurrentServer();
+                Level world = srv.getLevel(packet.dim);
 
                 TileCelestialGateway gateway = MiscUtils.getTileAt(world, packet.pos, TileCelestialGateway.class, false);
                 if (gateway != null && gateway.isLocked() && gateway.getOwner() != null && gateway.getOwner().isPlayer(sender)) {
@@ -92,14 +92,14 @@ public class PktRevokeGatewayAccess extends ASPacket<PktRevokeGatewayAccess> {
                         PlayerReference removedPlayer = gateway.removeAllowedUser(packet.revokeUUID);
                         if (removedPlayer != null) {
                             PktPlayEffect pkt = new PktPlayEffect(PktPlayEffect.Type.GATEWAY_REVOKE_EFFECT)
-                                    .addData(buffer -> ByteBufUtils.writePos(buffer, gateway.getPos()));
+                                    .addData(buffer -> ByteBufUtils.writePos(buffer, gateway.getBlockPos()));
                             PacketChannel.CHANNEL.sendToPlayer(sender, pkt);
 
-                            ITextComponent accessGrantedMessage = new TranslationTextComponent(
+                            Component accessGrantedMessage = Component.translatable(
                                     "astralsorcery.misc.link.gateway.unlink",
                                     removedPlayer.getPlayerName())
-                                    .mergeStyle(TextFormatting.GREEN);
-                            sender.sendMessage(accessGrantedMessage, Util.DUMMY_UUID);
+                                    .withStyle(ChatFormatting.GREEN);
+                            sender.sendSystemMessage(accessGrantedMessage);
                         }
                     }
                 }

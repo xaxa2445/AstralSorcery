@@ -90,29 +90,28 @@ public class RenderingDrawUtils {
         return renderStringAt(null, graphics, text, color);
     }
 
-    public static float renderStringAt(@Nullable Font fr, GuiGraphics graphics, FormattedCharSequence text, int color) {
-        if (fr == null) {
-            fr = Minecraft.getInstance().font;
+    public static float renderStringAt(Font font, GuiGraphics graphics, FormattedCharSequence text, int color) {
+        if (font == null) {
+            font = Minecraft.getInstance().font;
         }
-        // IRenderTypeBuffer.Impl -> MultiBufferSource.BufferSource
+
         MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+
         Matrix4f matrix = graphics.pose().last().pose();
-        // fr.func_238416_a_ -> fr.drawInBatch
-        float length = fr.drawInBatch(
+
+        float length = font.drawInBatch(
                 text,
-                0, 0,           // Posición local (ya que hiciste el translate antes)
+                0, 0,
                 color,
-                false,          // dropShadow
+                false,
                 matrix,
                 buffer,
                 Font.DisplayMode.NORMAL,
-                0,              // backgroundColor
-                15728880        // LightmapUtil.getPackedFullbrightCoords() suele ser este valor constante
+                0,
+                15728880 // fullbright
         );
 
-        // 4. Finalizamos el renderizado de este lote
         buffer.endBatch();
-
         return length;
     }
 
@@ -156,12 +155,18 @@ public class RenderingDrawUtils {
     }
 
     public static void renderBlueTooltipComponents(GuiGraphics graphics, float x, float y, float zLevel,
-                                                    List<FormattedText> tooltipData, Font font, boolean isFirstLineHeadline) {
+                                                   List<? extends FormattedText> tooltipData, Font font, boolean isFirstLineHeadline) {
 
-        // Convertimos la lista de textos en una lista de Tuplas (ItemStack vacío + Texto)
-        // ItemStack.EMPTY sigue siendo válido en 1.20.1
-        List<Tuple<ItemStack, FormattedText>> stackTooltip = MapStream.ofValues(tooltipData, t -> ItemStack.EMPTY).toTupleList();
+        // 1. Creamos la lista de destino con el tipo exacto que pide renderBlueTooltip
+        List<Tuple<ItemStack, FormattedText>> stackTooltip = new java.util.ArrayList<>();
 
+        // 2. Llenamos la lista manualmente.
+        // Como cada elemento 'text' hereda de FormattedText, el compilador lo aceptará dentro de la Tupla.
+        for (FormattedText text : tooltipData) {
+            stackTooltip.add(new Tuple<>(ItemStack.EMPTY, text));
+        }
+
+        // 3. Ahora la llamada es 100% compatible
         renderBlueTooltip(graphics, x, y, zLevel, stackTooltip, font, isFirstLineHeadline);
     }
 

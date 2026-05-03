@@ -13,16 +13,24 @@ import hellfirepvp.astralsorcery.common.block.tile.BlockCelestialCrystalCluster;
 import hellfirepvp.astralsorcery.common.block.tile.BlockGemCrystalCluster;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.loot.*;
-import net.minecraft.advancements.criterion.StatePropertiesPredicate;
-import net.minecraft.block.Block;
-import net.minecraft.data.loot.BlockLootTables;
-import net.minecraft.item.Items;
-import net.minecraft.loot.*;
-import net.minecraft.loot.conditions.BlockStateProperty;
-import net.minecraft.loot.functions.ExplosionDecay;
-import net.minecraft.loot.functions.SetCount;
+import net.minecraft.advancements.critereon.StatePropertiesPredicate;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.data.loot.BlockLootSubProvider;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.flag.FeatureFlags;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.ApplyExplosionDecay;
+import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
+import net.minecraft.world.level.storage.loot.predicates.LootItemBlockStatePropertyCondition;
+import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
+import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static hellfirepvp.astralsorcery.common.lib.BlocksAS.*;
@@ -34,185 +42,209 @@ import static hellfirepvp.astralsorcery.common.lib.BlocksAS.*;
  * Created by HellFirePvP
  * Date: 06.03.2020 / 21:50
  */
-public class BlockLootTableProvider extends BlockLootTables {
+public class BlockLootTableProvider extends BlockLootSubProvider {
+
+    public BlockLootTableProvider() {
+        super(Set.of(), FeatureFlags.REGISTRY.allFlags());
+    }
 
     @Override
-    protected void addTables() {
-        this.registerDropSelfLootTable(MARBLE_ARCH);
-        this.registerDropSelfLootTable(MARBLE_BRICKS);
-        this.registerDropSelfLootTable(MARBLE_CHISELED);
-        this.registerDropSelfLootTable(MARBLE_ENGRAVED);
-        this.registerDropSelfLootTable(MARBLE_PILLAR);
-        this.registerDropSelfLootTable(MARBLE_RAW);
-        this.registerDropSelfLootTable(MARBLE_RUNED);
-        this.registerDropSelfLootTable(MARBLE_STAIRS);
-        this.registerLootTable(MARBLE_SLAB, BlockLootTables::droppingSlab);
-        this.registerDropSelfLootTable(BLACK_MARBLE_ARCH);
-        this.registerDropSelfLootTable(BLACK_MARBLE_BRICKS);
-        this.registerDropSelfLootTable(BLACK_MARBLE_CHISELED);
-        this.registerDropSelfLootTable(BLACK_MARBLE_ENGRAVED);
-        this.registerDropSelfLootTable(BLACK_MARBLE_PILLAR);
-        this.registerDropSelfLootTable(BLACK_MARBLE_RAW);
-        this.registerDropSelfLootTable(BLACK_MARBLE_RUNED);
-        this.registerDropSelfLootTable(BLACK_MARBLE_STAIRS);
-        this.registerLootTable(BLACK_MARBLE_SLAB, BlockLootTables::droppingSlab);
-        this.registerDropSelfLootTable(INFUSED_WOOD);
-        this.registerDropSelfLootTable(INFUSED_WOOD_ARCH);
-        this.registerDropSelfLootTable(INFUSED_WOOD_COLUMN);
-        this.registerDropSelfLootTable(INFUSED_WOOD_ENGRAVED);
-        this.registerDropSelfLootTable(INFUSED_WOOD_ENRICHED);
-        this.registerDropSelfLootTable(INFUSED_WOOD_INFUSED);
-        this.registerDropSelfLootTable(INFUSED_WOOD_PLANKS);
-        this.registerDropSelfLootTable(INFUSED_WOOD_STAIRS);
-        this.registerLootTable(INFUSED_WOOD_SLAB, BlockLootTables::droppingSlab);
+    protected void generate() {
+        this.dropSelf(MARBLE_ARCH);
+        this.dropSelf(MARBLE_BRICKS);
+        this.dropSelf(MARBLE_CHISELED);
+        this.dropSelf(MARBLE_ENGRAVED);
+        this.dropSelf(MARBLE_PILLAR);
+        this.dropSelf(MARBLE_RAW);
+        this.dropSelf(MARBLE_RUNED);
+        this.dropSelf(MARBLE_STAIRS);
+        this.add(MARBLE_SLAB, this::createSlabItemTable);
+        this.dropSelf(BLACK_MARBLE_ARCH);
+        this.dropSelf(BLACK_MARBLE_BRICKS);
+        this.dropSelf(BLACK_MARBLE_CHISELED);
+        this.dropSelf(BLACK_MARBLE_ENGRAVED);
+        this.dropSelf(BLACK_MARBLE_PILLAR);
+        this.dropSelf(BLACK_MARBLE_RAW);
+        this.dropSelf(BLACK_MARBLE_RUNED);
+        this.dropSelf(BLACK_MARBLE_STAIRS);
+        this.add(BLACK_MARBLE_SLAB, this::createSlabItemTable);
+        this.dropSelf(INFUSED_WOOD);
+        this.dropSelf(INFUSED_WOOD_ARCH);
+        this.dropSelf(INFUSED_WOOD_COLUMN);
+        this.dropSelf(INFUSED_WOOD_ENGRAVED);
+        this.dropSelf(INFUSED_WOOD_ENRICHED);
+        this.dropSelf(INFUSED_WOOD_INFUSED);
+        this.dropSelf(INFUSED_WOOD_PLANKS);
+        this.dropSelf(INFUSED_WOOD_STAIRS);
+        this.add(INFUSED_WOOD_SLAB, this::createSlabItemTable);
 
-        this.registerLootTable(AQUAMARINE_SAND_ORE, (block) -> {
-            return droppingWithSilkTouch(block,
-                    ItemLootEntry.builder(ItemsAS.AQUAMARINE)
-                            .acceptFunction(SetCount.builder(RandomValueRange.of(1F, 3F)))
-                            .acceptFunction(LinearLuckBonus.builder())
-                            .acceptFunction(ExplosionDecay.builder())
+        this.add(AQUAMARINE_SAND_ORE, (block) -> {
+            return createSilkTouchDispatchTable(block,
+                    this.applyExplosionDecay(block, LootItem.lootTableItem(ItemsAS.AQUAMARINE)
+                            .apply(SetItemCountFunction.setCount(UniformGenerator.between(1F, 3F)))
+                            .apply(LinearLuckBonus.builder()))
             );
         });
-        this.registerLootTable(ROCK_CRYSTAL_ORE, (block) -> {
-            return LootTable.builder()
-                    .addLootPool(LootPool.builder()
-                            .rolls(RandomValueRange.of(2F, 5F))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.ROCK_CRYSTAL)
-                                    .acceptFunction(RandomCrystalProperty.builder())
-                                    .acceptFunction(ExplosionDecay.builder())
+        this.add(ROCK_CRYSTAL_ORE, (block) -> {
+            return LootTable.lootTable()
+                    .withPool(LootPool.lootPool()
+                            .setRolls(UniformGenerator.between(2F, 5F))
+                            .add(LootItem.lootTableItem(ItemsAS.ROCK_CRYSTAL)
+                                    .apply(RandomCrystalProperty.builder())
+                                    .apply(ApplyExplosionDecay.explosionDecay())
                             )
                     );
         });
-        this.registerDropSelfLootTable(STARMETAL_ORE);
-        this.registerDropSelfLootTable(STARMETAL);
-        this.registerLootTable(GLOW_FLOWER, (block) -> {
-            return droppingWithShears(block,
-                    ItemLootEntry.builder(Items.GLOWSTONE_DUST)
-                            .acceptFunction(SetCount.builder(RandomValueRange.of(2F, 4F)))
-                            .acceptFunction(LinearLuckBonus.builder())
-                            .acceptFunction(ExplosionDecay.builder())
+        this.dropSelf(STARMETAL_ORE);
+        this.dropSelf(STARMETAL);
+        this.add(GLOW_FLOWER, (block) -> {
+            // 'droppingWithShears' ahora es 'createShearsDispatchTable'
+            return createShearsDispatchTable(block,
+                    // 'ItemLootEntry.builder' ahora es 'LootItem.lootTableItem'
+                    this.applyExplosionDecay(block, LootItem.lootTableItem(Items.GLOWSTONE_DUST)
+                            // 'SetCount' es 'SetItemCountFunction' y 'RandomValueRange' es 'UniformGenerator'
+                            .apply(SetItemCountFunction.setCount(UniformGenerator.between(2.0F, 4.0F)))
+                            // 'LinearLuckBonus' se mantiene si es tu clase custom, pero se llama con .apply()
+                            .apply(LinearLuckBonus.builder()))
             );
         });
 
-        this.registerDropSelfLootTable(SPECTRAL_RELAY);
-        this.registerDropSelfLootTable(ALTAR_DISCOVERY);
-        this.registerDropSelfLootTable(ALTAR_ATTUNEMENT);
-        this.registerDropSelfLootTable(ALTAR_CONSTELLATION);
-        this.registerDropSelfLootTable(ALTAR_RADIANCE);
-        this.registerDropSelfLootTable(ATTUNEMENT_ALTAR);
+        this.dropSelf(SPECTRAL_RELAY);
+        this.dropSelf(ALTAR_DISCOVERY);
+        this.dropSelf(ALTAR_ATTUNEMENT);
+        this.dropSelf(ALTAR_CONSTELLATION);
+        this.dropSelf(ALTAR_RADIANCE);
+        this.dropSelf(ATTUNEMENT_ALTAR);
 
-        this.registerLootTable(CELESTIAL_CRYSTAL_CLUSTER, (block) -> {
-            return LootTable.builder()
-                    .acceptFunction(ExplosionDecay.builder())
-                    .acceptFunction(CopyCrystalProperties.builder())
-                    .addLootPool(LootPool.builder()
-                            .rolls(ConstantRange.of(1))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.CELESTIAL_CRYSTAL)
-                                    .acceptCondition(BlockStateProperty.builder(CELESTIAL_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withIntProp(BlockCelestialCrystalCluster.STAGE, 4)))
-                            )
+        this.add(CELESTIAL_CRYSTAL_CLUSTER, (block) -> {
+            return LootTable.lootTable() // LootTable.builder() -> LootTable.lootTable()
+                    .apply(ApplyExplosionDecay.explosionDecay()) // acceptFunction -> apply
+                    .apply(CopyCrystalProperties.builder())
+                    .withPool(LootPool.lootPool() // addLootPool -> withPool
+                            .setRolls(ConstantValue.exactly(1)) // ConstantRange -> ConstantValue
+                            .add(LootItem.lootTableItem(ItemsAS.CELESTIAL_CRYSTAL) // ItemLootEntry -> LootItem
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(CELESTIAL_CRYSTAL_CLUSTER) // BlockStateProperty -> LootItemBlockStatePropertyCondition
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockCelestialCrystalCluster.STAGE, 4))))
                     )
-                    .addLootPool(LootPool.builder()
-                            .rolls(ConstantRange.of(1))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.STARDUST)
-                                    .acceptCondition(BlockStateProperty.builder(CELESTIAL_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withIntProp(BlockCelestialCrystalCluster.STAGE, 1)))
-                            )
+                    .withPool(LootPool.lootPool()
+                            .setRolls(ConstantValue.exactly(1))
+                            .add(LootItem.lootTableItem(ItemsAS.STARDUST)
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(CELESTIAL_CRYSTAL_CLUSTER)
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockCelestialCrystalCluster.STAGE, 1))))
                     )
-                    .addLootPool(LootPool.builder()
-                            .rolls(RandomValueRange.of(1F, 2F))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.STARDUST)
-                                    .acceptCondition(BlockStateProperty.builder(CELESTIAL_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withIntProp(BlockCelestialCrystalCluster.STAGE, 2)))
-                            )
+                    .withPool(LootPool.lootPool()
+                            .setRolls(UniformGenerator.between(1.0F, 2.0F)) // RandomValueRange -> UniformGenerator
+                            .add(LootItem.lootTableItem(ItemsAS.STARDUST)
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(CELESTIAL_CRYSTAL_CLUSTER)
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockCelestialCrystalCluster.STAGE, 2))))
                     )
-                    .addLootPool(LootPool.builder()
-                            .rolls(RandomValueRange.of(1F, 2F))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.STARDUST)
-                                    .acceptCondition(BlockStateProperty.builder(CELESTIAL_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withIntProp(BlockCelestialCrystalCluster.STAGE, 3)))
-                            )
+                    .withPool(LootPool.lootPool()
+                            .setRolls(UniformGenerator.between(1.0F, 2.0F))
+                            .add(LootItem.lootTableItem(ItemsAS.STARDUST)
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(CELESTIAL_CRYSTAL_CLUSTER)
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockCelestialCrystalCluster.STAGE, 3))))
                     )
-                    .addLootPool(LootPool.builder()
-                            .rolls(ConstantRange.of(2))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.STARDUST)
-                                    .acceptCondition(BlockStateProperty.builder(CELESTIAL_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withIntProp(BlockCelestialCrystalCluster.STAGE, 4)))
-                            )
+                    .withPool(LootPool.lootPool()
+                            .setRolls(ConstantValue.exactly(2))
+                            .add(LootItem.lootTableItem(ItemsAS.STARDUST)
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(CELESTIAL_CRYSTAL_CLUSTER)
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockCelestialCrystalCluster.STAGE, 4))))
                     );
         });
-        this.registerLootTable(GEM_CRYSTAL_CLUSTER, (block) -> {
-            return LootTable.builder()
-                    .acceptFunction(ExplosionDecay.builder())
-                    .addLootPool(LootPool.builder()
-                            .rolls(ConstantRange.of(1))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.PERK_GEM_DAY)
-                                    .acceptCondition(BlockStateProperty.builder(GEM_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withProp(BlockGemCrystalCluster.STAGE, BlockGemCrystalCluster.GrowthStageType.STAGE_2_DAY)))
-                            )
+        this.add(GEM_CRYSTAL_CLUSTER, (block) -> {
+            return LootTable.lootTable()
+                    .apply(ApplyExplosionDecay.explosionDecay())
+                    .withPool(LootPool.lootPool()
+                            .setRolls(ConstantValue.exactly(1))
+                            .add(LootItem.lootTableItem(ItemsAS.PERK_GEM_DAY)
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(GEM_CRYSTAL_CLUSTER)
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockGemCrystalCluster.STAGE, BlockGemCrystalCluster.GrowthStageType.STAGE_2_DAY))))
                     )
-                    .addLootPool(LootPool.builder()
-                            .rolls(ConstantRange.of(1))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.PERK_GEM_NIGHT)
-                                    .acceptCondition(BlockStateProperty.builder(GEM_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withProp(BlockGemCrystalCluster.STAGE, BlockGemCrystalCluster.GrowthStageType.STAGE_2_NIGHT)))
-                            )
+                    .withPool(LootPool.lootPool()
+                            .setRolls(ConstantValue.exactly(1))
+                            .add(LootItem.lootTableItem(ItemsAS.PERK_GEM_NIGHT)
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(GEM_CRYSTAL_CLUSTER)
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockGemCrystalCluster.STAGE, BlockGemCrystalCluster.GrowthStageType.STAGE_2_NIGHT))))
                     )
-                    .addLootPool(LootPool.builder()
-                            .rolls(ConstantRange.of(1))
-                            .addEntry(ItemLootEntry.builder(ItemsAS.PERK_GEM_SKY)
-                                    .acceptCondition(BlockStateProperty.builder(GEM_CRYSTAL_CLUSTER)
-                                            .fromProperties(StatePropertiesPredicate.Builder.newBuilder()
-                                                    .withProp(BlockGemCrystalCluster.STAGE, BlockGemCrystalCluster.GrowthStageType.STAGE_2_SKY)))
-                            )
+                    .withPool(LootPool.lootPool()
+                            .setRolls(ConstantValue.exactly(1))
+                            .add(LootItem.lootTableItem(ItemsAS.PERK_GEM_SKY)
+                                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(GEM_CRYSTAL_CLUSTER)
+                                            .setProperties(StatePropertiesPredicate.Builder.properties()
+                                                    .hasProperty(BlockGemCrystalCluster.STAGE, BlockGemCrystalCluster.GrowthStageType.STAGE_2_SKY))))
                     );
         });
-        this.registerLootTable(ROCK_COLLECTOR_CRYSTAL, dropping(ROCK_COLLECTOR_CRYSTAL)
-                .acceptFunction(CopyCrystalProperties.builder())
-                .acceptFunction(CopyConstellation.builder()));
-        this.registerLootTable(CELESTIAL_COLLECTOR_CRYSTAL, dropping(CELESTIAL_COLLECTOR_CRYSTAL)
-                .acceptFunction(CopyCrystalProperties.builder())
-                .acceptFunction(CopyConstellation.builder()));
-        this.registerLootTable(LENS, dropping(LENS)
-                .acceptFunction(CopyCrystalProperties.builder()));
-        this.registerLootTable(PRISM, dropping(PRISM)
-                .acceptFunction(CopyCrystalProperties.builder()));
-        this.registerDropSelfLootTable(RITUAL_LINK);
-        this.registerDropSelfLootTable(RITUAL_PEDESTAL);
-        this.registerDropSelfLootTable(ILLUMINATOR);
-        this.registerDropSelfLootTable(INFUSER);
-        this.registerDropSelfLootTable(CHALICE);
-        this.registerDropSelfLootTable(WELL);
-        this.registerDropSelfLootTable(TELESCOPE);
-        this.registerDropSelfLootTable(OBSERVATORY);
-        this.registerDropSelfLootTable(REFRACTION_TABLE);
-        this.registerDropSelfLootTable(TREE_BEACON);
-        this.registerLootTable(TREE_BEACON_COMPONENT, LootTable.builder());
-        this.registerLootTable(GATEWAY, BlockLootTables.droppingWithName(GATEWAY)
-                .acceptFunction(CopyGatewayColor.builder()));
-        this.registerDropSelfLootTable(FOUNTAIN);
-        this.registerDropSelfLootTable(FOUNTAIN_PRIME_LIQUID);
-        this.registerDropSelfLootTable(FOUNTAIN_PRIME_VORTEX);
-        this.registerDropSelfLootTable(FOUNTAIN_PRIME_ORE);
+        this.add(ROCK_COLLECTOR_CRYSTAL, (block) ->
+                LootTable.lootTable()
+                        .withPool(LootPool.lootPool()
+                                .setRolls(ConstantValue.exactly(1))
+                                .add(LootItem.lootTableItem(block)
+                                        .apply(CopyCrystalProperties.builder())
+                                        .apply(CopyConstellation.builder())))
+        );
+        this.add(CELESTIAL_COLLECTOR_CRYSTAL, (block) ->
+                LootTable.lootTable()
+                        .withPool(LootPool.lootPool()
+                                .setRolls(ConstantValue.exactly(1))
+                                .add(LootItem.lootTableItem(block)
+                                        .apply(CopyCrystalProperties.builder())
+                                        .apply(CopyConstellation.builder())))
+        );
+        this.add(LENS, (block) ->
+                LootTable.lootTable()
+                        .withPool(LootPool.lootPool()
+                                .setRolls(ConstantValue.exactly(1))
+                                .add(LootItem.lootTableItem(block)
+                                        .apply(CopyCrystalProperties.builder())))
+        );
+        this.add(PRISM, (block) ->
+                LootTable.lootTable()
+                        .withPool(LootPool.lootPool()
+                                .setRolls(ConstantValue.exactly(1))
+                                .add(LootItem.lootTableItem(block)
+                                        .apply(CopyCrystalProperties.builder())))
+        );
+        this.dropSelf(RITUAL_LINK);
+        this.dropSelf(RITUAL_PEDESTAL);
+        this.dropSelf(ILLUMINATOR);
+        this.dropSelf(INFUSER);
+        this.dropSelf(CHALICE);
+        this.dropSelf(WELL);
+        this.dropSelf(TELESCOPE);
+        this.dropSelf(OBSERVATORY);
+        this.dropSelf(REFRACTION_TABLE);
+        this.dropSelf(TREE_BEACON);
+        this.add(TREE_BEACON_COMPONENT, (block) -> LootTable.lootTable());
+        this.add(GATEWAY, (block) ->
+                createNameableBlockEntityTable(block)
+                        .apply(CopyGatewayColor.builder())
+        );
+        this.dropSelf(FOUNTAIN);
+        this.dropSelf(FOUNTAIN_PRIME_LIQUID);
+        this.dropSelf(FOUNTAIN_PRIME_VORTEX);
+        this.dropSelf(FOUNTAIN_PRIME_ORE);
 
-        this.registerLootTable(FLARE_LIGHT, LootTable.builder());
-        this.registerLootTable(TRANSLUCENT_BLOCK, LootTable.builder());
-        this.registerLootTable(VANISHING, LootTable.builder());
-        this.registerLootTable(STRUCTURAL, LootTable.builder());
+        this.add(FLARE_LIGHT, (block) -> LootTable.lootTable());
+        this.add(TRANSLUCENT_BLOCK, (block) -> LootTable.lootTable());
+        this.add(VANISHING, (block) -> LootTable.lootTable());
+        this.add(STRUCTURAL, (block) -> LootTable.lootTable());
+        this.add(TREE_BEACON_COMPONENT, (block) -> LootTable.lootTable());
     }
 
     @Override
     protected Iterable<Block> getKnownBlocks() {
         return ForgeRegistries.BLOCKS.getValues().stream()
-                .filter(Mods.ASTRAL_SORCERY::owns)
+                .filter(block -> {
+                    ResourceLocation key = ForgeRegistries.BLOCKS.getKey(block);
+                    return key != null && Mods.ASTRAL_SORCERY.owns(key);
+                })
                 .collect(Collectors.toList());
     }
 }

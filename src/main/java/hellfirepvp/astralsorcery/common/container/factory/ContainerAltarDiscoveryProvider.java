@@ -13,11 +13,11 @@ import hellfirepvp.astralsorcery.common.lib.ContainerTypesAS;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.network.IContainerFactory;
+import net.minecraftforge.network.IContainerFactory;
 
 import javax.annotation.Nonnull;
 
@@ -38,27 +38,33 @@ public class ContainerAltarDiscoveryProvider extends CustomContainerProvider<Con
     }
 
     @Override
-    protected void writeExtraData(PacketBuffer buf) {
-        ByteBufUtils.writePos(buf, this.ta.getPos());
+    protected void writeExtraData(FriendlyByteBuf buf) {
+        // Uso de método nativo de FriendlyByteBuf para BlockPos
+        buf.writeBlockPos(this.ta.getBlockPos());
     }
 
     @Nonnull
     @Override
-    public ContainerAltarDiscovery createMenu(int id, PlayerInventory plInventory, PlayerEntity player) {
-        return new ContainerAltarDiscovery(ta, plInventory, id);
+    public ContainerAltarDiscovery createMenu(int id, Inventory plInventory, Player player) {
+        // IMPORTANTE: El orden estándar en 1.20.1 es (windowId, inv, tile)
+        return new ContainerAltarDiscovery(id, plInventory, ta);
     }
 
-    private static ContainerAltarDiscovery createFromPacket(int id, PlayerInventory plInventory, PacketBuffer data) {
-        BlockPos at = ByteBufUtils.readPos(data);
-        PlayerEntity player = plInventory.player;
-        TileAltar ta = MiscUtils.getTileAt(player.getEntityWorld(), at, TileAltar.class, true);
-        return new ContainerAltarDiscovery(ta, plInventory, id);
+    private static ContainerAltarDiscovery createFromPacket(int id, Inventory plInventory, FriendlyByteBuf data) {
+        BlockPos at = data.readBlockPos();
+        Player player = plInventory.player;
+
+        // getEntityWorld() -> level()
+        TileAltar ta = MiscUtils.getTileAt(player.level(), at, TileAltar.class, true);
+
+        // Se mantiene la consistencia en el orden de los parámetros
+        return new ContainerAltarDiscovery(id, plInventory, ta);
     }
 
     public static class Factory implements IContainerFactory<ContainerAltarDiscovery> {
 
         @Override
-        public ContainerAltarDiscovery create(int windowId, PlayerInventory inv, PacketBuffer data) {
+        public ContainerAltarDiscovery create(int windowId, Inventory inv, FriendlyByteBuf data) {
             return ContainerAltarDiscoveryProvider.createFromPacket(windowId, inv, data);
         }
     }

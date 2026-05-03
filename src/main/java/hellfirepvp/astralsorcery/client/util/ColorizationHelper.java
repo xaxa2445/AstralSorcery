@@ -108,6 +108,19 @@ public class ColorizationHelper {
         return Optional.empty();
     }
 
+    public static PreparableReloadListener onReload() {
+        return (preparationBarrier, resourceManager, preparationsProfiler, reloadProfiler, backgroundExecutor, gameExecutor) ->
+                preparationBarrier.wait(Unit.INSTANCE).thenRunAsync(() -> {
+
+                    // En 1.20.1 ya NO hay filtro por tipo (TEXTURES, LANG, etc)
+                    // Si quieres filtrar, tienes que hacerlo manual o ignorarlo
+
+                    itemColors.clear();
+                    fluidColors.clear();
+
+                }, gameExecutor);
+    }
+
     @Nullable
     private static BufferedImage extractImage(TextureAtlasSprite tas) {
         // 1.20.1 usa tas.contents() para saber el tamaño

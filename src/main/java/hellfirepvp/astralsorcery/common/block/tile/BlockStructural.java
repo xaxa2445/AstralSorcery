@@ -13,35 +13,33 @@ import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.GuiType;
 import hellfirepvp.astralsorcery.common.event.EventFlags;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
-import net.minecraft.block.*;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.client.particle.ParticleManager;
-import net.minecraft.entity.Entity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootContext;
-import net.minecraft.state.EnumProperty;
-import net.minecraft.state.StateContainer;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.IStringSerializable;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.*;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.client.extensions.common.IClientBlockExtensions;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -52,193 +50,97 @@ import java.util.Locale;
  */
 public class BlockStructural extends Block {
 
-    public static EnumProperty<BlockType> BLOCK_TYPE = EnumProperty.create("blocktype", BlockType.class);
+    public static final EnumProperty<BlockType> BLOCK_TYPE = EnumProperty.create("blocktype", BlockType.class);
 
-    private static final VoxelShape STRUCT_TELESCOPE = VoxelShapes.create(1D / 16D, -16D / 16D, 1D / 16D, 15D / 16D, 16D / 16D, 15D / 16D);
+    private static final VoxelShape STRUCT_TELESCOPE = Shapes.box(1D / 16D, -16D / 16D, 1D / 16D, 15D / 16D, 16D / 16D, 15D / 16D);
 
     public BlockStructural() {
-        super(Block.Properties.create(Material.BARRIER, MaterialColor.AIR)
+        // En 1.20.1, Material ha desaparecido. Se usa mapColor y propiedades directas.
+        super(BlockBehaviour.Properties.of()
+                .mapColor(net.minecraft.world.level.material.MapColor.NONE)
+                .noCollission() // Reemplaza la lógica de barrera invisible
+                .noOcclusion()
                 .sound(SoundType.GLASS));
 
-        this.setDefaultState(this.getDefaultState().with(BLOCK_TYPE, BlockType.TELESCOPE));
+        this.registerDefaultState(this.stateDefinition.any().setValue(BLOCK_TYPE, BlockType.TELESCOPE));
     }
 
     @Override
-    public void fillItemGroup(ItemGroup group, NonNullList<ItemStack> items) {}
-
-    @Override
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        // fillStateContainer -> createBlockStateDefinition
         builder.add(BLOCK_TYPE);
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return STRUCT_TELESCOPE;
+    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
+        if (state.getValue(BLOCK_TYPE) == BlockType.TELESCOPE) {
+            return STRUCT_TELESCOPE;
         }
         return super.getShape(state, worldIn, pos, context);
     }
 
-    @Nullable
     @Override
-    public ToolType getHarvestTool(BlockState state) {
-        return state.get(BLOCK_TYPE).getSupportedState().getHarvestTool();
-    }
-
-    @Override
-    public int getHarvestLevel(BlockState state) {
-        return state.get(BLOCK_TYPE).getSupportedState().getHarvestLevel();
-    }
-
-    @Override
-    public SoundType getSoundType(BlockState state, IWorldReader world, BlockPos pos, @Nullable Entity entity) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return SoundType.WOOD;
-        }
-        return super.getSoundType(state, world, pos, entity);
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public boolean addDestroyEffects(BlockState state, World world, BlockPos pos, ParticleManager manager) {
-        EventFlags.PLAY_BLOCK_BREAK_EFFECTS.executeWithFlag(() -> {
-            switch (state.get(BLOCK_TYPE)) {
-                case TELESCOPE:
-                    manager.addBlockDestroyEffects(pos.down(), BlocksAS.TELESCOPE.getDefaultState());
-                    break;
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        // onBlockActivated -> use
+        if (state.getValue(BLOCK_TYPE) == BlockType.TELESCOPE) {
+            if (world.isClientSide()) {
+                AstralSorcery.getProxy().openGui(player, GuiType.TELESCOPE, pos.below());
             }
-        });
-        return true;
+            return InteractionResult.SUCCESS;
+        }
+        return super.use(state, world, pos, player, hand, hit);
     }
+
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public boolean addHitEffects(BlockState state, World world, RayTraceResult target, ParticleManager manager) {
-        if (target instanceof BlockRayTraceResult) {
-            EventFlags.PLAY_BLOCK_BREAK_EFFECTS.executeWithFlag(() -> {
-                switch (state.get(BLOCK_TYPE)) {
-                    case TELESCOPE:
-                        manager.addBlockDestroyEffects(((BlockRayTraceResult) target).getPos().down(), BlocksAS.TELESCOPE.getDefaultState());
-                        break;
-                }
-            });
-        }
-        return true;
-    }
-
-    @Override
-    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity entity, Hand hand, BlockRayTraceResult rayTraceResult) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                if (world.isRemote()) {
-                    AstralSorcery.getProxy().openGui(entity, GuiType.TELESCOPE, pos.down());
-                }
-                return ActionResultType.SUCCESS;
-        }
-        return super.onBlockActivated(state, world, pos, entity, hand, rayTraceResult);
-    }
-
-    @Override
-    public List<ItemStack> getDrops(BlockState state, LootContext.Builder builder) {
-        List<ItemStack> drops = Lists.newArrayList();
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return BlockType.TELESCOPE.getSupportedState().getDrops(builder);
-        }
-        return drops;
-    }
-
-    /*
-    TODO custom states via state container
-    private static float getBlockHardness(BlockState state, IBlockReader world, BlockPos pos) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return BlockType.TELESCOPE.getSupportedState().getBlockHardness(world, pos.down());
-        }
-        return super.getBlockHardness(state, world, pos);
-    }
-
-    private static boolean isOpaque(BlockState state, IBlockReader world, BlockPos pos) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return BlockType.TELESCOPE.getSupportedState().isNormalCube(world, pos.down());
-        }
-        return state.getMaterial().isOpaque() && state.hasOpaqueCollisionShape(world, pos);
-    }
-
-    @Override
-    public float getExplosionResistance(BlockState state, IWorldReader world, BlockPos pos, @Nullable Entity exploder, Explosion explosion) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return BlockType.TELESCOPE.getSupportedState().getExplosionResistance(world, pos.down(), exploder, explosion);
-        }
-        return super.getExplosionResistance(state, world, pos, exploder, explosion);
-    }*/
-
-    @Override
-    public ItemStack getPickBlock(BlockState state, RayTraceResult target, IBlockReader world, BlockPos pos, PlayerEntity player) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                return BlockType.TELESCOPE.getSupportedState().getPickBlock(target, world, pos.down(), player);
-        }
-        return super.getPickBlock(state, target, world, pos, player);
-    }
-
-    @Override
-    public void neighborChanged(BlockState state, World world, BlockPos pos, Block block, BlockPos fromPos, boolean isMoving) {
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                if (world.isAirBlock(pos.down())) {
-                    world.removeBlock(pos, isMoving);
-                }
-                return;
+    public void neighborChanged(BlockState state, Level world, BlockPos pos, Block block, BlockPos fromPos, boolean isMoving) {
+        if (state.getValue(BLOCK_TYPE) == BlockType.TELESCOPE) {
+            if (world.isEmptyBlock(pos.below())) {
+                world.removeBlock(pos, isMoving);
+            }
+            return;
         }
         super.neighborChanged(state, world, pos, block, fromPos, isMoving);
     }
 
     @Override
-    public void onNeighborChange(BlockState state, IWorldReader world, BlockPos pos, BlockPos neighbor) {
-        if (!(world instanceof IWorldWriter)) {
-            return;
-        }
-        switch (state.get(BLOCK_TYPE)) {
-            case TELESCOPE:
-                if (world.isAirBlock(pos.down())) {
-                    ((IWorldWriter) world).removeBlock(pos, false);
-                }
-        }
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.INVISIBLE;
+    }
+
+    /**
+     * Define el comportamiento visual y de partículas.
+     */
+
+    @Override
+    public void initializeClient(Consumer<IClientBlockExtensions> consumer) {
+        consumer.accept(new IClientBlockExtensions() {
+            // Aquí iría la lógica de addDestroyEffects y addHitEffects adaptada
+        });
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState p_149645_1_) {
-        return BlockRenderType.INVISIBLE;
+    public ItemStack getCloneItemStack(BlockState state, net.minecraft.world.phys.HitResult target, BlockGetter level, BlockPos pos, Player player) {
+        if (state.getValue(BLOCK_TYPE) == BlockType.TELESCOPE) {
+            return new ItemStack(BlocksAS.TELESCOPE);
+        }
+        return super.getCloneItemStack(state, target, level, pos, player);
     }
 
-    public static enum BlockType implements IStringSerializable {
+    public enum BlockType implements StringRepresentable {
+        DUMMY("dummy"),
+        TELESCOPE("telescope");
 
-        DUMMY(Blocks.AIR.getDefaultState()),
-        TELESCOPE(BlocksAS.TELESCOPE.getDefaultState());
+        private final String name;
 
-        private final BlockState supportedState;
-
-        private BlockType(BlockState supportedState) {
-            this.supportedState = supportedState;
-        }
-
-        public BlockState getSupportedState() {
-            return supportedState;
+        BlockType(String name) {
+            this.name = name;
         }
 
         @Override
-        public String getString() {
-            return name().toLowerCase(Locale.ROOT);
-        }
-
-        @Override
-        public String toString() {
-            return this.getString();
+        public String getSerializedName() {
+            // IStringSerializable -> StringRepresentable
+            return this.name;
         }
     }
 }

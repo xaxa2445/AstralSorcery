@@ -8,8 +8,9 @@
 
 package hellfirepvp.astralsorcery.client.event;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.lib.SpritesAS;
 import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
 import hellfirepvp.astralsorcery.client.util.RenderingGuiUtils;
@@ -19,15 +20,15 @@ import hellfirepvp.astralsorcery.common.item.base.AlignmentChargeConsumer;
 import hellfirepvp.astralsorcery.common.item.base.AlignmentChargeRevealer;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.client.MainWindow;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.entity.EquipmentSlot; // EquipmentSlotType -> EquipmentSlot
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.util.Tuple;
-import net.minecraft.world.GameType;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraft.world.level.GameType;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent; // RenderGameOverlayEvent -> RenderGuiOverlayEvent
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -60,33 +61,33 @@ public class AlignmentChargeRenderer implements ITickHandler {
         bus.addListener(EventPriority.HIGH, this::onRenderOverlay);
     }
 
-    private void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (event.getType() != RenderGameOverlayEvent.ElementType.ALL) {
+    private void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
+        if (event.getOverlay().id() != VanillaGuiOverlay.HOTBAR.id()) {
             return;
         }
-        if (Minecraft.getInstance().playerController != null &&
-                Minecraft.getInstance().playerController.getCurrentGameType() == GameType.SPECTATOR) {
+        if (Minecraft.getInstance().gameMode != null &&
+                Minecraft.getInstance().gameMode.getPlayerMode() == GameType.SPECTATOR) {
             return;
         }
         if (this.alphaReveal <= 0) {
             return;
         }
 
-        MatrixStack renderStack = event.getMatrixStack();
-        MainWindow window = event.getWindow();
-        int screenWidth = window.getScaledWidth();
-        int screenHeight = window.getScaledHeight();
+        GuiGraphics graphics = event.getGuiGraphics();
+        int screenWidth = graphics.guiWidth();
+        int screenHeight = graphics.guiHeight();
         int barWidth = 194;
         int offsetLeft = screenWidth / 2 - barWidth / 2;
         int offsetTop = screenHeight + 3 - 81; //*sigh* vanilla
 
-        PlayerEntity player = Minecraft.getInstance().player;
+        Player
+                player = Minecraft.getInstance().player;
         float percFilled = AlignmentChargeHandler.INSTANCE.getFilledPercentage(player, LogicalSide.CLIENT);
 
         boolean hasEnoughCharge = true;
         float usagePerc = 0F;
-        for (EquipmentSlotType type : EquipmentSlotType.values()) {
-            ItemStack equipped = player.getItemStackFromSlot(type);
+        for (EquipmentSlot type : EquipmentSlot.values()) {
+            ItemStack equipped = player.getItemBySlot(type);
             if (!equipped.isEmpty() && equipped.getItem() instanceof AlignmentChargeConsumer) {
                 float chargeRequired = ((AlignmentChargeConsumer) equipped.getItem()).getAlignmentChargeCost(player, equipped);
                 float max = AlignmentChargeHandler.INSTANCE.getMaximumCharge(player, LogicalSide.CLIENT);
@@ -97,48 +98,49 @@ public class AlignmentChargeRenderer implements ITickHandler {
             }
         }
 
-        Tuple<Float, Float> uvColored = SpritesAS.SPR_OVERLAY_CHARGE.getUVOffset();
-        Tuple<Float, Float> uvColorless = SpritesAS.SPR_OVERLAY_CHARGE.getUVOffset();
+        float uColored = SpritesAS.SPR_OVERLAY_CHARGE.getUOffset();
+        float vColored = SpritesAS.SPR_OVERLAY_CHARGE.getVOffset();
+        float uColorless = SpritesAS.SPR_OVERLAY_CHARGE_COLORLESS.getUOffset();
+        float vColorless = SpritesAS.SPR_OVERLAY_CHARGE_COLORLESS.getVOffset();
         float width = barWidth * percFilled;
         float usageWidth = barWidth * usagePerc;
-        float uLengthCharge = SpritesAS.SPR_OVERLAY_CHARGE.getULength() * percFilled;
-        float uLengthUsage = SpritesAS.SPR_OVERLAY_CHARGE_COLORLESS.getULength() * usagePerc;
+        float uLengthCharge = SpritesAS.SPR_OVERLAY_CHARGE.getUWidth() * percFilled;
+        float uLengthUsage = SpritesAS.SPR_OVERLAY_CHARGE_COLORLESS.getUWidth() * usagePerc;
         Color usageColor = hasEnoughCharge ? ColorsAS.OVERLAY_CHARGE_USAGE : ColorsAS.OVERLAY_CHARGE_MISSING;
 
         RenderSystem.enableBlend();
-        RenderSystem.disableAlphaTest();
+        RenderSystem.defaultBlendFunc();
 
         SpritesAS.SPR_OVERLAY_CHARGE.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, renderStack, offsetLeft, offsetTop, 10, width, 54)
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            RenderingGuiUtils.rect(buf, graphics, offsetLeft, offsetTop, 10, width, 54)
                     .color(1F, 1F, 1F, this.alphaReveal)
-                    .tex(uvColored.getA(), uvColored.getB() + 0.002F, uLengthCharge, SpritesAS.SPR_OVERLAY_CHARGE.getVWidth() - 0.002F)
+                    .tex(uColored, vColored + 0.002F, uLengthCharge, SpritesAS.SPR_OVERLAY_CHARGE.getVWidth() - 0.002F)
                     .draw();
         });
 
         SpritesAS.SPR_OVERLAY_CHARGE_COLORLESS.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, renderStack, offsetLeft + width, offsetTop, 10, usageWidth, 54)
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            RenderingGuiUtils.rect(buf, graphics, offsetLeft + width, offsetTop, 10, usageWidth, 54)
                     .color(usageColor.getRed(), usageColor.getGreen(), usageColor.getBlue(), (int) (this.alphaReveal * 255F))
-                    .tex(uvColorless.getA() + uLengthCharge, uvColorless.getB() + 0.002F, uLengthUsage, SpritesAS.SPR_OVERLAY_CHARGE_COLORLESS.getVWidth() - 0.002F)
+                    .tex(uColorless + uLengthCharge, vColorless + 0.002F, uLengthUsage, SpritesAS.SPR_OVERLAY_CHARGE_COLORLESS.getVWidth() - 0.002F)
                     .draw();
         });
 
-        RenderSystem.enableAlphaTest();
         RenderSystem.disableBlend();
         BlockAtlasTexture.getInstance().bindTexture();
     }
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = Minecraft.getInstance().player;
+        Player player = Minecraft.getInstance().player;
         if (player != null) {
             if (AlignmentChargeHandler.INSTANCE.getFilledPercentage(player, LogicalSide.CLIENT) <= 0.95F) {
                 revealCharge(20);
             }
 
-            for (EquipmentSlotType slot : EquipmentSlotType.values()) {
-                ItemStack stack = player.getItemStackFromSlot(slot);
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                ItemStack stack = player.getItemBySlot(slot);
                 if (!stack.isEmpty() && stack.getItem() instanceof AlignmentChargeRevealer &&
                         ((AlignmentChargeRevealer) stack.getItem()).shouldReveal(stack)) {
                     revealCharge(20);

@@ -40,7 +40,29 @@ public class PatreonManagerClient implements ITickHandler {
     private PatreonManagerClient() {}
 
     @Override
+    public EnumSet<TickEvent.Type> getHandledTypes() {
+        // Declaramos que este handler solo debe ser llamado durante el CLIENT tick
+        return EnumSet.of(TickEvent.Type.CLIENT);
+    }
+
+    @Override
+    public boolean canFire(TickEvent.Phase phase) {
+        // Solo ejecutamos la lógica al final del tick para asegurar
+        // que las posiciones de los jugadores ya se hayan actualizado.
+        return phase == TickEvent.Phase.END;
+    }
+
+    @Override
+    public String getName() {
+        return "PatreonManagerClient";
+    }
+
+    @Override
     public void tick(TickEvent.Type type, Object... context) {
+
+        if (type != TickEvent.Type.CLIENT) {
+            return;
+        }
         // .world -> .level
         Level clWorld = Minecraft.getInstance().level;
         // PlayerEntity -> Player

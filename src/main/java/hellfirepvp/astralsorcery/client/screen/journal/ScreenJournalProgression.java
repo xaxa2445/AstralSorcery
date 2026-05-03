@@ -9,8 +9,11 @@
 package hellfirepvp.astralsorcery.client.screen.journal;
 
 import com.google.common.collect.Maps;
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.screen.journal.progression.ScreenJournalProgressionRenderer;
@@ -25,12 +28,11 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
 import hellfirepvp.astralsorcery.common.lib.SoundsAS;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.IReorderingProcessor;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.Mth;
 import org.lwjgl.opengl.GL11;
 
 import java.awt.*;
@@ -45,6 +47,11 @@ import java.util.List;
  * Date: 03.08.2019 / 16:48
  */
 public class ScreenJournalProgression extends ScreenJournal {
+
+    protected int leftPos;
+    protected int topPos;
+    protected int imageWidth = 256; // Ancho estándar de la textura del libro de Astral
+    protected int imageHeight = 256; // Alto estándar
 
     private static ScreenJournalProgression currentInstance = null;
     private boolean expectReinit = false;
@@ -66,7 +73,7 @@ public class ScreenJournalProgression extends ScreenJournal {
     private static ScreenJournalProgressionRenderer progressionRenderer;
 
     private ScreenJournalProgression() {
-        super(new TranslationTextComponent("screen.astralsorcery.tome.progression"), 10);
+        super(Component.translatable("screen.astralsorcery.tome.progression"), 10);
 
         this.searchTextEntry.setChangeCallback(this::onSearchTextInput);
     }
@@ -109,6 +116,9 @@ public class ScreenJournalProgression extends ScreenJournal {
     protected void init() {
         super.init();
 
+        this.leftPos = (this.width - this.imageWidth) / 2;
+        this.topPos = (this.height - this.imageHeight) / 2;
+
         if (expectReinit) {
             expectReinit = false;
             return; //We ASSUME, that the state is valid.
@@ -139,8 +149,8 @@ public class ScreenJournalProgression extends ScreenJournal {
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
-        super.render(renderStack, mouseX, mouseY, pTicks);
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float pTicks) {
+        super.render(graphics, mouseX, mouseY, pTicks);
 
         this.searchPrevRct = null;
         this.searchNextRct = null;
@@ -149,98 +159,119 @@ public class ScreenJournalProgression extends ScreenJournal {
         if (this.inProgressView()) {
             this.searchPageOffset = 0; //Reset page offset
 
-            this.renderProgressView(renderStack, mouseX, mouseY, pTicks);
+            this.renderProgressView(graphics, mouseX, mouseY, pTicks);
         } else {
-            this.renderSearchView(renderStack, mouseX, mouseY, pTicks);
+            this.renderSearchView(graphics, mouseX, mouseY, pTicks);
         }
     }
 
-    private void renderSearchView(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
-        this.drawDefault(renderStack, TexturesAS.TEX_GUI_BOOK_BLANK, mouseX, mouseY);
+    private void renderSearchView(GuiGraphics guiGraphics, int mouseX, int mouseY, float pTicks) {
+        // 1. Dibujar el fondo del libro (Blanco/Blank)
+        // drawDefault ahora debe recibir GuiGraphics
+        this.drawDefault(guiGraphics, TexturesAS.TEX_GUI_BOOK_BLANK, mouseX, mouseY);
 
-        this.setBlitOffset(300);
-        this.drawSearchResults(renderStack, mouseX, mouseY, pTicks);
-        this.drawSearchBox(renderStack);
 
-        this.setBlitOffset(170);
-        this.drawSearchPageNavArrows(renderStack, mouseX, mouseY, pTicks);
-        this.setBlitOffset(0);
+        // 2. Gestionar el BlitOffset (Z-Level)
+        // En 1.20.1, en lugar de setBlitOffset(300), movemos la matriz de pose en el eje Z
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, 300);
+
+        this.drawSearchResults(guiGraphics, mouseX, mouseY, pTicks);
+        this.drawSearchBox(guiGraphics);
+
+        guiGraphics.pose().popPose();
+
+        // 3. Dibujar flechas de navegación con un offset diferente
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, 170);
+
+        this.drawSearchPageNavArrows(guiGraphics, mouseX, mouseY, pTicks);
+
+        guiGraphics.pose().popPose();
     }
 
-    private void renderProgressView(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
-        double guiFactor = Minecraft.getInstance().getMainWindow().getGuiScaleFactor();
+    private void renderProgressView(GuiGraphics guiGraphics, int mouseX, int mouseY, float pTicks) {
+        Window window = Minecraft.getInstance().getWindow();
+        double guiFactor = window.getGuiScale();
+
+        // El Scissor se mantiene similar pero con la nueva API de Window
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(MathHelper.floor((guiLeft + 27) * guiFactor), MathHelper.floor((guiTop + 27) * guiFactor),
-                MathHelper.floor((guiWidth - 54) * guiFactor), MathHelper.floor((guiHeight - 54) * guiFactor));
-        progressionRenderer.drawProgressionPart(renderStack, this.getGuiZLevel(), mouseX, mouseY);
+        GL11.glScissor(
+                (int) ((leftPos + 27) * guiFactor),
+                (int) (window.getHeight() - (topPos + height - 27) * guiFactor), // OpenGL mide de abajo hacia arriba
+                (int) ((imageWidth - 54) * guiFactor),
+                (int) ((imageHeight - 54) * guiFactor)
+        );
+
+        progressionRenderer.drawProgressionPart(guiGraphics, (float) this.getGuiZLevel(), mouseX, mouseY);
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
 
+        // Frame del libro
         RenderSystem.disableDepthTest();
-        drawDefault(renderStack, TexturesAS.TEX_GUI_BOOK_FRAME_FULL, mouseX, mouseY);
+        this.drawDefault(guiGraphics, TexturesAS.TEX_GUI_BOOK_FRAME_FULL, mouseX, mouseY);
         RenderSystem.enableDepthTest();
 
-        this.setBlitOffset(300);
-        this.drawSearchBox(renderStack);
-
-        this.setBlitOffset(150);
-        drawMouseHighlight(renderStack, this.getGuiZLevel(), mouseX, mouseY);
-        this.setBlitOffset(0);
+        this.drawSearchBox(guiGraphics);
+        progressionRenderer.drawMouseHighlight(guiGraphics, (float) this.getGuiZLevel(), mouseX, mouseY);
     }
 
-    private void drawSearchResults(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
-        FontRenderer fr = Minecraft.getInstance().fontRenderer;
+    private void drawSearchResults(GuiGraphics guiGraphics, int mouseX, int mouseY, float pTicks) {
+        Font font = Minecraft.getInstance().font;
         int lineHeight = 12;
-        int offsetX = this.getGuiLeft() + 35;
-        int offsetY = this.getGuiTop() + 26;
 
+        // 1.20.1 usa leftPos y topPos
+        int offsetX = this.leftPos + 35;
+        int offsetY = this.topPos + 26;
+
+        // Lógica de color dinámica (brillo intermitente)
         double effectPart = (Math.sin(Math.toRadians(((ClientScheduler.getClientTick()) * 5D) % 360D)) + 1D) / 2D;
         int alpha = Math.round((0.45F + 0.1F * ((float) effectPart)) * 255F);
         int grayScale = Math.round((0.7F + 0.2F * ((float) effectPart)) * 255F);
-        Color boxColor = new Color(grayScale, grayScale, grayScale, alpha);
+        // Color en formato ARGB para 1.20.1
+        int boxColor = (alpha << 24) | (grayScale << 16) | (grayScale << 8) | grayScale;
 
+        // --- PÁGINA IZQUIERDA ---
         List<ResearchNode> entries = this.searchResultPageIndex.getOrDefault(this.searchPageOffset, new ArrayList<>());
         for (ResearchNode node : entries) {
             int startOffsetY = offsetY;
-
-            List<IReorderingProcessor> nodeTitle = fr.trimStringToWidth(node.getName(), searchEntryDrawWidth);
+            // En 1.20.1 usamos split para el texto envuelto
+            List<FormattedCharSequence> nodeTitle = font.split(node.getName(), searchEntryDrawWidth);
             float maxLength = 0;
 
-            for (IReorderingProcessor line : nodeTitle) {
-                renderStack.push();
-                renderStack.translate(offsetX, offsetY, this.getGuiZLevel());
-                float length = RenderingDrawUtils.renderStringAt(line, renderStack, fr, 0x00D0D0D0, false);
-                renderStack.pop();
+            for (FormattedCharSequence line : nodeTitle) {
+                // Dibujamos directamente usando guiGraphics
+                guiGraphics.drawString(font, line, offsetX, offsetY, 0x00D0D0D0, false);
 
+                float length = font.width(line);
                 if (length > maxLength) {
                     maxLength = length;
                 }
                 offsetY += lineHeight;
             }
 
+            // Detección de Hover y dibujado del cuadro de selección
             if (this.searchHoverNode == null) {
-                Rectangle rctDrawn = new Rectangle(offsetX - 2, startOffsetY - 2, (int) (maxLength + 4), offsetY - startOffsetY);
-                if (rctDrawn.contains(mouseX, mouseY)) {
-                    fill(renderStack, rctDrawn.x, rctDrawn.y, rctDrawn.x + rctDrawn.width, rctDrawn.y + rctDrawn.height, boxColor.getRGB());
+                if (mouseX >= offsetX - 2 && mouseX <= offsetX + maxLength + 2 &&
+                        mouseY >= startOffsetY - 2 && mouseY <= offsetY - 2) {
+
+                    guiGraphics.fill(offsetX - 2, startOffsetY - 2, (int) (offsetX + maxLength + 4), offsetY - 2, boxColor);
                     this.searchHoverNode = node;
                 }
             }
         }
 
-        offsetX = this.getGuiLeft() + 225;
-        offsetY = this.getGuiTop() + 39;
+        // --- PÁGINA DERECHA ---
+        offsetX = this.leftPos + 225;
+        offsetY = this.topPos + 39;
         entries = this.searchResultPageIndex.getOrDefault(this.searchPageOffset + 1, new ArrayList<>());
         for (ResearchNode node : entries) {
             int startOffsetY = offsetY;
-
-            List<IReorderingProcessor> nodeTitle = fr.trimStringToWidth(node.getName(), searchEntryDrawWidth);
+            List<FormattedCharSequence> nodeTitle = font.split(node.getName(), searchEntryDrawWidth);
             float maxLength = 0;
 
-            for (IReorderingProcessor line : nodeTitle) {
-                renderStack.push();
-                renderStack.translate(offsetX, offsetY, this.getGuiZLevel());
-                float length = RenderingDrawUtils.renderStringAt(line, renderStack, fr, 0x00D0D0D0, false);
-                renderStack.pop();
-
+            for (FormattedCharSequence line : nodeTitle) {
+                guiGraphics.drawString(font, line, offsetX, offsetY, 0x00D0D0D0, false);
+                float length = font.width(line);
                 if (length > maxLength) {
                     maxLength = length;
                 }
@@ -248,35 +279,36 @@ public class ScreenJournalProgression extends ScreenJournal {
             }
 
             if (this.searchHoverNode == null) {
-                Rectangle rctDrawn = new Rectangle(offsetX - 2, startOffsetY - 2,  (int) (maxLength + 4), offsetY - startOffsetY);
-                if (rctDrawn.contains(mouseX, mouseY)) {
-                    fill(renderStack, rctDrawn.x, rctDrawn.y, rctDrawn.x + rctDrawn.width, rctDrawn.y + rctDrawn.height, boxColor.getRGB());
+                if (mouseX >= offsetX - 2 && mouseX <= offsetX + maxLength + 2 &&
+                        mouseY >= startOffsetY - 2 && mouseY <= offsetY - 2) {
+
+                    guiGraphics.fill(offsetX - 2, startOffsetY - 2, (int) (offsetX + maxLength + 4), offsetY - 2, boxColor);
                     this.searchHoverNode = node;
                 }
             }
         }
     }
 
-    private void drawMouseHighlight(MatrixStack renderStack, float zLevel, int mouseX, int mouseY) {
+    private void drawMouseHighlight(GuiGraphics renderStack, float zLevel, int mouseX, int mouseY) {
         progressionRenderer.drawMouseHighlight(renderStack, zLevel, mouseX, mouseY);
     }
 
-    private void drawSearchBox(MatrixStack renderStack) {
+    private void drawSearchBox(GuiGraphics graphics) {
         TexturesAS.TEX_GUI_TEXT_FIELD.bindTexture();
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, renderStack, guiLeft + 300, guiTop + 16, this.getGuiZLevel(), 88.5F, 15).draw();
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            RenderingGuiUtils.rect(buf, graphics, guiLeft + 300, guiTop + 16, this.getGuiZLevel(), 88.5F, 15).draw();
         });
         RenderSystem.disableBlend();
 
         String text = this.searchTextEntry.getText();
 
-        int length = font.getStringWidth(text);
+        int length = font.width(text);
         boolean addDots = length > 75;
         while (length > 75) {
             text = text.substring(1);
-            length = font.getStringWidth("..." + text);
+            length = font.width("..." + text);
         }
         if (addDots) {
             text = "..." + text;
@@ -286,38 +318,39 @@ public class ScreenJournalProgression extends ScreenJournal {
             text += "_";
         }
 
-        renderStack.push();
-        renderStack.translate(guiLeft + 304, guiTop + 20, this.getGuiZLevel());
-        RenderingDrawUtils.renderStringAt(font, renderStack, new StringTextComponent(text), 0xCCCCCC);
-        renderStack.pop();
+
+        graphics.pose().pushPose();
+        graphics.pose().translate(guiLeft + 304, guiTop + 20, this.getGuiZLevel());
+        RenderingDrawUtils.renderStringAt(font, graphics, Component.literal(text), 0xCCCCCC);
+        graphics.pose().popPose();
     }
 
-    private void drawSearchPageNavArrows(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
+    private void drawSearchPageNavArrows(GuiGraphics renderStack, int mouseX, int mouseY, float pTicks) {
         if (this.searchPageOffset > 0) {
             int width = 30;
             int height = 15;
             this.searchPrevRct = new Rectangle(guiLeft + 25, guiTop + 220, width, height);
-            renderStack.push();
-            renderStack.translate(this.searchPrevRct.getX() + (width / 2F), this.searchPrevRct.getY() + (height / 2F), this.getGuiZLevel());
+            renderStack.pose().pushPose();
+            renderStack.pose().translate(this.searchPrevRct.getX() + (width / 2F), this.searchPrevRct.getY() + (height / 2F), this.getGuiZLevel());
             float uFrom, vFrom = 0.5F;
             if (this.searchPrevRct.contains(mouseX, mouseY)) {
                 uFrom = 0.5F;
-                renderStack.scale(1.1F, 1.1F, 1F);
+                renderStack.pose().scale(1.1F, 1.1F, 1F);
             } else {
                 uFrom = 0F;
                 double t = ClientScheduler.getClientTick() + pTicks;
                 float sin = ((float) Math.sin(t / 4F)) / 32F + 1F;
-                renderStack.scale(sin, sin, 1F);
+                renderStack.pose().scale(sin, sin, 1F);
             }
-            renderStack.translate(-(width / 2F), -(height / 2F), 0);
+            renderStack.pose().translate(-(width / 2F), -(height / 2F), 0);
             TexturesAS.TEX_GUI_BOOK_ARROWS.bindTexture();
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
                 RenderingGuiUtils.rect(buf, renderStack, 0, 0, 0, width, height)
                         .tex(uFrom, vFrom, 0.5F, 0.5F)
                         .color(1F, 1F, 1F, 0.8F)
                         .draw();
             });
-            renderStack.pop();
+            renderStack.pose().popPose();
         }
 
         int nextDoublePageIndex = (this.searchPageOffset * 2) + 2;
@@ -325,27 +358,27 @@ public class ScreenJournalProgression extends ScreenJournal {
             int width = 30;
             int height = 15;
             this.searchNextRct = new Rectangle(guiLeft + 367, guiTop + 220, width, height);
-            renderStack.push();
-            renderStack.translate(this.searchNextRct.getX() + (width / 2F), this.searchNextRct.getY() + (height / 2F), this.getGuiZLevel());
+            renderStack.pose().pushPose();
+            renderStack.pose().translate(this.searchNextRct.getX() + (width / 2F), this.searchNextRct.getY() + (height / 2F), this.getGuiZLevel());
             float uFrom, vFrom = 0F;
             if (this.searchNextRct.contains(mouseX, mouseY)) {
                 uFrom = 0.5F;
-                renderStack.scale(1.1F, 1.1F, 1F);
+                renderStack.pose().scale(1.1F, 1.1F, 1F);
             } else {
                 uFrom = 0F;
                 double t = ClientScheduler.getClientTick() + pTicks;
                 float sin = ((float) Math.sin(t / 4F)) / 32F + 1F;
-                renderStack.scale(sin, sin, 1F);
+                renderStack.pose().scale(sin, sin, 1F);
             }
-            renderStack.translate(-(width / 2F), -(height / 2F), 0);
+            renderStack.pose().translate(-(width / 2F), -(height / 2F), 0);
             TexturesAS.TEX_GUI_BOOK_ARROWS.bindTexture();
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
                 RenderingGuiUtils.rect(buf, renderStack, 0, 0, 0, width, height)
                         .tex(uFrom, vFrom, 0.5F, 0.5F)
                         .color(1F, 1F, 1F, 0.8F)
                         .draw();
             });
-            renderStack.pop();
+            renderStack.pose().popPose();
         }
     }
 
@@ -374,7 +407,7 @@ public class ScreenJournalProgression extends ScreenJournal {
 
         this.searchResult.sort(Comparator.comparing(node -> node.getName().getString()));
 
-        FontRenderer fr = Minecraft.getInstance().fontRenderer;
+        Font fr = Minecraft.getInstance().font;
         int addedPages = 0;
         int pageIndex = 0;
         while (addedPages < this.searchResult.size()) {
@@ -382,7 +415,7 @@ public class ScreenJournalProgression extends ScreenJournal {
             int remainingLines = (pageIndex % 2 == 0 ? searchEntriesLeft : searchEntriesRight) - page.size();
 
             ResearchNode toAddNode = this.searchResult.get(addedPages);
-            int lines = fr.trimStringToWidth(toAddNode.getName(), searchEntryDrawWidth).size();
+            int lines = fr.split(toAddNode.getName(), searchEntryDrawWidth).size();
 
             if (remainingLines < lines) {
                 pageIndex++; //Add this node to the next page.
@@ -449,18 +482,18 @@ public class ScreenJournalProgression extends ScreenJournal {
         } else {
             if (this.searchPrevRct != null && this.searchPrevRct.contains(mouseX, mouseY)) {
                 this.searchPageOffset -= 1;
-                SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE, 1F, 1F);
+                SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE.getSoundEvent(), 1F, 1F);
                 return true;
             }
             if (this.searchNextRct != null && this.searchNextRct.contains(mouseX, mouseY)) {
                 this.searchPageOffset += 1;
-                SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE, 1F, 1F);
+                SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE.getSoundEvent(), 1F, 1F);
                 return true;
             }
             if (this.searchHoverNode != null) {
                 this.searchTextEntry.setText("");
-                Minecraft.getInstance().displayGuiScreen(new ScreenJournalPages(this, this.searchHoverNode));
-                SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE, 1F, 1F);
+                Minecraft.getInstance().setScreen(new ScreenJournalPages(this, this.searchHoverNode));
+                SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE.getSoundEvent(), 1F, 1F);
                 return true;
             }
         }
@@ -482,7 +515,7 @@ public class ScreenJournalProgression extends ScreenJournal {
 
     @Override
     public boolean charTyped(char charCode, int keyModifiers) {
-        if (this.searchTextEntry.charTyped(charCode)) {
+        if (this.searchTextEntry.charTyped(charCode, keyModifiers)) {
             return true;
         }
         return super.charTyped(charCode, keyModifiers);

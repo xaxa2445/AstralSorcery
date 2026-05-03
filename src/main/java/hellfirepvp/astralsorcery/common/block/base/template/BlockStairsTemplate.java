@@ -9,9 +9,8 @@
 package hellfirepvp.astralsorcery.common.block.base.template;
 
 import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.StairsBlock;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 
@@ -22,23 +21,12 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 21.07.2019 / 10:34
  */
-public class BlockStairsTemplate extends StairsBlock implements CustomItemBlock {
+public class BlockStairsTemplate extends StairBlock implements CustomItemBlock {
 
     private final BlockState baseState;
 
     public BlockStairsTemplate(BlockState baseState, Properties properties) {
         super(baseState, properties);
         this.baseState = baseState;
-    }
-
-    @Nullable
-    @Override
-    public ToolType getHarvestTool(BlockState tool) {
-        return this.baseState.getHarvestTool();
-    }
-
-    @Override
-    public int getHarvestLevel(BlockState state) {
-        return this.baseState.getHarvestLevel();
     }
 }

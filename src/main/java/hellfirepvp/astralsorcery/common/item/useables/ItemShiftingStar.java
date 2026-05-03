@@ -53,8 +53,7 @@ public class ItemShiftingStar extends Item implements PerkExperienceRevealer {
 
     public ItemShiftingStar() {
         super(new Properties()
-                .stacksTo(1)
-                .tab(CommonProxy.ITEM_GROUP_AS));
+                .stacksTo(1));
     }
 
     protected final RandomSource random = RandomSource.create();

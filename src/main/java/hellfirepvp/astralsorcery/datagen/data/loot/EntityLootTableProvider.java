@@ -9,11 +9,14 @@
 package hellfirepvp.astralsorcery.datagen.data.loot;
 
 import hellfirepvp.astralsorcery.common.base.Mods;
-import net.minecraft.data.loot.EntityLootTables;
-import net.minecraft.entity.EntityType;
+import net.minecraft.data.loot.EntityLootSubProvider;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.flag.FeatureFlags;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -22,17 +25,21 @@ import java.util.stream.Collectors;
  * Created by HellFirePvP
  * Date: 07.03.2020 / 07:51
  */
-public class EntityLootTableProvider extends EntityLootTables {
+public class EntityLootTableProvider extends EntityLootSubProvider {
 
-    @Override
-    protected void addTables() {
-
+    public EntityLootTableProvider() {
+        super(FeatureFlags.DEFAULT_FLAGS, FeatureFlags.DEFAULT_FLAGS);
     }
 
     @Override
-    protected Iterable<EntityType<?>> getKnownEntities() {
-        return ForgeRegistries.ENTITIES.getValues().stream()
-                .filter(Mods.ASTRAL_SORCERY::owns)
-                .collect(Collectors.toList());
+    public void generate() {
+        // Aquí defines drops si quieres
+        // add(EntityTypesAS.X.get(), LootTable.lootTable()...)
+    }
+
+    @Override
+    protected Stream<EntityType<?>> getKnownEntityTypes() {
+        return ForgeRegistries.ENTITY_TYPES.getValues().stream()
+                .filter(type -> Mods.ASTRAL_SORCERY.owns(ForgeRegistries.ENTITY_TYPES.getKey(type)));
     }
 }

@@ -15,19 +15,19 @@ import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.TileObservatory;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraftforge.network.NetworkHooks;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -41,38 +41,39 @@ import java.util.UUID;
  */
 public class EntityObservatoryHelper extends Entity {
 
-    private static final DataParameter<BlockPos> FIXED = EntityDataManager.createKey(EntityObservatoryHelper.class, DataSerializers.BLOCK_POS);
+    // En 1.20.1, EntityDataManager ahora es SynchedEntityData y createKey es defineId
+    private static final EntityDataAccessor<BlockPos> FIXED = SynchedEntityData.defineId(EntityObservatoryHelper.class, EntityDataSerializers.BLOCK_POS);
 
-    public EntityObservatoryHelper(World worldIn) {
-        super(EntityTypesAS.OBSERVATORY_HELPER, worldIn);
+    public EntityObservatoryHelper(EntityType<?> type, Level world) {
+        super(type, world);
     }
 
-    public static EntityType.IFactory<EntityObservatoryHelper> factory() {
-        return (spawnEntity, world) -> new EntityObservatoryHelper(world);
+    public EntityObservatoryHelper(Level world) {
+        super(EntityTypesAS.OBSERVATORY_HELPER.get(), world);
     }
 
     @Override
-    protected void registerData() {
-        this.dataManager.register(FIXED, BlockPos.ZERO);
+    protected void defineSynchedData() { // Antes registerData
+        this.entityData.define(FIXED, BlockPos.ZERO);
     }
 
     public void setFixedObservatoryPos(BlockPos pos) {
-        this.dataManager.set(FIXED, pos);
+        this.entityData.set(FIXED, pos);
     }
 
     public BlockPos getFixedObservatoryPos() {
-        return this.dataManager.get(FIXED);
+        return this.entityData.get(FIXED);
     }
 
     @Nullable
     public TileObservatory getAssociatedObservatory() {
         BlockPos at = this.getFixedObservatoryPos();
-        TileObservatory observatory = MiscUtils.getTileAt(this.world, at, TileObservatory.class, true);
+        TileObservatory observatory = MiscUtils.getTileAt(this.level(), at, TileObservatory.class, true);
         if (observatory == null) {
             return null;
         }
         UUID helperRef = observatory.getEntityHelperRef();
-        if (helperRef == null || !helperRef.equals(this.getUniqueID())) {
+        if (helperRef == null || !helperRef.equals(this.getUUID())) {
             return null;
         }
         return observatory;
@@ -82,42 +83,41 @@ public class EntityObservatoryHelper extends Entity {
     public void tick() {
         super.tick();
 
-        this.noClip = true;
+        this.noPhysics = true; // noClip ahora suele manejarse con noPhysics o setNoGravity
 
-        TileObservatory observatory;
-        if ((observatory = this.getAssociatedObservatory()) == null) {
-            if (!this.world.isRemote()) {
-                this.remove();
+        TileObservatory observatory = this.getAssociatedObservatory();
+        if (observatory == null) {
+            if (!this.level().isClientSide()) {
+                this.discard(); // remove() ahora es discard() en 1.20.1
             }
             return;
         }
 
         Entity riding = Iterables.getFirst(this.getPassengers(), null);
-        if (riding instanceof PlayerEntity) {
-            this.applyObservatoryRotationsFrom(observatory, (PlayerEntity) riding, true);
+        if (riding instanceof Player player) { // PlayerEntity ahora es Player
+            this.applyObservatoryRotationsFrom(observatory, player, true);
         } else {
-            this.prevRotationYaw = this.rotationYaw;
-            this.prevRotationPitch = this.rotationPitch;
+            this.yRotO = this.getYRot(); // prevRotationYaw -> yRotO, rotationYaw -> getYRot()
+            this.xRotO = this.getXRot(); // prevRotationPitch -> xRotO, rotationPitch -> getXRot()
         }
+
         if (!observatory.isUsable()) {
-            this.removePassengers();
+            this.ejectPassengers(); // removePassengers -> ejectPassengers
         }
     }
 
-    public void applyObservatoryRotationsFrom(TileObservatory to, PlayerEntity riding, boolean updateTile) {
-        if (riding.openContainer instanceof ContainerObservatory) {
-            //Adjust observatory pitch and jaw to player head
-            this.rotationYaw = riding.rotationYawHead;
-            this.prevRotationYaw = riding.prevRotationYawHead;
-            this.rotationPitch = riding.rotationPitch;
-            this.prevRotationPitch = riding.prevRotationPitch;
+    public void applyObservatoryRotationsFrom(TileObservatory to, Player riding, boolean updateTile) {
+        if (riding.containerMenu instanceof ContainerObservatory) { // openContainer -> containerMenu
+            this.setYRot(riding.getYHeadRot());
+            this.yRotO = riding.yHeadRotO;
+            this.setXRot(riding.getXRot());
+            this.xRotO = riding.xRotO;
         } else  {
-            //Adjust observatory to player-body
-            this.rotationYaw = riding.renderYawOffset;
-            this.prevRotationYaw = riding.prevRenderYawOffset;
+            this.setYRot(riding.yBodyRot);
+            this.yRotO = riding.yBodyRotO;
         }
 
-        to.updatePitchYaw(this.rotationPitch, this.prevRotationPitch, this.rotationYaw, this.prevRotationYaw);
+        to.updatePitchYaw(this.getXRot(), this.xRotO, this.getYRot(), this.yRotO);
         if (updateTile) {
             to.markForUpdate();
         }
@@ -127,67 +127,40 @@ public class EntityObservatoryHelper extends Entity {
         double yawRad = -Math.toRadians(to.observatoryYaw);
         double xComp = 0.5F + Math.sin(yawRad) * xOffset - Math.cos(yawRad) * zOffset;
         double zComp = 0.5F + Math.cos(yawRad) * xOffset + Math.sin(yawRad) * zOffset;
-        Vector3 pos = new Vector3(to.getPos()).add(xComp, 0.4F, zComp);
-        this.forceSetPosition(pos.getX(), pos.getY(), pos.getZ());
+
+        Vector3 vecPos = new Vector3(to.getBlockPos()).add(xComp, 0.4F, zComp);
+        this.setPos(vecPos.getX(), vecPos.getY(), vecPos.getZ()); // forceSetPosition -> setPos
     }
 
     @Override
-    protected boolean canBeRidden(Entity entityIn) {
-        if (!super.canBeRidden(entityIn)) {
-            return false;
-        }
+    protected boolean canRide(Entity entityIn) { // canBeRidden -> canRide
         TileObservatory observatory = this.getAssociatedObservatory();
-        return observatory != null && observatory.isUsable();
+        return super.canRide(entityIn) && observatory != null && observatory.isUsable();
     }
 
     @Override
-    public boolean isSilent() {
-        return true;
-    }
+    public boolean isSilent() { return true; }
 
     @Override
-    public boolean isBurning() {
-        return false;
-    }
+    public boolean isOnFire() { return false; } // isBurning -> isOnFire
 
     @Override
-    public boolean isGlowing() {
-        return false;
-    }
+    public boolean isCurrentlyGlowing() { return false; } // isGlowing -> isCurrentlyGlowing
 
     @Override
-    public boolean isPushedByWater() {
-        return false;
-    }
+    public boolean isPushedByFluid() { return false; } // isPushedByWater -> isPushedByFluid
 
     @Override
-    public boolean isImmuneToExplosions() {
-        return true;
-    }
+    public boolean ignoreExplosion() { return true; } // isImmuneToExplosions -> ignoreExplosion
 
     @Override
-    protected boolean canTriggerWalking() {
-        return false;
-    }
+    protected void readAdditionalSaveData(CompoundTag compound) {} // readAdditional -> readAdditionalSaveData
 
     @Override
-    public boolean canPassengerSteer() {
-        return false;
-    }
+    protected void addAdditionalSaveData(CompoundTag compound) {} // writeAdditional -> addAdditionalSaveData
 
     @Override
-    public ItemStack getPickedResult(RayTraceResult target) {
-        return new ItemStack(BlocksAS.OBSERVATORY);
-    }
-
-    @Override
-    protected void readAdditional(CompoundNBT compound) {}
-
-    @Override
-    protected void writeAdditional(CompoundNBT compound) {}
-
-    @Override
-    public IPacket<?> createSpawnPacket() {
+    public Packet<ClientGamePacketListener> getAddEntityPacket() { // createSpawnPacket -> getAddEntityPacket
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 }

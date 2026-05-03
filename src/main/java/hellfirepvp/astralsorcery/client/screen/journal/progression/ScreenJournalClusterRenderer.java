@@ -94,16 +94,16 @@ public class ScreenJournalClusterRenderer {
         return false;
     }
 
-    public void drawMouseHighlight(PoseStack renderStack, float zLevel, int mouseX, int mouseY) {
+    public void drawMouseHighlight(GuiGraphics renderStack, float zLevel, int mouseX, int mouseY) {
         Rectangle frame = new Rectangle(renderOffsetX, renderOffsetY, renderGuiWidth, renderGuiHeight);
         if (frame.contains(mouseX, mouseY)) {
             for (Rectangle r : clickableNodes.keySet()) {
                 if (r.contains(mouseX, mouseY)) {
                     Component name = clickableNodes.get(r).getName();
 
-                    renderStack.pushPose();
-                    renderStack.translate(r.getX(), r.getY(), zLevel + 200);
-                    renderStack.scale(progressionSizeHandler.getScalingFactor(), progressionSizeHandler.getScalingFactor(), 1F);
+                    renderStack.pose().pushPose();
+                    renderStack.pose().translate(r.getX(), r.getY(), zLevel + 200);
+                    renderStack.pose().scale(progressionSizeHandler.getScalingFactor(), progressionSizeHandler.getScalingFactor(), 1F);
                     Minecraft mc = Minecraft.getInstance();
 
                     GuiGraphics guiGraphics = new GuiGraphics(
@@ -126,7 +126,7 @@ public class ScreenJournalClusterRenderer {
                     );
 
                     guiGraphics.pose().popPose();
-                    renderStack.popPose();
+                    renderStack.pose().popPose();
                 }
             }
         }
@@ -186,13 +186,13 @@ public class ScreenJournalClusterRenderer {
         moveMouse(0, 0);
     }
 
-    public void drawClusterScreen(PoseStack renderStack, WidthHeightScreen parentGui, float zLevel) {
+    public void drawClusterScreen(GuiGraphics renderStack, WidthHeightScreen parentGui, float zLevel) {
         clickableNodes.clear();
 
         drawNodesAndConnections(renderStack, parentGui, zLevel);
     }
 
-    private void drawNodesAndConnections(PoseStack renderStack, WidthHeightScreen parentGui, float zLevel) {
+    private void drawNodesAndConnections(GuiGraphics renderStack, WidthHeightScreen parentGui, float zLevel) {
         alpha = progressionSizeHandler.getScalingFactor(); //between 0.25F and ~1F
         alpha -= 0.25F;
         alpha /= 0.75F;
@@ -214,7 +214,7 @@ public class ScreenJournalClusterRenderer {
         displayPositions.forEach((node, pos) -> renderNodeToGUI(renderStack, node, pos, zLevel));
     }
 
-    private void renderNodeToGUI(PoseStack poseStack, ResearchNode node, Point.Float offset, float zLevel) {
+    private void renderNodeToGUI(GuiGraphics poseStack, ResearchNode node, Point.Float offset, float zLevel) {
         float zoomedWH = progressionSizeHandler.getZoomedWHNode();
         float offsetX = offset.x - zoomedWH / 2F;
         float offsetY = offset.y - zoomedWH / 2F;
@@ -238,12 +238,12 @@ public class ScreenJournalClusterRenderer {
         switch (node.getNodeRenderType()) {
 
             case ITEMSTACK:
-                poseStack.pushPose();
+                poseStack.pose().pushPose();
 
-                poseStack.translate(offsetX, offsetY, 0);
-                poseStack.scale(progressionSizeHandler.getScalingFactor(), progressionSizeHandler.getScalingFactor(), 1);
-                poseStack.translate(3, 3, 100);
-                poseStack.scale(0.75F, 0.75F, 1);
+                poseStack.pose().translate(offsetX, offsetY, 0);
+                poseStack.pose().scale(progressionSizeHandler.getScalingFactor(), progressionSizeHandler.getScalingFactor(), 1);
+                poseStack.pose().translate(3, 3, 100);
+                poseStack.pose().scale(0.75F, 0.75F, 1);
 
                 // 🔥 Render moderno de items
                 Minecraft mc = Minecraft.getInstance();
@@ -253,13 +253,13 @@ public class ScreenJournalClusterRenderer {
                         net.minecraft.world.item.ItemDisplayContext.GUI,
                         15728880, // luz (full bright)
                         net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
-                        poseStack,
+                        poseStack.pose(),
                         mc.renderBuffers().bufferSource(),
                         mc.level,
                         0
                 );
 
-                poseStack.popPose();
+                poseStack.pose().popPose();
                 break;
 
             case TEXTURE_SPRITE:
@@ -280,14 +280,14 @@ public class ScreenJournalClusterRenderer {
                 float uW = res.getUWidth();
                 float vW = res.getVWidth();
 
-                poseStack.pushPose();
-                poseStack.translate(offsetX, offsetY, 0);
+                poseStack.pose().pushPose();
+                poseStack.pose().translate(offsetX, offsetY, 0);
 
                 RenderSystem.enableBlend();
                 RenderSystem.defaultBlendFunc();
                 RenderSystem.setShader(GameRenderer::getPositionColorTexShader);
 
-                Matrix4f matrix = poseStack.last().pose();
+                Matrix4f matrix = poseStack.pose().last().pose();
 
                 BufferBuilder buffer = Tesselator.getInstance().getBuilder();
                 buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX);
@@ -316,7 +316,7 @@ public class ScreenJournalClusterRenderer {
 
                 RenderSystem.disableBlend();
 
-                poseStack.popPose();
+                poseStack.pose().popPose();
                 break;
 
             default:
@@ -324,7 +324,7 @@ public class ScreenJournalClusterRenderer {
         }
     }
 
-    private void drawConnection(PoseStack poseStack, float originX, float originY, float targetX, float targetY, float zLevel) {
+    private void drawConnection(GuiGraphics poseStack, float originX, float originY, float targetX, float targetY, float zLevel) {
         RenderSystem.disableDepthTest();
         RenderSystem.enableBlend();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
@@ -341,7 +341,7 @@ public class ScreenJournalClusterRenderer {
         BufferBuilder buffer = Tesselator.getInstance().getBuilder();
         buffer.begin(VertexFormat.Mode.LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
 
-        Matrix4f matrix = poseStack.last().pose();
+        Matrix4f matrix = poseStack.pose().last().pose();
 
         for (int i = segments; i >= 0; i--) {
             float brightness = 0.6F + (0.4F * evaluateBrightness(i, activeSegment));

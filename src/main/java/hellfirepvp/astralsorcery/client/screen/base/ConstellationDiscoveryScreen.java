@@ -9,7 +9,6 @@
 package hellfirepvp.astralsorcery.client.screen.base;
 
 import com.google.common.collect.Iterables;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.util.MouseUtil;
@@ -27,16 +26,17 @@ import hellfirepvp.astralsorcery.common.network.PacketChannel;
 import hellfirepvp.astralsorcery.common.network.play.client.PktDiscoverConstellation;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Matrix4f;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.LogicalSide;
-import org.lwjgl.opengl.GL11;
+import org.joml.Matrix4f;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -65,7 +65,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
 
     private boolean initialized = false;
 
-    protected ConstellationDiscoveryScreen(ITextComponent titleIn, int guiHeight, int guiWidth) {
+    protected ConstellationDiscoveryScreen(Component titleIn, int guiHeight, int guiWidth) {
         super(titleIn, guiHeight, guiWidth);
     }
 
@@ -90,7 +90,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
     protected abstract void fillConstellations(WorldContext ctx, List<D> drawAreas);
 
     protected WorldContext getContext() {
-        return SkyHandler.getContext(Minecraft.getInstance().world, LogicalSide.CLIENT);
+        return SkyHandler.getContext(Minecraft.getInstance().level, LogicalSide.CLIENT);
     }
 
     protected boolean isInitialized() {
@@ -123,17 +123,17 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
     }
 
     protected float multiplyStarBrightness(float pTicks, float brightnessIn) {
-        brightnessIn *= Minecraft.getInstance().world.getStarBrightness(pTicks) * 2;
-        return MathHelper.clamp(brightnessIn * (1F - Minecraft.getInstance().world.getRainStrength(pTicks)), 0, 1);
+        brightnessIn *= Minecraft.getInstance().level.getStarBrightness(pTicks) * 2;
+        return Mth.clamp(brightnessIn * (1F - Minecraft.getInstance().level.getRainLevel(pTicks)), 0, 1);
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float partialTicks) {
+    public void render(GuiGraphics renderStack, int mouseX, int mouseY, float partialTicks) {
         if (this.isMouseRotatingGui()) {
-            if (hasShiftDown() && Minecraft.getInstance().mouseHelper.isMouseGrabbed()) {
+            if (hasShiftDown() && Minecraft.getInstance().mouseHandler.isMouseGrabbed()) {
                 MouseUtil.ungrab();
             }
-            if (!hasShiftDown() && !Minecraft.getInstance().mouseHelper.isMouseGrabbed()) {
+            if (!hasShiftDown() && !Minecraft.getInstance().mouseHandler.isMouseGrabbed()) {
                 MouseUtil.grab();
             }
         }
@@ -141,7 +141,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         super.render(renderStack, mouseX, mouseY, partialTicks);
     }
 
-    protected void renderDrawnLines(MatrixStack renderStack, Random rand, float pTicks) {
+    protected void renderDrawnLines(GuiGraphics renderStack, Random rand, float pTicks) {
         if (!canDraw()) {
             this.clearDrawing();
             return;
@@ -151,7 +151,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         Supplier<Float> brightnessFn = () -> RenderingConstellationUtils.conCFlicker(ClientScheduler.getClientTick(), pTicks, 5 + rand.nextInt(10));
         TexturesAS.TEX_STAR_CONNECTION.bindTexture();
 
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
             for (DrawnLine line : drawnLines) {
                 drawLine(buf, renderStack, pTicks, line.from, line.to, brightnessFn, lineBreadth);
             }
@@ -164,7 +164,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         });
     }
 
-    private void drawLine(BufferBuilder buf, MatrixStack renderStack, float pTicks, Point from, Point to, Supplier<Float> brightnessFn, float lineBreadth) {
+    private void drawLine(BufferBuilder buf, GuiGraphics renderStack, float pTicks, Point from, Point to, Supplier<Float> brightnessFn, float lineBreadth) {
         float brightness = brightnessFn.get();
         float starBr = this.multiplyStarBrightness(pTicks, brightness);
         if (starBr <= 0.0F) {
@@ -181,13 +181,13 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
         Vector3 vec00 = fromStar.clone().add(degLot);
         Vector3 vecV = degLot.clone().multiply(-2);
 
-        Matrix4f offset = renderStack.getLast().getMatrix();
+        Matrix4f offset = renderStack.pose().last().pose();
         for (int i = 0; i < 4; i++) {
             int u = ((i + 1) & 2) >> 1;
             int v = ((i + 2) & 2) >> 1;
 
             Vector3 pos = vec00.clone().add(dir.clone().multiply(u)).add(vecV.clone().multiply(v));
-            pos.drawPos(offset, buf).color(starBr, starBr, starBr, Math.max(0, starBr)).tex(u, v).endVertex();
+            pos.drawPos(offset, buf).color(starBr, starBr, starBr, Math.max(0, starBr)).uv(u, v).endVertex();
         }
     }
 
@@ -256,9 +256,9 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
     }
 
     protected boolean canDraw() {
-        return !Minecraft.getInstance().mouseHelper.isMouseGrabbed() &&
-                DayTimeHelper.isNight(Minecraft.getInstance().world) &&
-                Minecraft.getInstance().world.getRainStrength(1.0F) <= 0.1F;
+        return !Minecraft.getInstance().mouseHandler.isMouseGrabbed() &&
+                DayTimeHelper.isNight(Minecraft.getInstance().level) &&
+                Minecraft.getInstance().level.getRainLevel(1.0F) <= 0.1F;
     }
 
     protected void clearDrawing() {
@@ -331,13 +331,13 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
     }
 
     protected boolean canObserverSeeSky(BlockPos pos, int xzWidth) {
-        World world = Minecraft.getInstance().world;
+        Level world = Minecraft.getInstance().level;
         if (world == null) {
             return false;
         }
         for (int xx = -xzWidth; xx <= xzWidth; xx++) {
             for (int zz = -xzWidth; zz <= xzWidth; zz++) {
-                BlockPos other = pos.add(xx, 0, zz);
+                BlockPos other = pos.offset(xx, 0, zz);
                 if (xx == 0 && zz == 0) {
                     continue;
                 }
@@ -346,7 +346,7 @@ public abstract class ConstellationDiscoveryScreen<D extends ConstellationDiscov
                 }
             }
         }
-        return MiscUtils.canSeeSky(world, pos.up(), true, false);
+        return MiscUtils.canSeeSky(world, pos.above(), true, false);
     }
 
     public static class DrawArea {

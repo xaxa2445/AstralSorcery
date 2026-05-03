@@ -14,14 +14,15 @@ import com.google.gson.JsonSyntaxException;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.JsonHelper;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.AirBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.TagCollectionManager;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
 import java.util.function.Predicate;
@@ -36,27 +37,20 @@ import java.util.function.Predicate;
 public class BlockMatchInformation implements Predicate<BlockState> {
 
     private final ItemStack display;
-
     private BlockState matchState;
     private boolean matchExact;
+    private TagKey<Block> matchTag;
 
-    private ITag<Block> matchTag;
-    private ResourceLocation matchTagKey;
-
-    public BlockMatchInformation(ITag<Block> matchTag) {
+    public BlockMatchInformation(TagKey<Block> matchTag) {
         this(matchTag, createDisplayStack(matchTag));
     }
 
-    public BlockMatchInformation(ITag<Block> matchTag, ItemStack display) {
+    public BlockMatchInformation(TagKey<Block> matchTag, ItemStack display) {
         this.matchTag = matchTag;
-        this.matchTagKey = TagCollectionManager.getManager().getBlockTags().getDirectIdFromTag(matchTag);
         this.display = display;
 
-        if (this.matchTagKey == null) {
-            throw new IllegalArgumentException("Unknown block tag name!");
-        }
         if (this.display.isEmpty()) {
-            throw new IllegalArgumentException("No display ItemStack passed, and unable to create valid itemstack from block tag " + this.matchTagKey.toString() + "!");
+            throw new IllegalArgumentException("No display ItemStack passed for tag " + this.matchTag.location());
         }
     }
 
@@ -70,15 +64,20 @@ public class BlockMatchInformation implements Predicate<BlockState> {
         this.matchExact = matchExact;
 
         if (this.display.isEmpty()) {
-            throw new IllegalArgumentException("No display ItemStack passed, and " + matchState.getBlock().getRegistryName() + " has no associated ItemBlock!");
+            throw new IllegalArgumentException("No display ItemStack for block "
+                    + BuiltInRegistries.BLOCK.getKey(matchState.getBlock()));
         }
     }
 
-    private static ItemStack createDisplayStack(ITag<Block> blockTag) {
-        for (Block block : blockTag.getAllElements()) {
-            ItemStack blockStack = ItemUtils.createBlockStack(block.getDefaultState());
-            if (!blockStack.isEmpty()) {
-                return blockStack;
+    private static ItemStack createDisplayStack(TagKey<Block> blockTag) {
+        // En 1.20.1, iterar un tag requiere acceso al registro
+        var tagContents = BuiltInRegistries.BLOCK.getTag(blockTag);
+        if (tagContents.isPresent()) {
+            for (var holder : tagContents.get()) {
+                ItemStack blockStack = ItemUtils.createBlockStack(holder.value().defaultBlockState());
+                if (!blockStack.isEmpty()) {
+                    return blockStack;
+                }
             }
         }
         return ItemStack.EMPTY;
@@ -99,10 +98,12 @@ public class BlockMatchInformation implements Predicate<BlockState> {
     @Override
     public boolean test(BlockState state) {
         if (this.matchState != null) {
-            return this.matchExact ? BlockUtils.matchStateExact(state, this.matchState) : state.getBlock().equals(this.matchState.getBlock());
+            return this.matchExact ?
+                    BlockUtils.matchStateExact(state, this.matchState) :
+                    state.is(this.matchState.getBlock());
         }
         if (this.matchTag != null) {
-            return this.matchTag.contains(state.getBlock());
+            return state.is(this.matchTag);
         }
         return false;
     }
@@ -117,7 +118,7 @@ public class BlockMatchInformation implements Predicate<BlockState> {
             }
             return new BlockMatchInformation(state, display, fullyDefined);
         } else if (object.has("tag")) {
-            ITag<Block> blockTag = TagCollectionManager.getManager().getBlockTags().get(new ResourceLocation(object.get("tag").getAsString()));
+            TagKey<Block> blockTag = TagKey.create(Registries.BLOCK, new ResourceLocation(object.get("tag").getAsString()));
             if (object.has("display")) {
                 ItemStack display = JsonHelper.getItemStack(object, "display");
                 return new BlockMatchInformation(blockTag, display);
@@ -133,12 +134,12 @@ public class BlockMatchInformation implements Predicate<BlockState> {
             BlockStateHelper.serializeObject(out, this.matchState, this.matchExact);
             out.add("display", JsonHelper.serializeItemStack(this.getDisplayStack()));
         } else if (this.matchTag != null) {
-            out.add("tag", new JsonPrimitive(this.matchTagKey.toString()));
+            out.add("tag", new JsonPrimitive(this.matchTag.location().toString()));
         }
         return out;
     }
 
-    public static BlockMatchInformation read(PacketBuffer buf) {
+    public static BlockMatchInformation read(FriendlyByteBuf buf) {
         int type = buf.readInt();
         ItemStack display = ByteBufUtils.readItemStack(buf);
         switch (type) {
@@ -147,26 +148,22 @@ public class BlockMatchInformation implements Predicate<BlockState> {
                 boolean exactMatch = buf.readBoolean();
                 return new BlockMatchInformation(state, display, exactMatch);
             case 1:
-                String tagName = ByteBufUtils.readString(buf);
-                ITag<Block> blockTag = TagCollectionManager.getManager().getBlockTags().get(new ResourceLocation(tagName));
-                return new BlockMatchInformation(blockTag, display);
+                ResourceLocation tagId = buf.readResourceLocation();
+                return new BlockMatchInformation(TagKey.create(Registries.BLOCK, tagId), display);
         }
         throw new IllegalArgumentException("Unknown block transmutation match type: " + type);
     }
 
-    public void serialize(PacketBuffer buf) {
-        int type = this.matchState != null ? 0 /*state*/ : 1 /*type*/;
+    public void serialize(FriendlyByteBuf buf) {
+        int type = this.matchState != null ? 0 : 1;
         buf.writeInt(type);
         ByteBufUtils.writeItemStack(buf, this.display);
 
-        switch (type) {
-            case 0:
-                ByteBufUtils.writeBlockState(buf, this.matchState);
-                buf.writeBoolean(this.matchExact);
-                break;
-            case 1:
-                ByteBufUtils.writeString(buf, this.matchTagKey.toString());
-                break;
+        if (type == 0) {
+            ByteBufUtils.writeBlockState(buf, this.matchState);
+            buf.writeBoolean(this.matchExact);
+        } else {
+            buf.writeResourceLocation(this.matchTag.location());
         }
     }
 }

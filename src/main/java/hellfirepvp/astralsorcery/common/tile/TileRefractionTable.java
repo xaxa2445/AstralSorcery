@@ -30,13 +30,16 @@ import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import hellfirepvp.astralsorcery.common.util.tile.NamedInventoryTile;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -64,34 +67,32 @@ public class TileRefractionTable extends TileEntityTick implements NamedInventor
 
     private Object effectHalo;
 
-    public TileRefractionTable() {
-        super(TileEntityTypesAS.REFRACTION_TABLE);
+    public TileRefractionTable(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.REFRACTION_TABLE, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (this.getWorld().isRemote()) {
+        if (this.level == null) return;
+
+        if (this.level.isClientSide()) {
             playEngravingEffects();
         } else {
-            if (DayTimeHelper.isNight(getWorld()) &&
-                    this.doesSeeSky() &&
-                    isValidGlassStack(this.getGlassStack())) {
-
+            if (DayTimeHelper.isNight(level) && this.doesSeeSky() && isValidGlassStack(this.getGlassStack())) {
                 EngravedStarMap starMap = ItemInfusedGlass.getEngraving(this.getGlassStack());
-                if (starMap != null &&
-                        !this.hasParchment() &&
-                        !this.getInputStack().isEmpty() &&
-                        starMap.canAffect(this.getInputStack())) {
+                if (starMap != null && !this.hasParchment() && !this.getInputStack().isEmpty() && starMap.canAffect(this.getInputStack())) {
                     runTick++;
                     if (runTick > RUN_TIME) {
                         this.setInputStack(starMap.applyEffects(this.getInputStack()));
-                        ItemStack glassStack = this.getGlassStack();
-                        if (glassStack.attemptDamageItem(1, rand, null)) {
-                            glassStack.shrink(1);
-                            this.setGlassStack(glassStack);
-                            SoundHelper.playSoundAround(SoundEvents.BLOCK_GLASS_BREAK, SoundCategory.BLOCKS, this.getWorld(), this.getPos(), rand.nextFloat() * 0.5F + 1F, rand.nextFloat() * 0.2F + 0.8F);
+                        ItemStack gStack = this.getGlassStack();
+
+                        // attemptDamageItem cambió su firma en 1.20.1
+                        if (gStack.hurt(1, level.getRandom(), null)) {
+                            gStack.shrink(1);
+                            this.setGlassStack(gStack);
+                            SoundHelper.playSoundAround(SoundEvents.GLASS_BREAK, SoundSource.BLOCKS, level, worldPosition, level.random.nextFloat() * 0.5F + 1F, level.random.nextFloat() * 0.2F + 0.8F);
                         }
                         this.resetWorkTick();
                     }
@@ -122,7 +123,7 @@ public class TileRefractionTable extends TileEntityTick implements NamedInventor
                     .setNoRotation(0)
                     .setScaleMultiplier(0.8F)
                     .setAlphaMultiplier(0.8F)
-                    .alpha(((fx, alpha, pTicks) -> MathHelper.clamp(alpha * getRunProgress(), 0F, 1F)))
+                    .alpha(((fx, alpha, pTicks) -> Mth.clamp(alpha * getRunProgress(), 0F, 1F)))
                     .refresh(RefreshFunction.tileExistsAnd(this, (thisTile, fx) -> thisTile.getRunProgress() > 0));
         }
 
@@ -132,7 +133,8 @@ public class TileRefractionTable extends TileEntityTick implements NamedInventor
             offset.addX(24.0 / 16.0);
         }
         offset.addZ((random % (ColorsAS.REFRACTION_TABLE_COLORS.length / 2)) * (4.0 / 16.0));
-        offset.add(rand.nextFloat() * 0.1, 0, rand.nextFloat() * 0.1).add(pos);
+        offset.add(rand.nextFloat() * 0.1, 0, rand.nextFloat() * 0.1)
+                .add(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ());
         Color color = ColorsAS.REFRACTION_TABLE_COLORS[random];
 
         EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
@@ -213,7 +215,7 @@ public class TileRefractionTable extends TileEntityTick implements NamedInventor
     public void engraveGlass(List<DrawnConstellation> constellations) {
         if (this.hasParchment() && this.hasUnengravedGlass()) {
             this.parchmentCount--;
-            ItemInfusedGlass.setEngraving(this.getGlassStack(), EngravedStarMap.buildStarMap(this.getWorld(), constellations));
+            ItemInfusedGlass.setEngraving(this.getGlassStack(), EngravedStarMap.buildStarMap(this.getLevel(), constellations));
             this.markForUpdate();
         }
     }
@@ -261,29 +263,29 @@ public class TileRefractionTable extends TileEntityTick implements NamedInventor
     }
 
     public float getRunProgress() {
-        return MathHelper.clamp(this.runTick / RUN_TIME, 0F, 1F);
+        return Mth.clamp(this.runTick / RUN_TIME, 0F, 1F);
     }
 
     public void dropContents() {
         Vector3 at = new Vector3(this).add(0.5, 0.5, 0.5);
         if (!this.getGlassStack().isEmpty()) {
-            ItemUtils.dropItemNaturally(this.getWorld(), at.getX(), at.getY(), at.getZ(), this.getGlassStack());
+            ItemUtils.dropItemNaturally(this.getLevel(), at.getX(), at.getY(), at.getZ(), this.getGlassStack());
             this.setGlassStack(ItemStack.EMPTY);
         }
         if (!this.getInputStack().isEmpty()) {
-            ItemUtils.dropItemNaturally(this.getWorld(), at.getX(), at.getY(), at.getZ(), this.getInputStack());
+            ItemUtils.dropItemNaturally(this.getLevel(), at.getX(), at.getY(), at.getZ(), this.getInputStack());
             this.setInputStack(ItemStack.EMPTY);
         }
         this.markForUpdate();
     }
 
     @Override
-    public ITextComponent getDisplayName() {
-        return new TranslationTextComponent("screen.astralsorcery.refraction_table");
+    public Component getDisplayName() {
+        return Component.translatable("screen.astralsorcery.refraction_table");
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.runTick = compound.getInt("runTick");
@@ -294,7 +296,7 @@ public class TileRefractionTable extends TileEntityTick implements NamedInventor
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         compound.putInt("runTick", this.runTick);

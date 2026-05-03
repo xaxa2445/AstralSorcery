@@ -12,28 +12,28 @@ import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
 import hellfirepvp.astralsorcery.common.block.base.LargeBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesMisc;
 import hellfirepvp.astralsorcery.common.container.factory.ContainerObservatoryProvider;
+import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.TileObservatory;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ContainerBlock;
-import net.minecraft.entity.Entity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
-
-import javax.annotation.Nullable;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -42,54 +42,68 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 16.02.2020 / 08:11
  */
-public class BlockObservatory extends ContainerBlock implements LargeBlock, CustomItemBlock {
+public class BlockObservatory extends BaseEntityBlock implements LargeBlock, CustomItemBlock {
 
-    private static final AxisAlignedBB PLACEMENT_BOX = new AxisAlignedBB(-1, 0, -1, 1, 3, 1);
+    private static final AABB PLACEMENT_BOX = new AABB(-1, 0, -1, 1, 3, 1);
 
     public BlockObservatory() {
+        // harvestTool y harvestLevel ahora se manejan vía JSON Tags en 1.20.1
+        // PropertiesMisc debe estar actualizado a BlockBehaviour.Properties
         super(PropertiesMisc.defaultGoldMachinery()
-                .harvestTool(ToolType.PICKAXE)
-                .harvestLevel(1)
-                .notSolid()
-                .hardnessAndResistance(3F, 4F));
+                .noOcclusion() // notSolid -> noOcclusion
+                .strength(3F, 4F));
     }
 
     @Override
-    public AxisAlignedBB getBlockSpace() {
+    public AABB getBlockSpace() {
         return PLACEMENT_BOX;
     }
 
     @Nullable
     @Override
-    public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.canPlaceAt(context) ? this.getDefaultState() : null;
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        // BlockItemUseContext -> BlockPlaceContext
+        return this.canPlaceAt(context) ? this.defaultBlockState() : null;
     }
 
     @Override
-    public ActionResultType onBlockActivated(BlockState state, World worldIn, BlockPos pos, PlayerEntity player, Hand handIn, BlockRayTraceResult hit) {
-        if (!worldIn.isRemote()) {
+    public InteractionResult use(BlockState state, Level worldIn, BlockPos pos, Player player, InteractionHand handIn, BlockHitResult hit) {
+        // worldIn.isRemote -> worldIn.isClientSide
+        if (!worldIn.isClientSide()) {
             TileObservatory observatory = MiscUtils.getTileAt(worldIn, pos, TileObservatory.class, false);
-            if (observatory != null && observatory.isUsable() && !player.isSneaking()) {
+            // !player.isSneaking() -> !player.isShiftKeyDown()
+            if (observatory != null && observatory.isUsable() && !player.isShiftKeyDown()) {
                 Entity entity = observatory.findRideableObservatoryEntity();
                 if (entity != null) {
-                    if (player.getRidingEntity() != entity) {
+                    // getRidingEntity() -> getVehicle()
+                    if (player.getVehicle() != entity) {
                         player.startRiding(entity);
                     }
-                    new ContainerObservatoryProvider(observatory).openFor((ServerPlayerEntity) player);
+                    // ServerPlayerEntity -> ServerPlayer
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        new ContainerObservatoryProvider(observatory).openFor(serverPlayer);
+                    }
                 }
             }
         }
-        return ActionResultType.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
     @Override
-    public VoxelShape getCollisionShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
-        return VoxelShapes.empty();
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
+        // VoxelShapes.empty() -> Shapes.empty()
+        return Shapes.empty();
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        // Por defecto BaseEntityBlock devuelve INVISIBLE, necesitamos MODEL o ENTITYBLOCK_ANIMATED
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TileObservatory();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return TileEntityTypesAS.OBSERVATORY.create(pos, state);
     }
 }

@@ -8,8 +8,10 @@
 
 package hellfirepvp.astralsorcery.client.event;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
 import hellfirepvp.astralsorcery.client.util.RenderingDrawUtils;
@@ -20,17 +22,17 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.item.base.PerkExperienceRevealer;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Hand;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.client.event.RenderGuiOverlayEvent;
+import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
-import org.lwjgl.opengl.GL11;
 
 import java.util.EnumSet;
 
@@ -57,8 +59,8 @@ public class PerkExperienceRenderer implements ITickHandler {
         bus.addListener(EventPriority.HIGH, this::onRenderOverlay);
     }
 
-    private void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (event.getType() != RenderGameOverlayEvent.ElementType.ALL) {
+    private void onRenderOverlay(RenderGuiOverlayEvent.Post event) {
+        if (event.getOverlay().id() != VanillaGuiOverlay.HOTBAR.id()) {
             return;
         }
         if (this.visibilityReveal <= 0) {
@@ -68,19 +70,21 @@ public class PerkExperienceRenderer implements ITickHandler {
             return;
         }
 
-        MatrixStack renderStack = event.getMatrixStack();
-        PlayerEntity player = Minecraft.getInstance().player;
+        GuiGraphics graphics = event.getGuiGraphics();
+        Player player = Minecraft.getInstance().player;
         float frameHeight  = 128F;
         float frameWidth   =  32F;
         float frameOffsetX =   0F;
         float frameOffsetY =   5F;
 
         RenderSystem.enableBlend();
-        RenderSystem.disableAlphaTest();
+        RenderSystem.defaultBlendFunc();
+
+        graphics.setColor(1F, 1F, 1F, visibilityReveal * 0.9F);
 
         TexturesAS.TEX_OVERLAY_EXP_FRAME.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, renderStack, frameOffsetX, frameOffsetY, 10, frameWidth, frameHeight)
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            RenderingGuiUtils.rect(buf, graphics, frameOffsetX, frameOffsetY, 10, frameWidth, frameHeight)
                     .color(1F, 1F, 1F, visibilityReveal * 0.9F)
                     .draw();
         });
@@ -93,42 +97,52 @@ public class PerkExperienceRenderer implements ITickHandler {
         float expOffsetY =  27.5F + (1F - perc) * 78F;
 
         TexturesAS.TEX_OVERLAY_EXP_BAR.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, renderStack, expOffsetX, expOffsetY, 10, expWidth, expHeight)
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            RenderingGuiUtils.rect(buf, graphics, expOffsetX, expOffsetY, 10, expWidth, expHeight)
                     .color(1F, 0.9F, 0F, visibilityReveal * 0.9F)
                     .tex(0, 0, 1, 1 - perc)
                     .draw();
         });
 
         String strLevel = String.valueOf(perkData.getPerkLevel(player, LogicalSide.CLIENT));
-        StringTextComponent txtLevel = new StringTextComponent(strLevel);
-        int strLength = Minecraft.getInstance().fontRenderer.getStringPropertyWidth(txtLevel);
+        Component txtLevel = Component.literal(strLevel);
+        int strLength = Minecraft.getInstance().font.width(txtLevel);
 
-        renderStack.push();
-        renderStack.translate(15 - (strLength / 2F), 94, 20);
-        renderStack.scale(1.2F, 1.2F, 1F);
-        int c = 0x00DDDDDD;
-        c |= ((int) (255F * visibilityReveal)) << 24;
-        if (visibilityReveal > 0.1E-4) {
-            RenderingDrawUtils.renderStringAt(txtLevel, renderStack, null, c, true);
+        PoseStack pose = graphics.pose();
+        pose.pushPose();
+
+        pose.translate(15 - (strLength / 2F), 94, 20);
+        pose.scale(1.2F, 1.2F, 1F);
+
+        int alpha = (int) (255 * visibilityReveal);
+        int color = (alpha << 24) | 0xDDDDDD;
+
+        if (visibilityReveal > 0.0001F) {
+            RenderingDrawUtils.renderStringAt(
+                    Minecraft.getInstance().font,
+                    graphics,
+                    txtLevel,
+                    color
+            );
         }
-        renderStack.pop();
+
+        pose.popPose();
 
         BlockAtlasTexture.getInstance().bindTexture();
     }
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = Minecraft.getInstance().player;
+        Player player = Minecraft.getInstance().player;
         if (player != null) {
-            ItemStack held = player.getHeldItem(Hand.MAIN_HAND);
+            ItemStack held = player.getItemInHand(InteractionHand.MAIN_HAND);
             if (!held.isEmpty() &&
                     held.getItem() instanceof PerkExperienceRevealer &&
                     ((PerkExperienceRevealer) held.getItem()).shouldReveal(held)) {
                 revealExperience(20);
             }
 
-            held = player.getHeldItem(Hand.OFF_HAND);
+            held = player.getItemInHand(InteractionHand.OFF_HAND);
             if (!held.isEmpty() &&
                     held.getItem() instanceof PerkExperienceRevealer &&
                     ((PerkExperienceRevealer) held.getItem()).shouldReveal(held)) {

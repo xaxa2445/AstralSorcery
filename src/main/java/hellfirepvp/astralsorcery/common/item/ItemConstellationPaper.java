@@ -62,19 +62,6 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
     }
 
     @Override
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
-        if (this.allowedIn(tab)) {
-            items.add(new ItemStack(this));
-
-            for (IConstellation c : ConstellationRegistry.getAllConstellations()) {
-                ItemStack stack = new ItemStack(this);
-                setConstellation(stack, c);
-                items.add(stack);
-            }
-        }
-    }
-
-    @Override
     @OnlyIn(Dist.CLIENT)
     public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> toolTip, TooltipFlag flag) {
         IConstellation c = getConstellation(stack);
@@ -93,7 +80,7 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
             return InteractionResultHolder.success(held);
         }
         if (world.isClientSide() && getConstellation(held) != null) {
-            SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE, 1F, 1F);
+            SoundHelper.playSoundClient(SoundsAS.GUI_JOURNAL_PAGE.getSoundEvent(), 1F, 1F);
             AstralSorcery.getProxy().openGui(player, GuiType.CONSTELLATION_PAPER, getConstellation(held));
         }
         return InteractionResultHolder.success(held);
@@ -108,7 +95,7 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
     @Override
     public Entity createEntity(Level world, Entity location, ItemStack itemstack) {
         // En 1.20.1 usamos las coordenadas directamente
-        EntityItemExplosionResistant res = new EntityItemExplosionResistant(EntityTypesAS.ITEM_EXPLOSION_RESISTANT, world, location.getX(), location.getY(), location.getZ(), itemstack);
+        EntityItemExplosionResistant res = new EntityItemExplosionResistant(EntityTypesAS.ITEM_EXPLOSION_RESISTANT.get(), world, location.getX(), location.getY(), location.getZ(), itemstack);
 
         // writeWithoutTypeId -> saveWithoutId
         res.load(location.saveWithoutId(new CompoundTag()));
@@ -170,8 +157,11 @@ public class ItemConstellationPaper extends Item implements ItemDynamicColor, Co
                 }
             }
             if (!has) {
-                if (cst.canDiscover(player, progress) && ResearchManager.memorizeConstellation(cst, player)) {
-                    ResearchHelper.sendConstellationMemorizationMessage(player, progress, cst);
+                if (!has) {
+                    if (cst.canDiscover(player, progress) && ResearchManager.memorizeConstellation(cst, player)) {
+                        // Usamos player.createCommandSourceStack() para cumplir con el nuevo parámetro
+                        ResearchHelper.sendConstellationMemorizationMessage(player.createCommandSourceStack(), progress, cst);
+                    }
                 }
             }
         }

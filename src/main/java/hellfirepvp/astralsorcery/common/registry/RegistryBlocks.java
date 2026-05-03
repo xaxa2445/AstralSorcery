@@ -135,7 +135,12 @@ public class RegistryBlocks {
 
     @OnlyIn(Dist.CLIENT)
     public static void registerColors(RegisterColorHandlersEvent.Block event) {
-        COLOR_BLOCKS.forEach(block -> event.register(block::getColor, block));
+        COLOR_BLOCKS.forEach(block -> {
+            if (block instanceof Block b) { // Casteo seguro a Block
+                event.register((state, world, pos, tintIndex) ->
+                        block.getColor(state, world, pos, tintIndex), b);
+            }
+        });
     }
 
     private static BlockSlabTemplate makeSlab(BlockState base, String name) {
@@ -144,7 +149,8 @@ public class RegistryBlocks {
     }
 
     private static BlockStairsTemplate makeStairs(BlockState base, String name) {
-        BlockStairsTemplate stairs = new BlockStairsTemplate(base, () -> base, BlockBehaviour.Properties.copy(base.getBlock()));
+        // Eliminamos la lambda () -> base
+        BlockStairsTemplate stairs = new BlockStairsTemplate(base, BlockBehaviour.Properties.copy(base.getBlock()));
         return registerBlock(stairs, new ResourceLocation(AstralSorcery.MODID, name));
     }
 
@@ -155,7 +161,7 @@ public class RegistryBlocks {
     private static <T extends Block> T registerBlock(T block, ResourceLocation id) {
 
         // 👉 guardamos en tu sistema
-        AstralSorcery.getProxy().getRegistryPrimer().register(Block.class, block);
+        AstralSorcery.getProxy().getRegistryPrimer().register(Block.class, block, id);
 
         // 👉 guardamos metadata necesaria manualmente
         if (block instanceof CustomItemBlock cib) {

@@ -11,13 +11,13 @@ package hellfirepvp.astralsorcery.common.container;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.ContainerType;
-import net.minecraft.inventory.container.Slot;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 import javax.annotation.Nullable;
 import java.util.Optional;
@@ -31,34 +31,36 @@ import java.util.Optional;
  */
 public abstract class ContainerAltarBase extends ContainerTileEntity<TileAltar> {
 
-    private final PlayerInventory playerInv;
+    private final Inventory playerInv;
     private final TileInventory invHandler;
 
-    protected ContainerAltarBase(TileAltar altar, @Nullable ContainerType<?> type, PlayerInventory inv, int windowId) {
-        super(altar, type, windowId);
+    protected ContainerAltarBase(TileAltar altar, @Nullable MenuType<?> type, Inventory inv, int windowId) {
+        // Invertimos el orden para que coincida con la firma de ContainerTileEntity
+        super(type, windowId, altar);
+
         this.playerInv = inv;
         this.invHandler = altar.getInventory();
 
-        bindPlayerInventory(this.playerInv);
-        bindAltarInventory(this.invHandler);
+        this.bindPlayerInventory(this.playerInv);
+        this.bindAltarInventory(this.invHandler);
     }
 
-    abstract void bindPlayerInventory(PlayerInventory plInventory);
+    abstract void bindPlayerInventory(Inventory plInventory);
 
     abstract void bindAltarInventory(TileInventory altarInventory);
 
-    abstract Optional<ItemStack> handleCustomTransfer(PlayerEntity player, int index);
+    abstract Optional<ItemStack> handleCustomTransfer(Player player, int index);
 
     //Yes this is not a pretty solution. tell me a better one.
     public abstract int translateIndex(int fromIndex);
 
     @Override
-    public ItemStack transferStackInSlot(PlayerEntity playerIn, int index) {
+    public ItemStack quickMoveStack(Player playerIn, int index) {
         ItemStack itemstack = ItemStack.EMPTY;
-        Slot slot = this.inventorySlots.get(index);
+        Slot slot = this.slots.get(index);
 
-        if (slot != null && slot.getHasStack()) {
-            ItemStack slotStack = slot.getStack();
+        if (slot != null && slot.hasItem()) {
+            ItemStack slotStack = slot.getItem();
             itemstack = slotStack.copy();
 
             Optional<ItemStack> stackOpt = this.handleCustomTransfer(playerIn, index);
@@ -66,22 +68,23 @@ public abstract class ContainerAltarBase extends ContainerTileEntity<TileAltar> 
                 return stackOpt.get();
             }
 
-            if (index >= 0 && index < 27) {
-                if (!this.mergeItemStack(slotStack, 27, 36, false)) {
+            // Lógica de transferencia: 0-26 (Inv), 27-35 (Hotbar)
+            if (index < 36) {
+                // De inventario de jugador a inventario del altar
+                if (!this.moveItemStackTo(slotStack, 36, this.slots.size(), false)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (index >= 27 && index < 36) {
-                if (!this.mergeItemStack(slotStack, 0, 27, false)) {
+            } else {
+                // Del altar al inventario del jugador
+                if (!this.moveItemStackTo(slotStack, 0, 36, true)) {
                     return ItemStack.EMPTY;
                 }
-            } else if (!this.mergeItemStack(slotStack, 0, 36, false)) {
-                return ItemStack.EMPTY;
             }
 
-            if (slotStack.getCount() == 0) {
-                slot.putStack(ItemStack.EMPTY);
+            if (slotStack.isEmpty()) {
+                slot.set(ItemStack.EMPTY);
             } else {
-                slot.onSlotChanged();
+                slot.setChanged();
             }
 
             if (slotStack.getCount() == itemstack.getCount()) {
@@ -95,12 +98,14 @@ public abstract class ContainerAltarBase extends ContainerTileEntity<TileAltar> 
     }
 
     @Override
-    public boolean canInteractWith(PlayerEntity player) {
-        BlockPos pos = this.getTileEntity().getPos();
-        if (MiscUtils.getTileAt(this.getTileEntity().getWorld(), pos, TileEntity.class, false) != this.getTileEntity()) {
+    public boolean stillValid(Player player) {
+        BlockPos pos = this.getTileEntity().getBlockPos();
+        // Verificación de que el bloque sigue existiendo en el mundo
+        if (MiscUtils.getTileAt(player.level(), pos, BlockEntity.class, false) != this.getTileEntity()) {
             return false;
         } else {
-            return player.getDistanceSq(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64.0D;
+            // Distancia de interacción estándar (8 bloques / 64.0D de distancia al cuadrado)
+            return player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) <= 64.0D;
         }
     }
 }

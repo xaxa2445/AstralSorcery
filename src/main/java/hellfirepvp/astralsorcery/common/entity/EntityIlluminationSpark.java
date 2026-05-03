@@ -15,6 +15,7 @@ import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
+import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.core.BlockPos;
@@ -23,6 +24,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -43,25 +45,34 @@ import net.minecraftforge.network.NetworkHooks;
  */
 public class EntityIlluminationSpark extends ThrowableItemProjectile {
 
-    public EntityIlluminationSpark(Level world) {
-        super(EntityTypesAS.ILLUMINATION_SPARK, world);
-    }
-
-    public EntityIlluminationSpark(double x, double y, double z, Level world) {
-        super(EntityTypesAS.ILLUMINATION_SPARK, x, y, z, world);
-    }
-
-    public EntityIlluminationSpark(LivingEntity thrower, Level world) {
-        super(EntityTypesAS.ILLUMINATION_SPARK, thrower, world);
-        this.shootFromRotation(thrower, thrower.getXRot(), thrower.getYRot(), 0F, 0.7F, 0.9F);
-    }
-
     public EntityIlluminationSpark(EntityType<? extends EntityIlluminationSpark> type, Level level) {
         super(type, level);
     }
 
+    public EntityIlluminationSpark(Level world) {
+        // Se usa .get() porque EntityTypesAS.ILLUMINATION_SPARK es un RegistryObject
+        super(EntityTypesAS.ILLUMINATION_SPARK.get(), world);
+    }
+
+    public EntityIlluminationSpark(double x, double y, double z, Level world) {
+        super(EntityTypesAS.ILLUMINATION_SPARK.get(), x, y, z, world);
+    }
+
+    public EntityIlluminationSpark(LivingEntity thrower, Level world) {
+        super(EntityTypesAS.ILLUMINATION_SPARK.get(), thrower, world);
+        // shootFromRotation fue reemplazado por shoot o shootFromRotation con parámetros de precisión
+        this.shootFromRotation(thrower, thrower.getXRot(), thrower.getYRot(), 0.0F, 0.7F, 0.9F);
+    }
+
     @Override
-    protected void registerData() {}
+    protected Item getDefaultItem() {
+        return ItemsAS.ILLUMINATION_POWDER;
+    }
+
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+    }
 
     @Override
     public void tick() {
@@ -132,7 +143,7 @@ public class EntityIlluminationSpark extends ThrowableItemProjectile {
         UseOnContext ctx = new UseOnContext(player, InteractionHand.MAIN_HAND, bhr);
         BlockPlaceContext placeContext = new BlockPlaceContext(ctx);
         if (!BlockUtils.isReplaceable(level(), pos)) {
-            pos = pos.offset(bhr.getDirection());
+            pos = pos.relative(bhr.getDirection());
         }
 
         if (!ForgeEventFactory.onBlockPlace(
@@ -147,7 +158,7 @@ public class EntityIlluminationSpark extends ThrowableItemProjectile {
     }
 
     @Override
-    public net.minecraft.network.protocol.Packet<?> getAddEntityPacket() {
-        return NetworkHooks.getEntitySpawningPacket(this);
+    public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> getAddEntityPacket() {
+        return net.minecraftforge.network.NetworkHooks.getEntitySpawningPacket(this);
     }
 }

@@ -8,13 +8,13 @@
 
 package hellfirepvp.astralsorcery.client.screen.container;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
 import hellfirepvp.astralsorcery.client.screen.base.ScreenCustomContainer;
 import hellfirepvp.astralsorcery.common.container.ContainerTome;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -25,7 +25,7 @@ import net.minecraft.util.text.ITextComponent;
  */
 public class ScreenContainerTome extends ScreenCustomContainer<ContainerTome> {
 
-    public ScreenContainerTome(ContainerTome screenContainer, PlayerInventory inv, ITextComponent name) {
+    public ScreenContainerTome(ContainerTome screenContainer, Inventory inv, Component name) {
         super(screenContainer, inv, name, 176, 166);
     }
 
@@ -35,7 +35,9 @@ public class ScreenContainerTome extends ScreenCustomContainer<ContainerTome> {
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(MatrixStack matrixStack, int x, int y) {
-        //Don't draw container names. (Currently all this does)
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        // Reemplaza a drawGuiContainerForegroundLayer.
+        // Se deja vacío para no dibujar los nombres del contenedor (inventario/tome),
+        // manteniendo la estética limpia original del mod.
     }
 }

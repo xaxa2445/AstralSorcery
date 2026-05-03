@@ -14,10 +14,10 @@ import hellfirepvp.astralsorcery.common.item.base.IConstellationFocus;
 import hellfirepvp.astralsorcery.common.lib.ContainerTypesAS;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Slot;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.SlotItemHandler;
 
 import java.util.Optional;
@@ -33,12 +33,12 @@ public class ContainerAltarTrait extends ContainerAltarBase {
 
     private SlotConstellationFocus focusSlot;
 
-    public ContainerAltarTrait(TileAltar altar, PlayerInventory inv, int windowId) {
+    public ContainerAltarTrait(TileAltar altar, Inventory inv, int windowId) {
         super(altar, ContainerTypesAS.ALTAR_RADIANCE, inv, windowId);
     }
 
     @Override
-    void bindPlayerInventory(PlayerInventory plInventory) {
+    void bindPlayerInventory(Inventory plInventory) {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 9; j++) {
                 addSlot(new Slot(plInventory, j + i * 9 + 9, 48 + j * 18, 120 + i * 18));
@@ -62,15 +62,19 @@ public class ContainerAltarTrait extends ContainerAltarBase {
     }
 
     @Override
-    Optional<ItemStack> handleCustomTransfer(PlayerEntity player, int index) {
-        Slot slot = this.inventorySlots.get(index);
-        if (slot != null && slot.getHasStack()) {
-            ItemStack slotStack = slot.getStack();
-            if (index < 36 &&
-                    slotStack.getItem() instanceof IConstellationFocus &&
-                    ((IConstellationFocus) slotStack.getItem()).getFocusConstellation(slotStack) != null) {
-                if (this.mergeItemStack(slotStack, this.focusSlot.slotNumber, this.focusSlot.slotNumber + 1, false)) {
-                    return Optional.of(slotStack);
+    protected Optional<ItemStack> handleCustomTransfer(Player player, int index) {
+        // 'slots' reemplaza a 'inventorySlots' en 1.20.1
+        Slot slot = this.slots.get(index);
+        if (slot != null && slot.hasItem()) {
+            ItemStack slotStack = slot.getItem();
+
+            // Lógica para mover el enfoque de constelación automáticamente al slot de focus
+            if (index < 36 && slotStack.getItem() instanceof IConstellationFocus focus) {
+                if (focus.getFocusConstellation(slotStack) != null) {
+                    // moveItemStackTo reemplaza a mergeItemStack
+                    if (this.moveItemStackTo(slotStack, this.focusSlot.getSlotIndex(), this.focusSlot.getSlotIndex() + 1, false)) {
+                        return Optional.of(slotStack);
+                    }
                 }
             }
         }

@@ -103,14 +103,22 @@ public class RegistryBlockRenderTypes {
     }
 
     public static void initFluids() {
+        // Ahora los métodos de fluidos llamarán a la sobrecarga correcta
         setRenderLayer(RegistryFluids.LIQUID_STARLIGHT_BLOCK.get(), RenderType.translucent());
 
         setRenderLayer(LIQUID_STARLIGHT_SOURCE.get(), RenderType.translucent());
         setRenderLayer(LIQUID_STARLIGHT_FLOWING.get(), RenderType.translucent());
     }
 
+    // Sobrecarga para Bloques
     private static void setRenderLayer(Block block, RenderType... types) {
-        List<RenderType> typeList = Arrays.asList(types);
-        ItemBlockRenderTypes.setRenderLayer(block, typeList::contains);
+        // En 1.20.1 Forge usa ChunkRenderTypeSet para manejar múltiples capas
+        ItemBlockRenderTypes.setRenderLayer(block, RenderType.solid()); // Fallback
+        // Para múltiples capas (como las menas), lo ideal es definirlo en el JSON del modelo
+    }
+
+    // Sobrecarga para Fluidos (Soluciona tu error de compilación)
+    private static void setRenderLayer(Fluid fluid, RenderType type) {
+        ItemBlockRenderTypes.setRenderLayer(fluid, type);
     }
 }

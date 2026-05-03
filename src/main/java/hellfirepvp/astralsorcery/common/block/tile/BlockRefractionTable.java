@@ -19,31 +19,33 @@ import hellfirepvp.astralsorcery.common.block.base.LargeBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesWood;
 import hellfirepvp.astralsorcery.common.item.ItemParchment;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
+import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.TileRefractionTable;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ContainerBlock;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Random;
 
 /**
@@ -53,42 +55,45 @@ import java.util.Random;
  * Created by HellFirePvP
  * Date: 26.04.2020 / 20:17
  */
-public class BlockRefractionTable extends ContainerBlock implements CustomItemBlock, LargeBlock {
+public class BlockRefractionTable extends BaseEntityBlock implements CustomItemBlock, LargeBlock {
 
-    private static final VoxelShape REFRACTION_TABLE = Block.makeCuboidShape(-6, 0, -4, 22, 24, 20);
-    private static final AxisAlignedBB PLACEMENT_BOX = new AxisAlignedBB(-1, 0, -1, 1, 1, 1);
+    // Block.makeCuboidShape -> Block.box
+    private static final VoxelShape REFRACTION_TABLE = Block.box(-6, 0, -4, 22, 24, 20);
+    // AxisAlignedBB -> AABB
+    private static final AABB PLACEMENT_BOX = new AABB(-1, 0, -1, 1, 1, 1);
 
     public BlockRefractionTable() {
         super(PropertiesWood.defaultInfusedWood()
-                .notSolid());
+                .noOcclusion()); // notSolid -> noOcclusion
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return REFRACTION_TABLE;
     }
 
     @Override
-    public AxisAlignedBB getBlockSpace() {
+    public AABB getBlockSpace() {
         return PLACEMENT_BOX;
     }
 
     @Nullable
     @Override
-    public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.canPlaceAt(context) ? this.getDefaultState() : null;
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return this.canPlaceAt(context) ? this.defaultBlockState() : null;
     }
 
-    @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState stateIn, World worldIn, BlockPos pos, Random rand) {
+    @Override
+    public void animateTick(BlockState stateIn, Level level, BlockPos pos, RandomSource rand) {
+        // Random -> RandomSource en 1.20.1
         for (int i = 0; i < rand.nextInt(3); i++) {
             Vector3 offset = new Vector3(-5.0 / 16.0, 1.505, -3.0 / 16.0);
             int random = rand.nextInt(ColorsAS.REFRACTION_TABLE_COLORS.length);
-            if (random >= ColorsAS.REFRACTION_TABLE_COLORS.length / 2) { //0-5 is left, 6-11 is right
+            if (random >= ColorsAS.REFRACTION_TABLE_COLORS.length / 2) {
                 offset.addX(24.0 / 16.0);
             }
             offset.addZ((random % (ColorsAS.REFRACTION_TABLE_COLORS.length / 2)) * (4.0 / 16.0));
-            offset.add(rand.nextFloat() * 0.1, 0, rand.nextFloat() * 0.1).add(pos);
+            offset.add(rand.nextFloat() * 0.1, 0, rand.nextFloat() * 0.1).add(pos.getX(), pos.getY(), pos.getZ());
 
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(offset)
@@ -100,95 +105,70 @@ public class BlockRefractionTable extends ContainerBlock implements CustomItemBl
     }
 
     @Override
-    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
-        ItemStack held = player.getHeldItem(hand);
-        if (!world.isRemote()) {
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        ItemStack held = player.getItemInHand(hand);
+        if (!world.isClientSide()) {
             TileRefractionTable tft = MiscUtils.getTileAt(world, pos, TileRefractionTable.class, true);
             if (tft != null) {
-                if (player.isSneaking()) {
+                if (player.isShiftKeyDown()) { // isSneaking -> isShiftKeyDown
                     if (!tft.getInputStack().isEmpty()) {
-                        ItemStack remaining = ItemUtils.dropItemToPlayer(player, tft.setInputStack(ItemStack.EMPTY));
-                        if (!remaining.isEmpty()) {
-                            ItemUtils.dropItemNaturally(world, player.getPosX(), player.getPosY(), player.getPosZ(), remaining);
-                        }
-                        return ActionResultType.SUCCESS;
+                        ItemUtils.dropItemToPlayer(player, tft.setInputStack(ItemStack.EMPTY));
+                        return InteractionResult.SUCCESS;
                     }
                     if (!tft.getGlassStack().isEmpty()) {
-                        ItemStack remaining = ItemUtils.dropItemToPlayer(player, tft.setGlassStack(ItemStack.EMPTY));
-                        if (!remaining.isEmpty()) {
-                            ItemUtils.dropItemNaturally(world, player.getPosX(), player.getPosY(), player.getPosZ(), remaining);
-                        }
-                        return ActionResultType.SUCCESS;
+                        ItemUtils.dropItemToPlayer(player, tft.setGlassStack(ItemStack.EMPTY));
+                        return InteractionResult.SUCCESS;
                     }
                 } else if (!held.isEmpty()) {
                     if (held.getItem() instanceof ItemParchment && tft.getParchmentCount() < 64) {
-                        int leftover = tft.addParchment(held.getCount());
-                        if (leftover < tft.getParchmentCount()) {
+                        int leftoverCount = tft.addParchment(held.getCount());
+                        if (leftoverCount < held.getCount()) {
                             if (!player.isCreative()) {
-                                held.setCount(leftover);
-                                if (held.isEmpty()) {
-                                    player.setHeldItem(hand, ItemStack.EMPTY);
-                                } else {
-                                    player.setHeldItem(hand, held);
-                                }
+                                held.setCount(leftoverCount);
                             }
+                            return InteractionResult.SUCCESS;
                         }
                     } else if (TileRefractionTable.isValidGlassStack(held) && tft.getGlassStack().isEmpty()) {
-                        ItemStack previous = tft.setGlassStack(ItemUtils.copyStackWithSize(held, 1));
-                        if (!previous.isEmpty()) {
-                            ItemUtils.dropItemNaturally(world, pos.getX() + 0.5, pos.getY() + 1.8, pos.getZ() + 0.5, previous);
-                        }
+                        tft.setGlassStack(ItemUtils.copyStackWithSize(held, 1));
                         if (!player.isCreative()) {
                             held.shrink(1);
-                            if (held.isEmpty()) {
-                                player.setHeldItem(hand, ItemStack.EMPTY);
-                            } else {
-                                player.setHeldItem(hand, held);
-                            }
                         }
-                        return ActionResultType.PASS;
+                        return InteractionResult.SUCCESS;
                     } else if (tft.getInputStack().isEmpty()) {
-                        ItemStack previous = tft.setInputStack(ItemUtils.copyStackWithSize(held, 1));
-                        if (!previous.isEmpty()) {
-                            ItemUtils.dropItemNaturally(world, pos.getX() + 0.5, pos.getY() + 1.8, pos.getZ() + 0.5, previous);
-                        }
+                        tft.setInputStack(ItemUtils.copyStackWithSize(held, 1));
                         if (!player.isCreative()) {
                             held.shrink(1);
-                            if (held.isEmpty()) {
-                                player.setHeldItem(hand, ItemStack.EMPTY);
-                            } else {
-                                player.setHeldItem(hand, held);
-                            }
                         }
-                    } else {
-                        AstralSorcery.getProxy().openGui(player, GuiType.REFRACTION_TABLE, pos);
+                        return InteractionResult.SUCCESS;
                     }
-                } else {
-                    AstralSorcery.getProxy().openGui(player, GuiType.REFRACTION_TABLE, pos);
                 }
+                AstralSorcery.getProxy().openGui(player, GuiType.REFRACTION_TABLE, pos);
             }
         }
-        return ActionResultType.SUCCESS;
+        return InteractionResult.SUCCESS;
     }
 
     @Override
-    public void onReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean isMoving) {
-        TileRefractionTable te = MiscUtils.getTileAt(world, pos, TileRefractionTable.class, true);
-        if (te != null && !world.isRemote) {
-            te.dropContents();
+    public void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving) {
+        // onReplaced -> onRemove
+        if (!state.is(newState.getBlock())) {
+            TileRefractionTable te = MiscUtils.getTileAt(world, pos, TileRefractionTable.class, true);
+            if (te != null && !world.isClientSide()) {
+                te.dropContents();
+            }
+            super.onRemove(state, world, pos, newState, isMoving);
         }
-
-        super.onReplaced(state, world, pos, newState, isMoving);
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter level, BlockPos pos, PathComputationType type) {
+        // allowsMovement -> isPathfindable
         return false;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TileRefractionTable();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return TileEntityTypesAS.REFRACTION_TABLE.create(pos, state);
     }
 }

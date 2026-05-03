@@ -75,16 +75,17 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
     }
 
     @Override
-    public void render(PoseStack  poseStack, int mouseX, int mouseY, float partialTicks) {
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+        PoseStack poseStack = graphics.pose();
         drawConstellationBackground(poseStack);
-        drawDefault(poseStack, TexturesAS.TEX_GUI_BOOK_FRAME_FULL, mouseX, mouseY);
+        drawDefault(graphics, TexturesAS.TEX_GUI_BOOK_FRAME_FULL, mouseX, mouseY);
 
         // 🔥 equivalente a setBlitOffset(250)
         poseStack.pushPose();
         poseStack.translate(0, 0, 250);
 
         drawNavArrows(poseStack, partialTicks, mouseX, mouseY);
-        drawConstellations(poseStack, partialTicks, mouseX, mouseY);
+        drawConstellations(graphics, partialTicks, mouseX, mouseY);
 
         poseStack.popPose();
     }
@@ -112,19 +113,21 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
         RenderSystem.disableBlend();
     }
 
-    private void drawConstellations(PoseStack renderStack, float partial, int mouseX, int mouseY) {
+    private void drawConstellations(GuiGraphics graphics, float partial, int mouseX, int mouseY) {
+        PoseStack renderStack = graphics.pose();
         this.rectCRenderMap.clear();
         List<IConstellation> cs = constellations.subList(pageId * CONSTELLATIONS_PER_PAGE, Math.min((pageId + 1) * CONSTELLATIONS_PER_PAGE, constellations.size()));
         for (int i = 0; i < cs.size(); i++) {
             IConstellation c = cs.get(i);
             Point p = offsetMap.get(i);
-            Rectangle cstRct = drawConstellation(renderStack, c, guiLeft + p.x, guiTop + p.y, this.getGuiZLevel(), partial, mouseX, mouseY);
+            Rectangle cstRct = drawConstellation(graphics, c, guiLeft + p.x, guiTop + p.y, this.getGuiZLevel(), partial, mouseX, mouseY);
             rectCRenderMap.put(cstRct, c);
         }
     }
 
-    private Rectangle drawConstellation(PoseStack renderStack, IConstellation display, double offsetX, double offsetY, float zLevel, float partial, int mouseX, int mouseY) {
+    private Rectangle drawConstellation(GuiGraphics graphics, IConstellation display, double offsetX, double offsetY, float zLevel, float partial, int mouseX, int mouseY) {
         Rectangle rect = new Rectangle(Mth.floor(offsetX), Mth.floor(offsetY), width, height);
+        PoseStack renderStack = graphics.pose();
 
         renderStack.pushPose();
         renderStack.translate(offsetX + (width / 2F), offsetY + (width / 2F), zLevel);
@@ -150,7 +153,7 @@ public class ScreenJournalConstellationOverview extends ScreenJournal implements
         float fullLength = (width / 2F) - (font.width(cstName) / 2F);
 
         renderStack.translate(fullLength, 90, 10);
-        RenderingDrawUtils.renderStringAt(font, renderStack, cstName, 0xBBDDDDDD);
+        RenderingDrawUtils.renderStringAt(font, graphics, cstName, 0xBBDDDDDD);
 
         renderStack.popPose();
         return rect;

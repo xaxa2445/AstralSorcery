@@ -8,8 +8,10 @@
 
 package hellfirepvp.astralsorcery.client.screen.journal.page;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.lib.SpritesAS;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.util.Blending;
@@ -21,8 +23,8 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchNode;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.util.block.BlockMatchInformation;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.item.ItemStack;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nullable;
@@ -51,11 +53,11 @@ public class RenderPageBlockTransmutation extends RenderPageRecipeTemplate {
     }
 
     @Override
-    public void render(MatrixStack renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
+    public void render(GuiGraphics renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
         this.clearFrameRectangles();
 
         RenderSystem.depthMask(false);
-        this.renderRecipeGrid(renderStack, x, y, z, TexturesAS.TEX_GUI_BOOK_GRID_TRANSMUTATION);
+        this.renderRecipeGrid(renderStack.pose(), x, y, z, TexturesAS.TEX_GUI_BOOK_GRID_TRANSMUTATION);
         RenderSystem.depthMask(true);
 
         this.renderExpectedItemStackOutput(renderStack, x + 78, y + 25, z, 1.4F, this.recipe.getOutputDisplay());
@@ -74,7 +76,7 @@ public class RenderPageBlockTransmutation extends RenderPageRecipeTemplate {
         RenderSystem.enableBlend();
         Blending.ADDITIVE_ALPHA.apply();
 
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
             RenderingGuiUtils.rect(buf, renderStack, renderX - 15, renderY + 10, z, 50, 120)
                     .tex(SpritesAS.SPR_LIGHTBEAM)
                     .draw();
@@ -86,13 +88,13 @@ public class RenderPageBlockTransmutation extends RenderPageRecipeTemplate {
 
         RenderSystem.disableDepthTest();
 
-        renderStack.push();
-        renderStack.translate(renderX + 11, renderY + 11, z);
-        renderStack.scale(40, 40, 0);
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR, buf -> {
-            RenderingDrawUtils.renderLightRayFan(renderStack, (renderType) -> buf, ColorsAS.ROCK_CRYSTAL, getNodePage(), 9, 9, 20);
+        renderStack.pose().pushPose();
+        renderStack.pose().translate(renderX + 11, renderY + 11, z);
+        renderStack.pose().scale(40, 40, 0);
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR, buf -> {
+            RenderingDrawUtils.renderLightRayFan(renderStack.pose(), (renderType) -> buf, ColorsAS.ROCK_CRYSTAL, getNodePage(), 9, 9, 20);
         });
-        renderStack.pop();
+        renderStack.pose().popPose();
 
         this.renderItemStack(renderStack, renderX - 4, renderY - 4, z, 1.75F, new ItemStack(BlocksAS.ROCK_COLLECTOR_CRYSTAL));
 
@@ -105,7 +107,7 @@ public class RenderPageBlockTransmutation extends RenderPageRecipeTemplate {
     }
 
     @Override
-    public void postRender(MatrixStack renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
+    public void postRender(GuiGraphics renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
         this.renderHoverTooltips(renderStack, mouseX, mouseY, z, this.recipe.getId());
         this.renderInfoStarTooltips(renderStack, x, y, z, mouseX, mouseY, (toolTip) -> {
             this.addConstellationInfoTooltip(this.recipe.getRequiredConstellation(), toolTip);

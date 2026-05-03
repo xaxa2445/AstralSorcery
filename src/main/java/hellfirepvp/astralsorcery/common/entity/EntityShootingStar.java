@@ -20,18 +20,20 @@ import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.util.data.ASDataSerializers;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.EntityType;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.projectile.ThrowableEntity;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.network.NetworkHooks;
+import net.minecraftforge.network.NetworkHooks;
 
 import java.awt.*;
 import java.util.Random;
@@ -43,48 +45,43 @@ import java.util.Random;
  * Created by HellFirePvP
  * Date: 26.11.2020 / 19:30
  */
-public class EntityShootingStar extends ThrowableEntity {
+public class EntityShootingStar extends ThrowableProjectile {
 
-    private static final DataParameter<Long> EFFECT_SEED = EntityDataManager.createKey(EntityShootingStar.class, ASDataSerializers.LONG);
+    private static final EntityDataAccessor<Long> EFFECT_SEED = SynchedEntityData.defineId(EntityShootingStar.class, EntityDataSerializers.LONG);
 
-    protected EntityShootingStar(World worldIn) {
-        super(EntityTypesAS.SHOOTING_STAR, worldIn);
-        this.dataManager.set(EFFECT_SEED, rand.nextLong());
+    public EntityShootingStar(EntityType<? extends EntityShootingStar> type, Level world) {
+        super(type, world);
+        this.entityData.set(EFFECT_SEED, this.random.nextLong());
     }
 
-    protected EntityShootingStar(double x, double y, double z, World worldIn) {
-        this(worldIn);
-        this.setPosition(x, y, z);
-    }
-
-    public static EntityType.IFactory<EntityShootingStar> factory() {
-        return (type, world) -> new EntityShootingStar(world);
+    public EntityShootingStar(Level world, double x, double y, double z) {
+        this(EntityTypesAS.SHOOTING_STAR.get(), world);
+        this.setPos(x, y, z);
     }
 
     @Override
-    protected void registerData() {
-        this.dataManager.register(EFFECT_SEED, 0L);
+    protected void defineSynchedData() {
+        this.entityData.define(EFFECT_SEED, 0L);
     }
 
     public long getEffectSeed() {
-        return this.dataManager.get(EFFECT_SEED);
+        return this.entityData.get(EFFECT_SEED);
     }
 
     @Override
     public void tick() {
         adjustMotion();
-
         super.tick();
 
-        if (world.isRemote()) {
+        if (this.level().isClientSide()) {
             spawnEffects();
         }
     }
 
     private void adjustMotion() {
-        Vector3d motion = getMotion();
-        double y = Math.min(-0.7F, motion.getY());
-        setMotion(new Vector3d(motion.getX(), y, motion.getZ()));
+        Vec3 motion = this.getDeltaMovement(); // getMotion() -> getDeltaMovement()
+        double y = Math.min(-0.7, motion.y);
+        this.setDeltaMovement(motion.x, y, motion.z); // setMotion() -> setDeltaMovement()
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -92,7 +89,7 @@ public class EntityShootingStar extends ThrowableEntity {
         float maxRenderPosDist = 96F;
 
         VFXRenderOffsetFunction<FXFacingParticle> renderFn = (fx, iPos, pTicks) -> {
-            PlayerEntity pl = Minecraft.getInstance().player;
+            Player pl = Minecraft.getInstance().player;
             if (pl == null) {
                 return iPos;
             }
@@ -103,7 +100,7 @@ public class EntityShootingStar extends ThrowableEntity {
             return Vector3.atEntityCorner(pl).add(v.normalize().multiply(maxRenderPosDist));
         };
         VFXScaleFunction<EntityVisualFX> scaleFn = (fx, scaleIn, pTicks) -> {
-            PlayerEntity pl = Minecraft.getInstance().player;
+            Player pl = Minecraft.getInstance().player;
             if (pl == null) {
                 return scaleIn;
             }
@@ -114,25 +111,25 @@ public class EntityShootingStar extends ThrowableEntity {
 
         Vector3 thisPosition = Vector3.atEntityCorner(this);
         for (int i = 0; i < 4; i++) {
-            if (rand.nextFloat() > 0.75F) continue;
-            Vector3 dir = new Vector3(this.getMotion()).clone().multiply(rand.nextFloat() * -0.6F);
-            dir.setX(dir.getX() + rand.nextFloat() * 0.008 * (rand.nextBoolean() ? 1 : -1));
-            dir.setZ(dir.getZ() + rand.nextFloat() * 0.008 * (rand.nextBoolean() ? 1 : -1));
+            if (level().random.nextFloat() > 0.75F) continue;
+            Vector3 dir = new Vector3(this.getDeltaMovement()).clone().multiply(level().random.nextFloat() * -0.6F);
+            dir.setX(dir.getX() + level().random.nextFloat() * 0.008 * (level().random.nextBoolean() ? 1 : -1));
+            dir.setZ(dir.getZ() + level().random.nextFloat() * 0.008 * (level().random.nextBoolean() ? 1 : -1));
 
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(thisPosition)
                     .color(VFXColorFunction.WHITE)
                     .setMotion(dir)
                     .setAlphaMultiplier(0.85F)
-                    .setScaleMultiplier(1.2F + rand.nextFloat() * 0.5F)
+                    .setScaleMultiplier(1.2F + level().random.nextFloat() * 0.5F)
                     .scale(VFXScaleFunction.SHRINK.andThen(scaleFn))
                     .alpha(VFXAlphaFunction.FADE_OUT)
                     .renderOffset(renderFn)
-                    .setMaxAge(90 + rand.nextInt(40));
+                    .setMaxAge(90 + level().random.nextInt(40));
         }
 
-        float scale = 4F + rand.nextFloat() * 3F;
-        int age = 5 + rand.nextInt(2);
+        float scale = 4F + level().random.nextFloat() * 3F;
+        int age = 5 + level().random.nextInt(2);
         Random effectSeed = new Random(this.getEffectSeed());
 
         EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
@@ -154,22 +151,22 @@ public class EntityShootingStar extends ThrowableEntity {
     }
 
     @Override
-    public void setPosition(double x, double y, double z) {
-        int chunkX = MathHelper.floor(this.getPosX() / 16.0D);
-        int chunkZ = MathHelper.floor(this.getPosZ() / 16.0D);
-        int newChunkX = MathHelper.floor(x / 16.0D);
-        int newChunkZ = MathHelper.floor(z / 16.0D);
+    public void setPos(double x, double y, double z) {
+        int chunkX = Mth.floor(this.getX() / 16.0D);
+        int chunkZ = Mth.floor(this.getZ() / 16.0D);
+        int newChunkX = Mth.floor(x / 16.0D);
+        int newChunkZ = Mth.floor(z / 16.0D);
         if (chunkX != newChunkX || chunkZ != newChunkZ) {
-            if (!this.getEntityWorld().chunkExists(newChunkX, newChunkZ)) {
-                this.remove();
+            if (!this.level().hasChunk(newChunkX, newChunkZ)) {
+                this.discard();
                 return;
             }
         }
-        super.setPosition(x, y, z);
+        super.setPos(x, y, z);
     }
 
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public Packet<ClientGamePacketListener> getAddEntityPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 }

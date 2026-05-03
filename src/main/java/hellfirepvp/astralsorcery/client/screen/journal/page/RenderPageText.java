@@ -12,6 +12,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.util.RenderingDrawUtils;
 import hellfirepvp.astralsorcery.common.data.journal.JournalPage;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 
@@ -51,13 +52,13 @@ public class RenderPageText extends RenderablePage {
     }
 
     @Override
-    public void render(PoseStack renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
-        renderStack.pushPose();
-        renderStack.translate(x, y, z);
+    public void render(GuiGraphics renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
+        renderStack.pose().pushPose();
+        renderStack.pose().translate(x, y, z);
         for (FormattedCharSequence line : this.localizedText) {
             RenderingDrawUtils.renderStringAt(this.fontRenderer, renderStack, line, 0x00CCCCCC);
-            renderStack.translate(0, 10, 0);
+            renderStack.pose().translate(0, 10, 0);
         }
-        renderStack.popPose();
+        renderStack.pose().popPose();
     }
 }

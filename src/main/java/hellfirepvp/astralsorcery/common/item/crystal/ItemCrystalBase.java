@@ -89,7 +89,7 @@ public abstract class ItemCrystalBase extends Item implements CrystalAttributeGe
     @Override
     public Entity createEntity(Level level, Entity original, ItemStack stack) {
         EntityCrystal res = new EntityCrystal(
-                EntityTypesAS.ITEM_CRYSTAL,
+                EntityTypesAS.ITEM_CRYSTAL.get(),
                 level,
                 original.getX(),
                 original.getY(),

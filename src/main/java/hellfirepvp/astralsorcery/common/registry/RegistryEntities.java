@@ -34,6 +34,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
+import net.minecraftforge.registries.RegistryObject;
 
 import static hellfirepvp.astralsorcery.common.lib.EntityTypesAS.*;
 
@@ -98,8 +99,8 @@ public class RegistryEntities {
                         .setUpdateInterval(1)
                         .setShouldReceiveVelocityUpdates(true)
                         .setTrackingRange(16)
-                        .setCustomClientFactory((spawnEntity, world) -> new EntityItemHighlighted(ITEM_HIGHLIGHT, world))
-                        .size(0.25F, 0.25F));
+                        .setCustomClientFactory((spawnEntity, world) -> new EntityItemHighlighted(ITEM_HIGHLIGHT.get(), world))
+                        .sized(0.25F, 0.25F));
 
         ITEM_EXPLOSION_RESISTANT = ENTITY_TYPES.register("item_explosion_resistant", () ->
                 EntityType.Builder.<EntityItemExplosionResistant>of((type, level) ->
@@ -148,14 +149,10 @@ public class RegistryEntities {
         event.put(SPECTRAL_TOOL.get(), EntitySpectralTool.createAttributes().build());
     }
 
-    private static <E extends Entity> EntityType<E> register(String name, EntityType.Builder<E> builder) {
-        ResourceLocation id = AstralSorcery.key(name);
-
-        EntityType<E> type = builder.build(id.toString());
-
-        AstralSorcery.getProxy().getRegistryPrimer()
-                .register(EntityType.class, type, id);
-
-        return type;
+    private static <E extends Entity> RegistryObject<EntityType<E>> register(
+            String name,
+            EntityType.Builder<E> builder
+    ) {
+        return EntityTypesAS.ENTITY_TYPES.register(name, () -> builder.build(name));
     }
 }

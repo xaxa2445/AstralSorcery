@@ -14,10 +14,10 @@ import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraftforge.fml.network.IContainerFactory;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.BlockPos;
+import net.minecraftforge.network.IContainerFactory;
 
 import javax.annotation.Nonnull;
 
@@ -38,27 +38,27 @@ public class ContainerAltarConstellationProvider extends CustomContainerProvider
     }
 
     @Override
-    protected void writeExtraData(PacketBuffer buf) {
-        ByteBufUtils.writePos(buf, this.ta.getPos());
+    protected void writeExtraData(FriendlyByteBuf buf) {
+        ByteBufUtils.writePos(buf, this.ta.getBlockPos());
     }
 
     @Nonnull
     @Override
-    public ContainerAltarConstellation createMenu(int id, PlayerInventory plInventory, PlayerEntity player) {
+    public ContainerAltarConstellation createMenu(int id, Inventory plInventory, Player player) {
         return new ContainerAltarConstellation(ta, plInventory, id);
     }
 
-    private static ContainerAltarConstellation createFromPacket(int id, PlayerInventory plInventory, PacketBuffer data) {
+    private static ContainerAltarConstellation createFromPacket(int id, Inventory plInventory, FriendlyByteBuf data) {
         BlockPos at = ByteBufUtils.readPos(data);
-        PlayerEntity player = plInventory.player;
-        TileAltar ta = MiscUtils.getTileAt(player.getEntityWorld(), at, TileAltar.class, true);
+        Player player = plInventory.player;
+        TileAltar ta = MiscUtils.getTileAt(player.level(), at, TileAltar.class, true);
         return new ContainerAltarConstellation(ta, plInventory, id);
     }
 
     public static class Factory implements IContainerFactory<ContainerAltarConstellation> {
 
         @Override
-        public ContainerAltarConstellation create(int windowId, PlayerInventory inv, PacketBuffer data) {
+        public ContainerAltarConstellation create(int windowId, Inventory inv, FriendlyByteBuf data) {
             return ContainerAltarConstellationProvider.createFromPacket(windowId, inv, data);
         }
     }

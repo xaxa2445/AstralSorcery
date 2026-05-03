@@ -41,19 +41,20 @@ import hellfirepvp.astralsorcery.common.perk.tree.PerkTreePoint;
 import hellfirepvp.astralsorcery.common.registry.*;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.entity.player.AbstractClientPlayerEntity;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.renderer.entity.PlayerRenderer;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.resources.IReloadableResourceManager;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Unit;
+import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.resource.SelectiveReloadStateHandler;
-import net.minecraftforge.resource.VanillaResourceType;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -71,25 +72,24 @@ public class ClientProxy extends CommonProxy {
 
     private ClientConfig clientConfig;
 
+    @SubscribeEvent
+    public static void onRegisterReloadListeners(RegisterClientReloadListenersEvent event) {
+        event.registerReloadListener(AssetLibrary.INSTANCE);
+        event.registerReloadListener(AssetPreLoader.INSTANCE);
+        event.registerReloadListener(ColorizationHelper.onReload());
+
+        event.registerReloadListener((barrier, resourceManager, prepProfiler, reloadProfiler, backgroundExecutor, gameExecutor) ->
+                barrier.wait(Unit.INSTANCE).thenRunAsync(() -> {
+                    PerkTree.PERK_TREE.getPerkPoints(LogicalSide.CLIENT).stream()
+                            .map(PerkTreePoint::getPerk)
+                            .forEach(AbstractPerk::clearClientTextCaches);
+                }, gameExecutor)
+        );
+    }
+
     @Override
     public void initialize() {
         this.clientScheduler = new ClientScheduler();
-
-        if (!AstralSorcery.isDoingDataGeneration()) {
-            IReloadableResourceManager resMgr = (IReloadableResourceManager) Minecraft.getInstance().getResourceManager();
-            resMgr.addReloadListener(AssetLibrary.INSTANCE);
-            resMgr.addReloadListener(AssetPreLoader.INSTANCE);
-            resMgr.addReloadListener(ColorizationHelper.onReload());
-            resMgr.addReloadListener((stage, resourceManager, preparationsProfiler, reloadProfiler, backgroundExecutor, gameExecutor) ->
-                    stage.markCompleteAwaitingOthers(Unit.INSTANCE).thenRunAsync(() -> {
-                        if (!SelectiveReloadStateHandler.INSTANCE.get().test(VanillaResourceType.LANGUAGES)) {
-                            return;
-                        }
-                        PerkTree.PERK_TREE.getPerkPoints(LogicalSide.CLIENT).stream()
-                                .map(PerkTreePoint::getPerk)
-                                .forEach(AbstractPerk::clearClientTextCaches);
-                    }));
-        }
 
         this.clientConfig = new ClientConfig();
 
@@ -112,6 +112,7 @@ public class ClientProxy extends CommonProxy {
     public void attachLifecycle(IEventBus modEventBus) {
         super.attachLifecycle(modEventBus);
 
+        modEventBus.addListener(ClientProxy::onRegisterReloadListeners);
         modEventBus.addListener(RegistryItems::registerColors);
         modEventBus.addListener(RegistryBlocks::registerColors);
 
@@ -163,16 +164,16 @@ public class ClientProxy extends CommonProxy {
     }
 
     @Override
-    public void openGuiClient(GuiType type, CompoundNBT data) {
+    public void openGuiClient(GuiType type, CompoundTag data) {
         Screen toOpen = type.deserialize(data);
         if (toOpen != null) {
-            Minecraft.getInstance().displayGuiScreen(toOpen);
+            Minecraft.getInstance().setScreen(toOpen);
         }
     }
 
     @Override
-    public void openGui(PlayerEntity player, GuiType type, Object... data) {
-        if (player instanceof AbstractClientPlayerEntity) {
+    public void openGui(Player player, GuiType type, Object... data) {
+        if (player instanceof AbstractClientPlayer) {
             openGuiClient(type, type.serializeArguments(data));
             return;
         }
@@ -180,19 +181,24 @@ public class ClientProxy extends CommonProxy {
     }
 
     private void onClientSetup(FMLClientSetupEvent event) {
-        RegistryContainerTypes.initClient();
-        RegistryEntities.init();
-        RegistryTileEntities.initClient(); 
-        RegistryKeyBindings.init();
-        RegistryBlockRenderTypes.initBlocks();
-        RegistryBlockRenderTypes.initFluids();
-        RegistryItems.registerItemProperties();
+        event.enqueueWork(() -> {
+            RegistryContainerTypes.initClient();
+            RegistryEntities.init();
+            RegistryTileEntities.initClient();
+            RegistryKeyBindings.init();
+            RegistryBlockRenderTypes.initBlocks();
+            RegistryBlockRenderTypes.initFluids();
+            RegistryItems.registerItemProperties();
+        });
+    }
 
-        Map<String, PlayerRenderer> playerRenderMap = Minecraft.getInstance().getRenderManager().getSkinMap();
-        PlayerRenderer renderer = playerRenderMap.get("slim");
-        renderer.addLayer(new StarryLayerRenderer<>(renderer, true));
-        renderer = playerRenderMap.get("default");
-        renderer.addLayer(new StarryLayerRenderer<>(renderer, false));
+    // ⭐ REEMPLAZO de getRenderManager()
+    private void onAddLayers(EntityRenderersEvent.AddLayers event) {
+        for (String skin : event.getSkins()) {
+            PlayerRenderer renderer = event.getSkin(skin);
+            boolean slim = skin.equals("slim");
+            renderer.addLayer(new StarryLayerRenderer<>(renderer, event.getEntityModels(), slim));
+        }
     }
 
     private void addTomeBookmarks() {

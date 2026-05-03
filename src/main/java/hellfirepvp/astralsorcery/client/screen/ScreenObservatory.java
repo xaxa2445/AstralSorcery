@@ -9,8 +9,6 @@
 package hellfirepvp.astralsorcery.client.screen;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.screen.base.ConstellationDiscoveryScreen;
@@ -27,19 +25,23 @@ import hellfirepvp.astralsorcery.common.container.ContainerObservatory;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.event.EventFlags;
 import hellfirepvp.astralsorcery.common.tile.TileObservatory;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.IHasContainer;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.client.settings.PointOfView;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.client.CameraType;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.Tuple;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec2;
 import net.minecraftforge.fml.LogicalSide;
+import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
+import java.awt.geom.Rectangle2D;
 import java.util.List;
 import java.util.*;
 
@@ -50,33 +52,36 @@ import java.util.*;
  * Created by HellFirePvP
  * Date: 15.02.2020 / 18:27
  */
-public class ScreenObservatory extends TileConstellationDiscoveryScreen<TileObservatory, ConstellationDiscoveryScreen.DrawArea> implements IHasContainer<ContainerObservatory> {
+public class ScreenObservatory extends TileConstellationDiscoveryScreen<TileObservatory, ConstellationDiscoveryScreen.DrawArea> implements MenuAccess<ContainerObservatory> {
 
     private static final Random RAND = new Random();
     private static final int FRAME_TEXTURE_SIZE = 16;
 
     private static final int randomStars = 220;
-    private final List<Point.Float> usedStars = new ArrayList<>(randomStars);
+    private final List<net.minecraft.world.phys.Vec2> usedStars = new ArrayList<>(randomStars);
     private final ContainerObservatory container;
 
     public ScreenObservatory(ContainerObservatory container) {
         super(container.getTileEntity(),
-                Minecraft.getInstance().getMainWindow().getScaledHeight() - FRAME_TEXTURE_SIZE * 2,
-                Minecraft.getInstance().getMainWindow().getScaledWidth() - FRAME_TEXTURE_SIZE * 2);
+                Minecraft.getInstance().getWindow().getGuiScaledHeight() - FRAME_TEXTURE_SIZE * 2,
+                Minecraft.getInstance().getWindow().getGuiScaledWidth() - FRAME_TEXTURE_SIZE * 2);
         this.container = container;
 
-        PlayerEntity player = Minecraft.getInstance().player;
+        Player player = Minecraft.getInstance().player;
         if (player != null) {
             TileObservatory observatory = this.getTile();
-            player.rotationPitch     = observatory.observatoryPitch;
-            player.prevRotationPitch = observatory.prevObservatoryPitch;
-            player.rotationYaw       = observatory.observatoryYaw;
-            player.prevRotationYaw   = observatory.prevObservatoryYaw;
+            // Sincronización de rotación actual
+            player.setXRot(observatory.observatoryPitch);
+            player.setYRot(observatory.observatoryYaw);
+
+            // Sincronización de rotación previa para evitar el "flicker" de interpolación
+            player.xRotO = observatory.prevObservatoryPitch;
+            player.yRotO = observatory.prevObservatoryYaw;
         }
     }
 
     @Override
-    public ContainerObservatory getContainer() {
+    public ContainerObservatory getMenu() {
         return container;
     }
 
@@ -102,7 +107,11 @@ public class ScreenObservatory extends TileConstellationDiscoveryScreen<TileObse
         }
 
         for (int i = 0; i < randomStars; i++) {
-            usedStars.add(new Point.Float(FRAME_TEXTURE_SIZE + gen.nextFloat() * this.getGuiWidth(), FRAME_TEXTURE_SIZE + gen.nextFloat() * this.getGuiHeight()));
+            // Cambiamos 'new Point.Float' por 'new Vec2'
+            usedStars.add(new net.minecraft.world.phys.Vec2(
+                    FRAME_TEXTURE_SIZE + gen.nextFloat() * this.getGuiWidth(),
+                    FRAME_TEXTURE_SIZE + gen.nextFloat() * this.getGuiHeight()
+            ));
         }
     }
 
@@ -122,221 +131,157 @@ public class ScreenObservatory extends TileConstellationDiscoveryScreen<TileObse
     }
 
     @Override
-    public void closeScreen() {
+    public void onClose() {
         super.onClose();
-        EventFlags.GUI_CLOSING.executeWithFlag(() -> Minecraft.getInstance().player.onClose());
+        EventFlags.GUI_CLOSING.executeWithFlag(() -> Minecraft.getInstance().player.closeContainer());
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
+    public void render(GuiGraphics renderStack, int mouseX, int mouseY, float pTicks) {
         RenderSystem.enableDepthTest();
         super.render(renderStack, mouseX, mouseY, pTicks);
 
-        Minecraft.getInstance().gameSettings.setPointOfView(PointOfView.FIRST_PERSON);
+        Minecraft.getInstance().options.setCameraType(CameraType.FIRST_PERSON);
 
-        double guiFactor = Minecraft.getInstance().getMainWindow().getGuiScaleFactor();
+        double guiFactor = Minecraft.getInstance().getWindow().getGuiScale();
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor(MathHelper.floor((FRAME_TEXTURE_SIZE - 2) * guiFactor),
-                MathHelper.floor((FRAME_TEXTURE_SIZE - 2) * guiFactor),
-                MathHelper.floor((this.getGuiWidth() + 2) * guiFactor),
-                MathHelper.floor((this.getGuiHeight() + 2) * guiFactor));
+        GL11.glScissor(Mth.floor((FRAME_TEXTURE_SIZE - 2) * guiFactor),
+                Mth.floor((FRAME_TEXTURE_SIZE - 2) * guiFactor),
+                Mth.floor((this.getGuiWidth() + 2) * guiFactor),
+                Mth.floor((this.getGuiHeight() + 2) * guiFactor));
         this.drawObservatoryScreen(renderStack, pTicks);
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
 
         this.drawFrame(renderStack);
     }
 
-    private void drawObservatoryScreen(MatrixStack renderStack, float pTicks) {
-        boolean canSeeSky = this.canObserverSeeSky(this.getTile().getPos(), 2);
-        double guiFactor = Minecraft.getInstance().getMainWindow().getGuiScaleFactor();
-        float pitch = Minecraft.getInstance().player.getPitch(pTicks);
-        float angleOpacity = 0F;
-        if (pitch < -30F) {
-            angleOpacity = 1F;
-        } else if (pitch <= -9F) {
-            angleOpacity = 0.2F + 0.8F * ((Math.abs(pitch) - 10F) / 20F);
-            angleOpacity = MathHelper.sqrt(angleOpacity);
-        }
+    private void drawObservatoryScreen(GuiGraphics guiGraphics, float pTicks) {
+        boolean canSeeSky = this.canObserverSeeSky(this.getTile().getBlockPos(), 2);
+        float pitch = Minecraft.getInstance().player.getViewXRot(pTicks);
+        float angleOpacity = pitch < -30F ? 1F : (pitch <= -9F ? Mth.sqrt(0.2F + 0.8F * ((Math.abs(pitch) - 10F) / 20F)) : 0F);
         float brMultiplier = angleOpacity;
 
-        RenderSystem.disableAlphaTest();
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
 
-        this.setBlitOffset(-10);
-        this.drawSkyBackground(renderStack, pTicks, canSeeSky, angleOpacity);
+        this.drawSkyBackground(guiGraphics, pTicks, canSeeSky, angleOpacity);
 
         if (!this.isInitialized()) {
-            this.setBlitOffset(0);
-
-            Blending.DEFAULT.apply();
             RenderSystem.disableBlend();
-            RenderSystem.enableAlphaTest();
             return;
         }
 
-        float playerYaw = Minecraft.getInstance().player.rotationYaw % 360F;
-        if (playerYaw < 0) {
-            playerYaw += 360F;
-        }
-        if (playerYaw >= 180F) {
-            playerYaw -= 360F;
-        }
-        float playerPitch = Minecraft.getInstance().player.rotationPitch;
-        float rainBr = 1F - Minecraft.getInstance().world.getRainStrength(pTicks);
+        float playerYaw = Minecraft.getInstance().player.getYRot() % 360F;
+        if (playerYaw < 0) playerYaw += 360F;
+        if (playerYaw >= 180F) playerYaw -= 360F;
 
-        WorldContext ctx = SkyHandler.getContext(Minecraft.getInstance().world, LogicalSide.CLIENT);
+        float playerPitch = Minecraft.getInstance().player.getXRot();
+        float rainBr = 1F - Minecraft.getInstance().level.getRainLevel(pTicks);
+
+        WorldContext ctx = SkyHandler.getContext(Minecraft.getInstance().level, LogicalSide.CLIENT);
         if (ctx != null && canSeeSky) {
             Random gen = ctx.getDayRandom();
 
-            this.setBlitOffset(-9);
             TexturesAS.TEX_STAR_1.bindTexture();
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-                for (Point.Float star : usedStars) {
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+                for (Vec2 star : usedStars) {
                     float size = 3 + gen.nextFloat() * 3F;
-                    float brightness = 0.4F + (RenderingConstellationUtils.stdFlicker(ClientScheduler.getClientTick(), pTicks, 10 + gen.nextInt(20))) * 0.5F;
-                    brightness = this.multiplyStarBrightness(pTicks, brightness);
-                    brightness *= brMultiplier;
+                    float brightness = (0.4F + (RenderingConstellationUtils.stdFlicker(ClientScheduler.getClientTick(), pTicks, 10 + gen.nextInt(20))) * 0.5F) * this.multiplyStarBrightness(pTicks, 1.0F) * brMultiplier;
 
-                    RenderingGuiUtils.rect(buf, renderStack, this)
-                            .at(FRAME_TEXTURE_SIZE + star.x, FRAME_TEXTURE_SIZE + star.y)
-                            .dim(size, size)
+                    RenderingGuiUtils.rect(buf, guiGraphics.pose().last().pose(), FRAME_TEXTURE_SIZE + star.x, FRAME_TEXTURE_SIZE + star.y, 0, size, size)
                             .color(brightness, brightness, brightness, brightness)
                             .draw();
                 }
             });
 
-            this.setBlitOffset(-7);
             for (DrawArea area : this.getVisibleDrawAreas()) {
                 for (IConstellation cst : area.getDisplayMap().keySet()) {
                     ConstellationDisplayInformation info = area.getDisplayMap().get(cst);
                     info.getFrameDrawInformation().clear();
-                    if (!(info instanceof PlayerAngledConstellationInformation)) {
-                        continue;
-                    }
-                    PlayerAngledConstellationInformation cstInfo = (PlayerAngledConstellationInformation) info;
+                    if (!(info instanceof PlayerAngledConstellationInformation cstInfo)) continue;
+
                     float size = cstInfo.getRenderSize();
                     float diffYaw = playerYaw - cstInfo.getYaw();
                     float diffPitch = playerPitch - cstInfo.getPitch();
 
-                    if ((Math.abs(diffYaw) <= size || Math.abs(diffYaw += 360F) <= size) &&
-                            Math.abs(diffPitch) <= size) {
-                        int wPart = MathHelper.floor(this.getGuiWidth() * 0.1F);
-                        int hPart = MathHelper.floor(this.getGuiHeight() * 0.1F);
-                        float xFactor = diffYaw   / 8F;
+                    if ((Math.abs(diffYaw) <= size || Math.abs(diffYaw += 360F) <= size) && Math.abs(diffPitch) <= size) {
+                        float xFactor = diffYaw / 8F;
                         float yFactor = diffPitch / 8F;
 
-                        Map<StarLocation, Rectangle.Float> cstRenderInfo = RenderingConstellationUtils.renderConstellationIntoGUI(
-                                cst, renderStack,
-                                this.getGuiLeft() + wPart + MathHelper.floor((xFactor / guiFactor) * this.getGuiWidth()),
-                                this.getGuiTop() + hPart + MathHelper.floor((yFactor / guiFactor) * this.getGuiHeight()),
-                                this.getGuiZLevel(),
-                                MathHelper.floor(this.getGuiHeight() * 0.6F),
-                                MathHelper.floor(this.getGuiHeight() * 0.6F),
+                        Map<StarLocation, Rectangle2D.Float> cstRenderInfo = RenderingConstellationUtils.renderConstellationIntoGUI(
+                                cst, guiGraphics.pose(),
+                                (int) (getGuiLeft() + (getGuiWidth() * 0.1F) + (xFactor * getGuiWidth())),
+                                (int) (getGuiTop() + (getGuiHeight() * 0.1F) + (yFactor * getGuiHeight())),
+                                0,
+                                (int) (getGuiHeight() * 0.6F),
+                                (int) (getGuiHeight() * 0.6F),
                                 2F,
                                 () -> (0.2F + 0.7F * RenderingConstellationUtils.conCFlicker(ClientScheduler.getClientTick(), pTicks, 5 + gen.nextInt(15)) * rainBr) * brMultiplier,
                                 ResearchHelper.getClientProgress().hasConstellationDiscovered(cst),
                                 true
                         );
-
                         cstInfo.getFrameDrawInformation().putAll(cstRenderInfo);
                     }
                 }
             }
-
-            this.setBlitOffset(-5);
-            this.renderDrawnLines(renderStack, gen, pTicks);
+            this.renderDrawnLines(guiGraphics, gen, pTicks);
         }
-
-        this.setBlitOffset(0);
-        Blending.DEFAULT.apply();
         RenderSystem.disableBlend();
-        RenderSystem.enableAlphaTest();
     }
 
-    private void drawFrame(MatrixStack renderStack) {
-        this.setBlitOffset(10);
+    private void drawFrame(GuiGraphics guiGraphics) {
         TexturesAS.TEX_GUI_OBSERVATORY.bindTexture();
+        Matrix4f mat = guiGraphics.pose().last().pose();
 
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            Matrix4f offset = renderStack.getLast().getMatrix();
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(0, 0).dim(FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE)
-                    .tex(0, 0, 8F / 20F, 8F / 20F).draw();
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(this.getGuiWidth() + FRAME_TEXTURE_SIZE, 0).dim(FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE)
-                    .tex(8F / 20F, 0, 8F / 20F, 8F / 20F).draw();
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(this.getGuiWidth() + FRAME_TEXTURE_SIZE, this.getGuiHeight() + FRAME_TEXTURE_SIZE).dim(FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE)
-                    .tex(8F / 20F, 8F / 20F, 8F / 20F, 8F / 20F).draw();
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(0, this.getGuiHeight() + FRAME_TEXTURE_SIZE).dim(FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE)
-                    .tex(0, 8F / 20F, 8F / 20F, 8F / 20F).draw();
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            // Esquinas
+            RenderingGuiUtils.rect(buf, mat, 0, 0, 0, FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE).tex(0, 0, 0.4F, 0.4F).draw();
+            RenderingGuiUtils.rect(buf, mat, getGuiWidth() + FRAME_TEXTURE_SIZE, 0, 0, FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE).tex(0.4F, 0, 0.4F, 0.4F).draw();
+            RenderingGuiUtils.rect(buf, mat, getGuiWidth() + FRAME_TEXTURE_SIZE, getGuiHeight() + FRAME_TEXTURE_SIZE, 0, FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE).tex(0.4F, 0.4F, 0.4F, 0.4F).draw();
+            RenderingGuiUtils.rect(buf, mat, 0, getGuiHeight() + FRAME_TEXTURE_SIZE, 0, FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE).tex(0, 0.4F, 0.4F, 0.4F).draw();
 
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(FRAME_TEXTURE_SIZE, 0).dim(this.getGuiWidth(), FRAME_TEXTURE_SIZE)
-                    .tex(16F / 20F, 0, 1F / 20F, 8F / 20F).draw();
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(this.getGuiWidth() + FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE).dim(FRAME_TEXTURE_SIZE, this.getGuiHeight())
-                    .tex(0, 17F / 20F, 8F / 20F, 1F / 20F).draw();
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(FRAME_TEXTURE_SIZE, this.getGuiHeight() + FRAME_TEXTURE_SIZE).dim(this.getGuiWidth(), FRAME_TEXTURE_SIZE)
-                    .tex(17F / 20F, 0, 1F / 20F, 8F / 20F).draw();
-            RenderingGuiUtils.rect(buf, renderStack, this)
-                    .at(0, FRAME_TEXTURE_SIZE).dim(FRAME_TEXTURE_SIZE, this.getGuiHeight())
-                    .tex(0, 16F / 20F, 8F / 20F, 1F / 20F).draw();
+            // Bordes (con UVs ajustados para repetir correctamente la textura del marco)
+            RenderingGuiUtils.rect(buf, mat, FRAME_TEXTURE_SIZE, 0, 0, getGuiWidth(), FRAME_TEXTURE_SIZE).tex(0.8F, 0, 0.05F, 0.4F).draw();
+            RenderingGuiUtils.rect(buf, mat, getGuiWidth() + FRAME_TEXTURE_SIZE, FRAME_TEXTURE_SIZE, 0, FRAME_TEXTURE_SIZE, getGuiHeight()).tex(0, 0.85F, 0.4F, 0.05F).draw();
+            RenderingGuiUtils.rect(buf, mat, FRAME_TEXTURE_SIZE, getGuiHeight() + FRAME_TEXTURE_SIZE, 0, getGuiWidth(), FRAME_TEXTURE_SIZE).tex(0.85F, 0, 0.05F, 0.4F).draw();
+            RenderingGuiUtils.rect(buf, mat, 0, FRAME_TEXTURE_SIZE, 0, FRAME_TEXTURE_SIZE, getGuiHeight()).tex(0, 0.8F, 0.4F, 0.05F).draw();
         });
-        this.setBlitOffset(0);
     }
 
-    private void drawSkyBackground(MatrixStack renderStack, float pTicks, boolean canSeeSky, float angleOpacity) {
-        Tuple<Color, Color> rgbFromTo = SkyScreen.getSkyGradient(canSeeSky, angleOpacity, pTicks);
-        RenderingDrawUtils.drawGradientRect(renderStack, this.getGuiZLevel(),
-                this.guiLeft, this.guiTop,
-                this.guiLeft + this.guiWidth, this.guiTop + this.guiHeight,
-                rgbFromTo.getA().getRGB(), rgbFromTo.getB().getRGB());
+    private void drawSkyBackground(GuiGraphics guiGraphics, float pTicks, boolean canSeeSky, float angleOpacity) {
+        var rgbFromTo = SkyScreen.getSkyGradient(canSeeSky, angleOpacity, pTicks);
+
+        // Llamada corregida siguiendo el orden de la imagen:
+        RenderingDrawUtils.drawGradientRect(
+                guiGraphics.pose(),               // PoseStack renderStack
+                0.0F,                            // float zLevel (Fondo)
+                (float) getGuiLeft(),            // float left
+                (float) getGuiTop(),             // float top
+                (float) (getGuiLeft() + getGuiWidth()),  // float right
+                (float) (getGuiTop() + getGuiHeight()),   // float bottom
+                rgbFromTo.getA().getRGB(),       // int startColor
+                rgbFromTo.getB().getRGB()        // int endColor
+        );
     }
 
     @Override
     public void mouseMoved(double xPos, double yPos) {
-        if (!Minecraft.getInstance().mouseHelper.isMouseGrabbed()) {
+        if (!Minecraft.getInstance().mouseHandler.isMouseGrabbed()) {
             return;
         }
 
-        int offsetX = 6, offsetY = 6;
-        int width = guiWidth - 12, height = guiHeight - 12;
-
         Minecraft mc = Minecraft.getInstance();
-        double xDiff = mc.mouseHelper.getMouseX() - (xPos / ((double) mc.getMainWindow().getScaledWidth()  / mc.getMainWindow().getWidth()));
-        double yDiff = mc.mouseHelper.getMouseY() - (yPos / ((double) mc.getMainWindow().getScaledHeight() / mc.getMainWindow().getHeight()));
+        double xDiff = mc.mouseHandler.getXVelocity(); // Usamos los deltas acumulados en lugar de calcular manual
+        double yDiff = mc.mouseHandler.getYVelocity();
 
-        float pitch = Minecraft.getInstance().player.rotationPitch;
-        if (pitch <= -89.99F && yDiff > 0) {
-            yDiff = 0;
-        }
-        if (pitch >= -10F) {
-            Minecraft.getInstance().player.rotationPitch = -10F;
-            yDiff = 0;
-        }
-        if (pitch <= -75F) {
-            Minecraft.getInstance().player.rotationPitch = -75F;
-            yDiff = 0;
-        }
-
-        for (Point.Float sl : usedStars) {
-            sl.x -= xDiff;
-            sl.y += yDiff;
-
-            if (sl.x < offsetX) {
-                sl.x += width;
-            } else if (sl.x > (offsetX + width)) {
-                sl.x -= width;
-            }
-            if (sl.y < offsetY) {
-                sl.y += height;
-            } else if (sl.y > (offsetY + height)) {
-                sl.y -= height;
-            }
+        for (Vec2 sl : usedStars) {
+            float newX = (float) (sl.x - xDiff);
+            float newY = (float) (sl.y + yDiff);
+            // Lógica de wrap-around para las estrellas aleatorias
+            if (newX < 6) newX += (getGuiWidth() - 12);
+            else if (newX > (getGuiWidth() - 6)) newX -= (getGuiWidth() - 12);
+            if (newY < 6) newY += (getGuiHeight() - 12);
+            else if (newY > (getGuiHeight() - 6)) newY -= (getGuiHeight() - 12);
         }
     }
 

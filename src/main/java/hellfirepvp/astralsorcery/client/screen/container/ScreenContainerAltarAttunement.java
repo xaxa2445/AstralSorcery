@@ -8,18 +8,17 @@
 
 package hellfirepvp.astralsorcery.client.screen.container;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
+
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
 import hellfirepvp.astralsorcery.client.screen.base.ScreenContainerAltar;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarAttunement;
 import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipe;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,7 +29,7 @@ import net.minecraft.util.text.ITextComponent;
  */
 public class ScreenContainerAltarAttunement extends ScreenContainerAltar<ContainerAltarAttunement> {
 
-    public ScreenContainerAltarAttunement(ContainerAltarAttunement screenContainer, PlayerInventory inv, ITextComponent name) {
+    public ScreenContainerAltarAttunement(ContainerAltarAttunement screenContainer, Inventory inv, Component name) {
         super(screenContainer, inv, name, 256, 202);
     }
 
@@ -40,22 +39,27 @@ public class ScreenContainerAltarAttunement extends ScreenContainerAltar<Contain
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(MatrixStack renderStack, int mouseX, int mouseY) {
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        // Reemplaza a drawGuiContainerForegroundLayer en 1.20.1
         SimpleAltarRecipe recipe = this.findRecipe(false);
         if (recipe != null) {
-            ItemStack out = recipe.getOutputForRender(this.getContainer().getTileEntity().getInventory());
-            renderStack.push();
-            renderStack.translate(190, 35, 0);
-            renderStack.scale(2.5F, 2.5F, 1F);
+            ItemStack out = recipe.getOutputForRender(this.getMenu().getTileEntity().getInventory());
 
-            RenderingUtils.renderItemStackGUI(renderStack, out, null);
+            guiGraphics.pose().pushPose();
+            // Ajuste de posición y escala para la previsualización del ítem de salida
+            guiGraphics.pose().translate(190, 35, 0);
+            guiGraphics.pose().scale(2.5F, 2.5F, 2.5F);
 
-            renderStack.pop();
+            // Uso del sistema de renderizado de ítems con PoseStack
+            RenderingUtils.renderItemStackGUI(guiGraphics, out, null);
+
+            guiGraphics.pose().popPose();
         }
     }
 
     @Override
-    public void renderGuiBackground(MatrixStack renderStack, float partialTicks, int mouseX, int mouseY) {
-        this.renderStarlightBar(renderStack, 11, 104, 232, 10);
+    public void renderGuiBackground(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
+        // Renderizado de la barra de Starlight con las coordenadas del Altar nivel 2
+        this.renderStarlightBar(guiGraphics, 11, 104, 232, 10);
     }
 }

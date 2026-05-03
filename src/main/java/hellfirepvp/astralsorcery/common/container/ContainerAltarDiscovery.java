@@ -11,10 +11,10 @@ package hellfirepvp.astralsorcery.common.container;
 import hellfirepvp.astralsorcery.common.lib.ContainerTypesAS;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.tile.TileInventory;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.inventory.container.Slot;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.SlotItemHandler;
 
 import java.util.Optional;
@@ -28,19 +28,21 @@ import java.util.Optional;
  */
 public class ContainerAltarDiscovery extends ContainerAltarBase {
 
-    public ContainerAltarDiscovery(TileAltar altar, PlayerInventory inv, int windowId) {
+    public ContainerAltarDiscovery(int windowId, Inventory inv, TileAltar altar) {
         super(altar, ContainerTypesAS.ALTAR_DISCOVERY, inv, windowId);
     }
 
     @Override
-    void bindPlayerInventory(PlayerInventory plInventory) {
+    protected void bindPlayerInventory(Inventory plInventory) {
+        // Inventario principal (3 filas)
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 9; j++) {
-                addSlot(new Slot(plInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
+                this.addSlot(new Slot(plInventory, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));
             }
         }
+        // Hotbar (1 fila)
         for (int i = 0; i < 9; i++) {
-            addSlot(new Slot(plInventory, i, 8 + i * 18, 142));
+            this.addSlot(new Slot(plInventory, i, 8 + i * 18, 142));
         }
     }
 
@@ -58,7 +60,8 @@ public class ContainerAltarDiscovery extends ContainerAltarBase {
     }
 
     @Override
-    Optional<ItemStack> handleCustomTransfer(PlayerEntity player, int index) {
+    protected Optional<ItemStack> handleCustomTransfer(Player player, int index) {
+        // getHeldItem -> getItemInHand o similar según la lógica de transferencia
         return Optional.empty();
     }
 

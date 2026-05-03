@@ -60,7 +60,7 @@ public class ItemColoredLensBreak extends ItemColoredLens {
 
             boolean ranOnce = executor.executeAll(() -> {
                 BlockBreakHelper.addProgress(world, pos, 0.4F, () -> {
-                    float hardness = state.getDestroyProgress(world, pos);
+                    float hardness = state.getDestroyProgress(null, world, pos);
                     if (hardness < 0) {
                         return null;
                     }

@@ -20,10 +20,9 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Entity;
+import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.DimensionType;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
 
@@ -56,27 +55,34 @@ public class LightbeamRenderHelper implements ITickHandler {
         ticksExisted++;
         if (ticksExisted % 48 == 0) {
             ticksExisted = 0;
-            Entity rView = Minecraft.getInstance().getRenderViewEntity();
-            if (rView == null) {
-                rView = Minecraft.getInstance().player;
-            }
-            if (rView != null) {
-                Entity renderView = rView;
-                RegistryKey<World> dimKey = renderView.getEntityWorld().getDimensionKey();
 
+            // rView puede ser nulo si no hay mundo cargado
+            Entity renderView = Minecraft.getInstance().cameraEntity;
+            if (renderView == null) {
+                renderView = Minecraft.getInstance().player;
+            }
+
+            if (renderView != null && renderView.level() != null) {
+                Level world = renderView.level();
+                // getDimensionKey() -> dimension()
+                ResourceKey<Level> dimKey = world.dimension();
+
+                Entity finalRenderView = renderView;
                 SyncDataHolder.executeClient(SyncDataHolder.DATA_LIGHT_CONNECTIONS, ClientLightConnections.class, (data) -> {
                     for (Map.Entry<BlockPos, Set<BlockPos>> entry : data.getClientConnections(dimKey).entrySet()) {
 
                         BlockPos at = entry.getKey();
-                        if (renderView.getDistanceSq(at.getX(), at.getY(), at.getZ()) <= RenderingConfig.CONFIG.getMaxEffectRenderDistanceSq()) {
+                        // getDistanceSq -> distanceToSqr
+                        if (finalRenderView.distanceToSqr(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5) <= RenderingConfig.CONFIG.getMaxEffectRenderDistanceSq()) {
                             Vector3 source = new Vector3(at).add(0.5, 0.5, 0.5);
                             Color overlay = null;
-                            TileLens lens = MiscUtils.getTileAt(renderView.getEntityWorld(), at, TileLens.class, true);
-                            if (lens != null) {
-                                if (lens.getColorType() != null) {
-                                    overlay = lens.getColorType().getColor();
-                                }
+
+                            // MiscUtils debe estar actualizado para manejar Level en 1.20.1
+                            TileLens lens = MiscUtils.getTileAt(world, at, TileLens.class, true);
+                            if (lens != null && lens.getColorType() != null) {
+                                overlay = lens.getColorType().getColor();
                             }
+
                             for (BlockPos dst : entry.getValue()) {
                                 Vector3 to = new Vector3(dst).add(0.5, 0.5, 0.5);
                                 FXLightbeam beam = EffectHelper.of(EffectTemplatesAS.LIGHTBEAM_TRANSFER)

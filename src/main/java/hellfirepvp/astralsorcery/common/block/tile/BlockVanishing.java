@@ -8,27 +8,29 @@
 
 package hellfirepvp.astralsorcery.common.block.tile;
 
+import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.TileVanishing;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.ContainerBlock;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntitySpawnPlacementRegistry;
-import net.minecraft.entity.EntityType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.EntityCollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.util.Random;
 
 /**
@@ -38,45 +40,56 @@ import java.util.Random;
  * Created by HellFirePvP
  * Date: 11.03.2020 / 21:15
  */
-public class BlockVanishing extends ContainerBlock {
+public class BlockVanishing extends BaseEntityBlock {
 
     public BlockVanishing() {
-        super(Properties.create(Material.BARRIER, MaterialColor.AIR)
-                .hardnessAndResistance(-1F, 3600000.0F)
-                .sound(SoundType.METAL));
+        // En 1.20.1, Material desaparece; se usa mapColor y propiedades directas.
+        super(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.NONE)
+                .strength(-1.0F, 3600000.0F)
+                .sound(SoundType.METAL)
+                .noOcclusion());
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, World world, BlockPos pos, Random random) {
+    public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
+        // Random -> RandomSource en 1.20.1
     }
 
     @Override
-    public boolean canEntityDestroy(BlockState state, IBlockReader world, BlockPos pos, Entity entity) {
+    public boolean canEntityDestroy(BlockState state, BlockGetter level, BlockPos pos, Entity entity) {
+        return false;
+    }
+
+    // canCreatureSpawn fue reemplazado por isValidSpawn en las propiedades del bloque o via Tags
+    @Override
+    public boolean isValidSpawn(BlockState state, BlockGetter level, BlockPos pos, net.minecraft.world.entity.SpawnPlacements.Type type, EntityType<?> entityType) {
         return false;
     }
 
     @Override
-    public boolean canCreatureSpawn(BlockState state, IBlockReader world, BlockPos pos, EntitySpawnPlacementRegistry.PlacementType type, @Nullable EntityType<?> entityType) {
-        return false;
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return Shapes.empty(); // VoxelShapes.empty() -> Shapes.empty()
     }
 
     @Override
-    public VoxelShape getShape(BlockState p_220053_1_, IBlockReader p_220053_2_, BlockPos p_220053_3_, ISelectionContext p_220053_4_) {
-        return VoxelShapes.empty();
-    }
-
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, IBlockReader world, BlockPos pos, ISelectionContext ctx) {
-        if (ctx.getEntity() instanceof PlayerEntity) {
-            return VoxelShapes.fullCube();
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        // En 1.20.1 usamos EntityCollisionContext para detectar al jugador de forma segura
+        if (context instanceof EntityCollisionContext entityContext && entityContext.getEntity() instanceof Player) {
+            return Shapes.block(); // VoxelShapes.fullCube() -> Shapes.block()
         }
-        return VoxelShapes.empty();
+        return Shapes.empty();
+    }
+
+    @Override
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.INVISIBLE;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TileVanishing();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        // createNewTileEntity -> newBlockEntity
+        return TileEntityTypesAS.VANISHING.create(pos, state);
     }
 }

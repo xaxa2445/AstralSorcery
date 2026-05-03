@@ -28,6 +28,9 @@ import org.lwjgl.opengl.GL11;
 public class RenderStateBuilder extends RenderStateShard {
 
     private final RenderType.CompositeState.CompositeStateBuilder builder;
+    public static final TransparencyStateShard AS_TRANSLUCENT = TRANSLUCENT_TRANSPARENCY;
+    public static final ShaderStateShard ENTITY_TRANSLUCENT = RENDERTYPE_ENTITY_TRANSLUCENT_SHADER;
+    public static final ShaderStateShard POS_COLOR_SHADER = POSITION_COLOR_SHADER;
 
     // Constructor privado corregido para 1.20.1
     private RenderStateBuilder(RenderType.CompositeState.CompositeStateBuilder builder) {
@@ -91,6 +94,21 @@ public class RenderStateBuilder extends RenderStateShard {
 
     public RenderStateBuilder shader(RenderStateShard.ShaderStateShard shader) {
         this.builder.setShaderState(shader);
+        return this;
+    }
+
+    public RenderStateBuilder transparency(RenderStateShard.TransparencyStateShard transparencyState) {
+        this.builder.setTransparencyState(transparencyState);
+        return this;
+    }
+
+    public RenderStateBuilder positionColorShader() {
+        this.builder.setShaderState(POSITION_COLOR_SHADER);
+        return this;
+    }
+
+    public RenderStateBuilder positionColorTexShader() {
+        this.builder.setShaderState(POSITION_COLOR_TEX_SHADER);
         return this;
     }
 

@@ -26,12 +26,13 @@ import hellfirepvp.astralsorcery.common.util.MapStream;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.DyeColor;
-import net.minecraft.util.Hand;
+import net.minecraft.client.Options;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -66,9 +67,9 @@ public class GatewayInteractionHandler {
     }
 
     private static void onAccessRevoke(PlayerInteractEvent.RightClickBlock event) {
-        PlayerEntity player = event.getPlayer();
-        World world = event.getWorld();
-        if (player == null || world == null || !world.isRemote() || event.getHand() != Hand.MAIN_HAND) {
+        Player player = event.getEntity();
+        Level world = event.getLevel();
+        if (player == null || world == null || !world.isClientSide() || event.getHand() != InteractionHand.MAIN_HAND) {
             return;
         }
         GatewayUI ui = GatewayUIRenderHandler.getInstance().getCurrentUI();
@@ -87,20 +88,20 @@ public class GatewayInteractionHandler {
         BlockPos clickedPos = event.getPos();
         MapStream.of(node.getAllowedUsers())
                 .filter(tpl -> TileCelestialGateway.getAllowedUserOffset(tpl.getA())
-                        .add(node.getPos())
-                        .down()
+                        .offset(node.getPos())
+                        .below()
                         .equals(clickedPos))
                 .findAny()
                 .map(Tuple::getB)
                 .ifPresent(playerRef -> {
-                    PktRevokeGatewayAccess pkt = new PktRevokeGatewayAccess(world.getDimensionKey(), gateway.getPos(), playerRef.getPlayerUUID());
+                    PktRevokeGatewayAccess pkt = new PktRevokeGatewayAccess(world.dimension(), gateway.getBlockPos(), playerRef.getPlayerUUID());
                     PacketChannel.CHANNEL.sendToServer(pkt);
                 });
     }
 
     private static void clientTick(TickEvent.ClientTickEvent event) {
-        PlayerEntity player = Minecraft.getInstance().player;
-        World world = Minecraft.getInstance().world;
+        Player player = Minecraft.getInstance().player;
+        Level world = Minecraft.getInstance().level;
         if (player == null || world == null) {
             focusingEntry = null;
             focusTicks = 0;
@@ -122,15 +123,15 @@ public class GatewayInteractionHandler {
         }
 
         GatewayUI.GatewayEntry entry = GatewayUIRenderHandler.getInstance().
-                findMatchingEntry(MathHelper.wrapDegrees(player.rotationYaw), MathHelper.wrapDegrees(player.rotationPitch));
+                findMatchingEntry(Mth.wrapDegrees(player.getYRot()), Mth.wrapDegrees(player.getXRot()));
         if (entry == null) {
             focusingEntry = null;
             focusTicks = 0;
             return;
         }
 
-        if (!Minecraft.getInstance().gameSettings.keyBindUseItem.isKeyDown() &&
-                !Minecraft.getInstance().gameSettings.keyBindSneak.isKeyDown()) {
+        Options settings = Minecraft.getInstance().options; // gameSettings -> options
+        if (!settings.keyUse.isDown() && !settings.keyShift.isDown()) {
             focusingEntry = null;
             focusTicks = 0;
             return;
@@ -207,7 +208,7 @@ public class GatewayInteractionHandler {
         }
 
         if (focusTicks > 95) {
-            Minecraft.getInstance().player.setSneaking(false);
+            Minecraft.getInstance().player.setShiftKeyDown(false);
             PktRequestTeleport pkt = new PktRequestTeleport(focusingEntry.getNodeDimension(), focusingEntry.getNode().getPos());
             PacketChannel.CHANNEL.sendToServer(pkt);
             focusingEntry = null;
@@ -222,7 +223,7 @@ public class GatewayInteractionHandler {
         }
 
         if (event.phase == TickEvent.Phase.START) {
-            fovPre = Minecraft.getInstance().gameSettings.fov;
+            fovPre = Minecraft.getInstance().options.fov().get();
             if(focusTicks < 80) {
                 return;
             }
@@ -230,9 +231,9 @@ public class GatewayInteractionHandler {
             percDone = (float) Math.pow(percDone, 2.4F);
             float targetFov = 10F;
             double diff = fovPre - targetFov;
-            Minecraft.getInstance().gameSettings.fov = Math.max(targetFov, targetFov + diff * percDone);
+            Minecraft.getInstance().options.fov().set((int) Math.max(targetFov, targetFov + diff * percDone));
         } else {
-            Minecraft.getInstance().gameSettings.fov = fovPre;
+            Minecraft.getInstance().options.fov().set((int) fovPre);
         }
     }
 }

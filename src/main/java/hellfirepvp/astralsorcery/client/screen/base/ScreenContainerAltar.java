@@ -8,8 +8,9 @@
 
 package hellfirepvp.astralsorcery.client.screen.base;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.lib.SpritesAS;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.SpriteSheetResource;
@@ -21,10 +22,10 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipeContext
 import hellfirepvp.astralsorcery.common.lib.RecipeTypesAS;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraftforge.fml.LogicalSide;
 import org.lwjgl.opengl.GL11;
 
@@ -40,32 +41,36 @@ import java.awt.*;
  */
 public abstract class ScreenContainerAltar<T extends ContainerAltarBase> extends ScreenCustomContainer<T> {
 
-    public ScreenContainerAltar(T screenContainer, PlayerInventory inv, ITextComponent name, int width, int height) {
+    public ScreenContainerAltar(T screenContainer, Inventory inv, Component name, int width, int height) {
         super(screenContainer, inv, name, width, height);
     }
 
     @Nullable
     public SimpleAltarRecipe findRecipe(boolean ignoreStarlightRequirement) {
-        TileAltar ta = getContainer().getTileEntity();
+        // En 1.20.1 se usa getMenu() en lugar de getContainer()
+        TileAltar ta = this.getMenu().getTileEntity();
         return RecipeTypesAS.TYPE_ALTAR.findRecipe(new SimpleAltarRecipeContext(Minecraft.getInstance().player, LogicalSide.CLIENT, ta)
                 .setIgnoreStarlightRequirement(ignoreStarlightRequirement));
     }
 
     @Override
-    protected void drawGuiContainerBackgroundLayer(MatrixStack renderStack, float partialTicks, int mouseX, int mouseY) {
+    protected void renderBg(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
         RenderSystem.enableDepthTest();
-        this.renderGuiBackground(renderStack, partialTicks, mouseX, mouseY);
-        super.drawGuiContainerBackgroundLayer(renderStack, partialTicks, mouseX, mouseY);
+        // Llamamos al renderizado de fondo específico del altar (como la barra de luz)
+        this.renderGuiBackground(guiGraphics, partialTicks, mouseX, mouseY);
+        // Llamamos al renderizado de fondo base (textura principal)
+        super.renderBg(guiGraphics, partialTicks, mouseX, mouseY);
     }
 
-    protected void renderStarlightBar(MatrixStack renderStack, int offsetX, int offsetZ, int width, int height) {
-        TileAltar altar = this.getContainer().getTileEntity();
+    protected void renderStarlightBar(GuiGraphics guiGraphics, int offsetX, int offsetZ, int width, int height) {
+        TileAltar altar = this.getMenu().getTileEntity();
 
-        RenderSystem.disableAlphaTest();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 
+        // 1. Dibujar fondo negro de la barra
         TexturesAS.TEX_BLACK.bindTexture();
-        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-            RenderingGuiUtils.rect(buf, renderStack, guiLeft + offsetX, guiTop + offsetZ, this.getBlitOffset(), width, height)
+        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+            RenderingGuiUtils.rect(buf, guiGraphics.pose().last().pose(), this.leftPos + offsetX, this.topPos + offsetZ, 0, width, height)
                     .draw();
         });
 
@@ -84,14 +89,22 @@ public abstract class ScreenContainerAltar<T extends ContainerAltarBase> extends
             spriteStarlight.getResource().bindTexture();
 
             int tick = altar.getTicksExisted();
-            Tuple<Float, Float> uvOffset = spriteStarlight.getUVOffset(tick);
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-                RenderingGuiUtils.rect(buf, renderStack, guiLeft + offsetX, guiTop + offsetZ, this.getBlitOffset(), (int) (width * percFilled), height)
-                        .tex(uvOffset.getA(), uvOffset.getB(), spriteStarlight.getULength() * percFilled, spriteStarlight.getVLength())
+
+            // CORRECCIÓN: Usar los nuevos métodos individuales en lugar de la Tupla
+            float uOffset = spriteStarlight.getUOffset(tick);
+            float vOffset = spriteStarlight.getVOffset(tick);
+            float uWidth  = spriteStarlight.getUWidth();
+            float vWidth  = spriteStarlight.getVWidth();
+
+            // 2. Dibujar la luz estelar actual
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+                RenderingGuiUtils.rect(buf, guiGraphics.pose().last().pose(), this.leftPos + offsetX, this.topPos + offsetZ, 0, (int) (width * percFilled), height)
+                        .tex(uOffset, vOffset, uWidth * percFilled, vWidth) // Usar las nuevas variables
                         .color(barColor)
                         .draw();
             });
 
+            // 3. Dibujar el requerimiento de la receta si falta luz
             if (altar.hasMultiblock()) {
                 SimpleAltarRecipe aar = findRecipe(true);
                 if (aar != null) {
@@ -103,9 +116,10 @@ public abstract class ScreenContainerAltar<T extends ContainerAltarBase> extends
                         int from = (int) (width * percFilled);
                         int to = (int) (width * percReq);
 
-                        RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
-                            RenderingGuiUtils.rect(buf, renderStack, guiLeft + offsetX + from, guiTop + offsetZ, this.getBlitOffset(), to, height)
-                                    .tex(uvOffset.getA() + spriteStarlight.getULength() * percFilled, uvOffset.getB(), spriteStarlight.getULength() * percReq, spriteStarlight.getVLength())
+                        RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
+                            RenderingGuiUtils.rect(buf, guiGraphics.pose().last().pose(), this.leftPos + offsetX + from, this.topPos + offsetZ, 0, to, height)
+                                    // CORRECCIÓN: Ajuste de offset de textura usando los nuevos nombres
+                                    .tex(uOffset + uWidth * percFilled, vOffset, uWidth * percReq, vWidth)
                                     .color(0.2F, 0.5F, 1.0F, 0.4F)
                                     .draw();
                         });
@@ -113,8 +127,7 @@ public abstract class ScreenContainerAltar<T extends ContainerAltarBase> extends
                 }
             }
         }
-        RenderSystem.enableAlphaTest();
     }
 
-    public abstract void renderGuiBackground(MatrixStack renderStack, float partialTicks, int mouseX, int mouseY);
+    public abstract void renderGuiBackground(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY);
 }

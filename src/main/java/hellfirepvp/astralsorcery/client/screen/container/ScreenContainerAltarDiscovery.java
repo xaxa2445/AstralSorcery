@@ -8,18 +8,17 @@
 
 package hellfirepvp.astralsorcery.client.screen.container;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.resource.AbstractRenderableTexture;
 import hellfirepvp.astralsorcery.client.screen.base.ScreenContainerAltar;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarDiscovery;
 import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipe;
-import net.minecraft.client.Minecraft;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,7 +29,7 @@ import net.minecraft.util.text.ITextComponent;
  */
 public class ScreenContainerAltarDiscovery extends ScreenContainerAltar<ContainerAltarDiscovery> {
 
-    public ScreenContainerAltarDiscovery(ContainerAltarDiscovery screenContainer, PlayerInventory inv, ITextComponent name) {
+    public ScreenContainerAltarDiscovery(ContainerAltarDiscovery screenContainer, Inventory inv, Component name) {
         super(screenContainer, inv, name, 176, 166);
     }
 
@@ -40,22 +39,27 @@ public class ScreenContainerAltarDiscovery extends ScreenContainerAltar<Containe
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(MatrixStack renderStack, int mouseX, int mouseY) {
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        // Reemplaza a drawGuiContainerForegroundLayer
         SimpleAltarRecipe recipe = this.findRecipe(false);
         if (recipe != null) {
-            ItemStack out = recipe.getOutputForRender(this.getContainer().getTileEntity().getInventory());
-            renderStack.push();
-            renderStack.translate(130, 20, 0);
-            renderStack.scale(1.7F, 1.7F, 1F);
+            ItemStack out = recipe.getOutputForRender(this.getMenu().getTileEntity().getInventory());
 
-            RenderingUtils.renderItemStackGUI(renderStack, out, null);
+            guiGraphics.pose().pushPose();
+            // Posicionamiento de la previsualización del ítem de salida
+            guiGraphics.pose().translate(130, 20, 0);
+            guiGraphics.pose().scale(1.7F, 1.7F, 1.7F);
 
-            renderStack.pop();
+            // Se asume que RenderingUtils.renderItemStackGUI ha sido actualizado para GuiGraphics o PoseStack
+            RenderingUtils.renderItemStackGUI(guiGraphics, out, null);
+
+            guiGraphics.pose().popPose();
         }
     }
 
     @Override
-    public void renderGuiBackground(MatrixStack renderStack, float partialTicks, int mouseX, int mouseY) {
-        this.renderStarlightBar(renderStack, 6, 69, 165, 10);
+    public void renderGuiBackground(GuiGraphics guiGraphics, float partialTicks, int mouseX, int mouseY) {
+        // Renderizado de la barra de progreso de Starlight
+        this.renderStarlightBar(guiGraphics, 6, 69, 165, 10);
     }
 }

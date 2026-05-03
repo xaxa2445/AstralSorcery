@@ -9,9 +9,8 @@
 package hellfirepvp.astralsorcery.common.block.base.template;
 
 import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.SlabBlock;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 
@@ -29,16 +28,5 @@ public class BlockSlabTemplate extends SlabBlock implements CustomItemBlock {
     public BlockSlabTemplate(BlockState baseState, Properties properties) {
         super(properties);
         this.baseState = baseState;
-    }
-
-    @Nullable
-    @Override
-    public ToolType getHarvestTool(BlockState tool) {
-        return this.baseState.getHarvestTool();
-    }
-
-    @Override
-    public int getHarvestLevel(BlockState state) {
-        return this.baseState.getHarvestLevel();
     }
 }

@@ -26,11 +26,13 @@ public class EntityCustomItemReplacement extends ItemEntity {
     }
 
     public EntityCustomItemReplacement(Level worldIn, double x, double y, double z) {
-        super(worldIn, x, y, z);
+        super(EntityType.ITEM, worldIn); // ItemEntity(EntityType, Level)
+        this.setPos(x, y, z);
     }
 
     public EntityCustomItemReplacement(Level worldIn, double x, double y, double z, ItemStack stack) {
-        super(worldIn, x, y, z, stack);
+        this(worldIn, x, y, z);
+        this.setItem(stack);
     }
 
     public void setReplacedEntity(@Nullable ItemEntity replacedEntity) {
@@ -48,10 +50,10 @@ public class EntityCustomItemReplacement extends ItemEntity {
         //If the replaced item seems to be a fake-item, remove this one as well.
         //See ItemEntity#makeFakeItem
         if (this.replacedEntity != null &&
-                this.ticksCount < 5 &&
+                this.tickCount < 5 &&
                 !this.replacedEntity.isAlive() &&
-                this.replacedEntity.pickupDelay == Short.MAX_VALUE &&
-                replacedEntity.age == getItem().getEntityLifespan(level()) - 1) {
+                this.replacedEntity.hasPickUpDelay() &&
+                replacedEntity.getAge() == getItem().getEntityLifespan(level()) - 1) {
             this.discard();
         }
     }
