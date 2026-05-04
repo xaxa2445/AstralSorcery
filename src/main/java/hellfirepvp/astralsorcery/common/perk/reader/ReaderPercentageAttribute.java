@@ -14,13 +14,15 @@ import hellfirepvp.astralsorcery.common.perk.PerkAttributeLimiter;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeMap;
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
-import net.minecraft.client.resources.I18n;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
 import org.apache.commons.lang3.tuple.Pair;
+
+import javax.swing.plaf.metal.MetalTheme;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -46,24 +48,24 @@ public class ReaderPercentageAttribute extends PerkAttributeReader {
     }
 
     @Override
-    public double getDefaultValue(PerkAttributeMap statMap, PlayerEntity player, LogicalSide side) {
+    public double getDefaultValue(PerkAttributeMap statMap, Player player, LogicalSide side) {
         return this.defaultValue;
     }
 
     @Override
-    public double getModifierValueForMode(PerkAttributeMap statMap, PlayerEntity player, LogicalSide side, ModifierType mode) {
+    public double getModifierValueForMode(PerkAttributeMap statMap, Player player, LogicalSide side, ModifierType mode) {
         return statMap.getModifier(player, ResearchHelper.getProgress(player, side), this.getType(), mode);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public PerkStatistic getStatistics(PerkAttributeMap statMap, PlayerEntity player) {
+    public PerkStatistic getStatistics(PerkAttributeMap statMap, Player player) {
         String limitStr = "";
         Double limit = null;
         if (PerkAttributeLimiter.hasLimit(this.getType())) {
             Pair<Double, Double> limits = PerkAttributeLimiter.getLimit(this.getType());
             limit = limits.getRight();
-            limitStr = I18n.format("perk.reader.astralsorcery.limit.percent", MathHelper.floor(limit * 100));
+            limitStr = I18n.get("perk.reader.astralsorcery.limit.percent", Mth.floor(limit * 100));
         }
         double value = statMap.modifyValue(player, ResearchHelper.getProgress(player, LogicalSide.CLIENT),
                 this.getType(), (float) getDefaultValue(statMap, player, LogicalSide.CLIENT));
@@ -73,7 +75,7 @@ public class ReaderPercentageAttribute extends PerkAttributeReader {
         if (Math.abs(value - postValue) > 1E-4 &&
                 (limit == null || Math.abs(postValue - limit) > 1E-4)) {
             if (Math.abs(postValue) >= 1E-4) {
-                postProcess = I18n.format("perk.reader.astralsorcery.postprocess.default", formatForDisplay(postValue));
+                postProcess = I18n.get("perk.reader.astralsorcery.postprocess.default", formatForDisplay(postValue));
             }
             value = postValue;
         }

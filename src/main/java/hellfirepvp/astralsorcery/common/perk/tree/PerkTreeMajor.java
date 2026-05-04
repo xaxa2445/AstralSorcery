@@ -8,7 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.perk.tree;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import hellfirepvp.astralsorcery.client.resource.SpriteSheetResource;
 import hellfirepvp.astralsorcery.client.screen.journal.perk.BatchPerkContext;
 import hellfirepvp.astralsorcery.client.screen.journal.perk.PerkRenderGroup;
@@ -16,7 +17,7 @@ import hellfirepvp.astralsorcery.client.screen.journal.perk.group.PerkPointHaloR
 import hellfirepvp.astralsorcery.client.util.RenderingGuiUtils;
 import hellfirepvp.astralsorcery.common.perk.AllocationStatus;
 import hellfirepvp.astralsorcery.common.perk.node.MajorPerk;
-import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Tuple;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -49,7 +50,7 @@ public class PerkTreeMajor<T extends MajorPerk> extends PerkTreePoint<T> {
     @Nullable
     @Override
     @OnlyIn(Dist.CLIENT)
-    public Rectangle.Float renderPerkAtBatch(BatchPerkContext drawCtx, MatrixStack renderStack,
+    public Rectangle.Float renderPerkAtBatch(BatchPerkContext drawCtx, PoseStack renderStack,
                                              AllocationStatus status, long spriteOffsetTick, float pTicks,
                                               float x, float y, float zLevel, float scale) {
         SpriteSheetResource tex = status.getPerkTreeHaloSprite();
@@ -57,18 +58,19 @@ public class PerkTreeMajor<T extends MajorPerk> extends PerkTreePoint<T> {
         if (grp == null) {
             return new Rectangle.Float();
         }
-        BufferBuilder buf = drawCtx.getContext(grp);
+        VertexConsumer buf = drawCtx.getContext(grp);
 
         float haloSize = getRenderSize() * 0.8F * scale;
         if (status.isAllocated()) {
             haloSize *= 1.5;
         }
 
-        Tuple<Float, Float> frameUV = tex.getUVOffset(spriteOffsetTick);
+        float uOffset = tex.getUOffset(spriteOffsetTick);
+        float vOffset = tex.getVOffset(spriteOffsetTick);
 
-        RenderingGuiUtils.rect(buf, renderStack, x - haloSize, y - haloSize, zLevel, haloSize * 2F, haloSize * 2F)
+        RenderingGuiUtils.rect(buf, renderStack.last().pose(), x - haloSize, y - haloSize, zLevel, haloSize * 2F, haloSize * 2F)
                 .color(1F, 1F, 1F, 0.85F)
-                .tex(frameUV.getA(), frameUV.getB(), tex.getULength(), tex.getVLength())
+                .tex(uOffset, vOffset, tex.getUWidth(), tex.getVWidth())
                 .draw();
 
         super.renderPerkAtBatch(drawCtx, renderStack, status, spriteOffsetTick, pTicks, x, y, zLevel, scale);

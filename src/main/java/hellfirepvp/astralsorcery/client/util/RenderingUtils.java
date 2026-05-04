@@ -351,6 +351,49 @@ public class RenderingUtils {
         poseStack.popPose();
     }
 
+    /**
+     * Método auxiliar que permite renderizar un ItemStack utilizando directamente un PoseStack.
+     * Útil para integraciones con sistemas de renderizado personalizados.
+     */
+    public static void renderItemStackWithPose(PoseStack poseStack, ItemStack stack, @Nullable String alternativeText) {
+        if (stack.isEmpty()) return;
+
+        // Obtenemos la instancia de Minecraft y el Font para las decoraciones
+        Minecraft mc = Minecraft.getInstance();
+
+        // 1.20.1: Para las decoraciones (durabilidad/cantidad) necesitamos GuiGraphics.
+        // Creamos un wrapper temporal si no lo tenemos, o llamamos a las utilidades de ItemRenderer.
+        poseStack.pushPose();
+
+        // Ajuste de profundidad (Z-Level)
+        poseStack.translate(0, 0, 100F);
+
+        // 1. Renderizar el modelo translúcido personalizado de Astral
+        renderTranslucentItemStackModelGUI(stack, poseStack, Color.WHITE, Blending.DEFAULT, 255);
+
+        // 2. Renderizar decoraciones
+        // Nota: Como estamos en 1.20.1, las decoraciones suelen requerir un GuiGraphics.
+        // Si este método se llama desde un lugar sin GuiGraphics, creamos uno efímero.
+        MultiBufferSource.BufferSource bufferSource = mc.renderBuffers().bufferSource();
+        GuiGraphics decorGraphics = new GuiGraphics(mc, bufferSource);
+
+        // Copiamos el estado actual del poseStack al GuiGraphics para que las decoraciones
+        // se dibujen en la posición correcta (0,0 después del translate).
+        decorGraphics.pose().pushPose();
+        decorGraphics.pose().last().pose().set(poseStack.last().pose());
+        decorGraphics.pose().last().normal().set(poseStack.last().normal());
+
+        decorGraphics.renderItemDecorations(mc.font, stack, 0, 0, alternativeText);
+
+        // Forzamos el dibujado de las decoraciones
+        bufferSource.endBatch();
+
+        decorGraphics.pose().popPose();
+        poseStack.popPose();
+    }
+
+
+
 
 
     public static void renderTranslucentItemStack(ItemStack stack, PoseStack renderStack, float pTicks) {

@@ -8,7 +8,7 @@
 
 package hellfirepvp.astralsorcery.common.perk.tree;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.resource.SpriteSheetResource;
 import hellfirepvp.astralsorcery.client.screen.journal.perk.BatchPerkContext;
 import hellfirepvp.astralsorcery.client.screen.journal.perk.DynamicPerkRender;
@@ -21,8 +21,8 @@ import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.AllocationStatus;
 import hellfirepvp.astralsorcery.common.perk.node.socket.GemSocketPerk;
 import net.minecraft.client.Minecraft;
-import net.minecraft.item.ItemStack;
 import net.minecraft.util.Tuple;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -54,24 +54,24 @@ public class PerkTreeGem<T extends AbstractPerk & GemSocketPerk> extends PerkTre
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void renderAt(AllocationStatus status, MatrixStack renderStack, long spriteOffsetTick, float pTicks, float x, float y, float zLevel, float scale) {
+    public void renderAt(AllocationStatus status, PoseStack renderStack, long spriteOffsetTick, float pTicks, float x, float y, float zLevel, float scale) {
         ItemStack stack = this.getPerk().getContainedItem(Minecraft.getInstance().player, LogicalSide.CLIENT);
         if (!stack.isEmpty()) {
             float posX = x - (8 * scale);
             float posY = y - (8 * scale);
 
-            renderStack.push();
+            renderStack.pushPose();
             renderStack.translate(posX, posY, zLevel - 50F);
             renderStack.scale(scale, scale, 1F);
-            RenderingUtils.renderItemStackGUI(renderStack, stack, null);
-            renderStack.pop();
+            RenderingUtils.renderItemStackWithPose(renderStack, stack, null);
+            renderStack.popPose();
         }
     }
 
     @Nullable
     @Override
     @OnlyIn(Dist.CLIENT)
-    public Rectangle.Float renderPerkAtBatch(BatchPerkContext drawCtx, MatrixStack renderStack,
+    public Rectangle.Float renderPerkAtBatch(BatchPerkContext drawCtx, PoseStack renderStack,
                                              AllocationStatus status, long spriteOffsetTick, float pTicks,
                                              float x, float y, float zLevel, float scale) {
         SpriteSheetResource tex = status.getPerkTreeHaloSprite();
@@ -86,11 +86,12 @@ public class PerkTreeGem<T extends AbstractPerk & GemSocketPerk> extends PerkTre
             haloSize *= 1.5;
         }
 
-        Tuple<Float, Float> frameUV = tex.getUVOffset(spriteOffsetTick);
+        float uOffset = tex.getUOffset(spriteOffsetTick);
+        float vOffset = tex.getVOffset(spriteOffsetTick);
 
-        RenderingGuiUtils.rect(buf, renderStack, x - haloSize, y - haloSize, zLevel, haloSize * 2F, haloSize * 2F)
+        RenderingGuiUtils.rect(buf, renderStack.last().pose(), x - haloSize, y - haloSize, zLevel, haloSize * 2F, haloSize * 2F)
                 .color(1F, 1F, 1F, 0.85F)
-                .tex(frameUV.getA(), frameUV.getB(), tex.getULength(), tex.getVLength())
+                .tex(uOffset, vOffset, tex.getUWidth(), tex.getVWidth())
                 .draw();
 
         super.renderPerkAtBatch(drawCtx, renderStack, status, spriteOffsetTick, pTicks, x, y, zLevel, scale);

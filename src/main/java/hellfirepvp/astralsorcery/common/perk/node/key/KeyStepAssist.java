@@ -15,9 +15,9 @@ import hellfirepvp.astralsorcery.common.perk.PerkCooldownHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
 import hellfirepvp.astralsorcery.common.perk.tick.PlayerTickPerk;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.entity.EntityTravelToDimensionEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -43,20 +43,21 @@ public class KeyStepAssist extends KeyPerk implements PlayerTickPerk, CooldownPe
     }
 
     @Override
-    public void onPlayerTick(PlayerEntity player, LogicalSide side) {
+    public void onPlayerTick(Player player, LogicalSide side) {
         if (side.isServer()) {
-            float currentHeight = player.stepHeight;
+            float currentHeight = player.getStepHeight();
+            float newHeight = currentHeight;
             if (!PerkCooldownHelper.isCooldownActiveForPlayer(player, this)) {
-                player.stepHeight += 0.5F;
+                newHeight += 0.5F;
             } else {
-                if (player.stepHeight < 1.1F) {
-                    player.stepHeight = 1.1F;
+                if (newHeight < 1.1F) {
+                    newHeight = 1.1F;
                 }
             }
             PerkCooldownHelper.forceSetCooldownForPlayer(player, this, 20);
-            if (currentHeight != player.stepHeight && player instanceof ServerPlayerEntity) {
-                if (MiscUtils.isConnectionEstablished((ServerPlayerEntity) player)) {
-                    PktSyncStepAssist sync = new PktSyncStepAssist(player.stepHeight);
+            if (currentHeight != player.getStepHeight() && player instanceof ServerPlayer) {
+                if (MiscUtils.isConnectionEstablished((ServerPlayer) player)) {
+                    PktSyncStepAssist sync = new PktSyncStepAssist(player.getStepHeight());
                     PacketChannel.CHANNEL.sendToPlayer(player, sync);
                 }
             }
@@ -64,21 +65,21 @@ public class KeyStepAssist extends KeyPerk implements PlayerTickPerk, CooldownPe
     }
 
     @Override
-    public void onCooldownTimeout(PlayerEntity player) {
-        player.stepHeight -= 0.5F;
-        if (player.stepHeight < 0.6F) {
-            player.stepHeight = 0.6F;
+    public void onCooldownTimeout(Player player) {
+        float height = player.getStepHeight() - 0.5F;
+        if (height < 0.6F) {
+            height = 0.6F;
         }
 
-        if (player instanceof ServerPlayerEntity && MiscUtils.isConnectionEstablished((ServerPlayerEntity) player)) {
-            PktSyncStepAssist sync = new PktSyncStepAssist(player.stepHeight);
+        if (player instanceof ServerPlayer && MiscUtils.isConnectionEstablished((ServerPlayer) player)) {
+            PktSyncStepAssist sync = new PktSyncStepAssist(player.getStepHeight());
             PacketChannel.CHANNEL.sendToPlayer(player, sync);
         }
     }
 
     private void onTeleport(EntityTravelToDimensionEvent event) {
-        if (!event.getEntity().getEntityWorld().isRemote() && event.getEntity() instanceof PlayerEntity) {
-            PerkCooldownHelper.removeAllCooldowns((PlayerEntity) event.getEntity(), LogicalSide.SERVER);
+        if (!event.getEntity().level().isClientSide() && event.getEntity() instanceof Player) {
+            PerkCooldownHelper.removeAllCooldowns((Player) event.getEntity(), LogicalSide.SERVER);
         }
     }
 }
