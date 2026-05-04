@@ -8,12 +8,13 @@
 
 package hellfirepvp.astralsorcery.client.render.tile;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import hellfirepvp.astralsorcery.client.model.builtin.ModelTelescope;
 import hellfirepvp.astralsorcery.common.tile.TileTelescope;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -24,21 +25,25 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
  */
 public class RenderTelescope extends CustomTileEntityRenderer<TileTelescope> {
 
-    private static final ModelTelescope MODEL_TELESCOPE = new ModelTelescope();
+    private final ModelTelescope modelTelescope;
 
-    public RenderTelescope(TileEntityRendererDispatcher tileRenderer) {
-        super(tileRenderer);
+    public RenderTelescope(BlockEntityRendererProvider.Context context) {
+        super(context);
+        // Obtenemos el modelo usando la capa que definiste en ModelTelescope
+        this.modelTelescope = new ModelTelescope(context.bakeLayer(ModelTelescope.TELESCOPE_LAYER));
     }
 
     @Override
-    public void render(TileTelescope tile, float pTicks, MatrixStack renderStack, IRenderTypeBuffer renderTypeBuffer, int combinedLight, int combinedOverlay) {
-        renderStack.push();
+    public void render(TileTelescope tile, float pTicks, PoseStack renderStack, MultiBufferSource renderTypeBuffer, int combinedLight, int combinedOverlay) {
+        renderStack.pushPose();
         renderStack.translate(0.5F, 1.5F, 0.5F);
-        renderStack.rotate(Vector3f.XP.rotationDegrees(180F));
-        renderStack.rotate(Vector3f.YP.rotationDegrees(180F + tile.getRotation().ordinal() * 45F));
+        renderStack.mulPose(Axis.XP.rotationDegrees(180F));
+        renderStack.mulPose(Axis.YP.rotationDegrees(180F + tile.getRotation().ordinal() * 45F));
 
-        MODEL_TELESCOPE.render(renderStack, renderTypeBuffer, combinedLight, combinedOverlay);
+        VertexConsumer buffer = renderTypeBuffer.getBuffer(this.modelTelescope.renderType(this.modelTelescope.getTexture()));
 
-        renderStack.pop();
+        this.modelTelescope.renderToBuffer(renderStack, buffer, combinedLight, combinedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
+
+        renderStack.popPose();
     }
 }

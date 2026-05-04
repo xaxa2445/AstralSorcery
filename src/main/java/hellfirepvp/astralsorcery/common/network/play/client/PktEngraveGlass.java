@@ -14,13 +14,13 @@ import hellfirepvp.astralsorcery.common.tile.TileRefractionTable;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -36,13 +36,13 @@ import java.util.List;
  */
 public class PktEngraveGlass extends ASPacket<PktEngraveGlass> {
 
-    private RegistryKey<World> dim;
+    private ResourceKey<Level> dim;
     private BlockPos pos;
     private List<DrawnConstellation> constellations = new LinkedList<>();
 
     public PktEngraveGlass() {}
 
-    public PktEngraveGlass(RegistryKey<World> dim, BlockPos pos, List<DrawnConstellation> constellations) {
+    public PktEngraveGlass(ResourceKey<Level> dim, BlockPos pos, List<DrawnConstellation> constellations) {
         this.dim = dim;
         this.pos = pos;
         this.constellations = constellations;
@@ -84,8 +84,8 @@ public class PktEngraveGlass extends ASPacket<PktEngraveGlass> {
         return (packet, context, side) -> {
             context.enqueueWork(() -> {
                 //TODO 1.16.2 re-check once worlds are not all constantly loaded
-                MinecraftServer srv = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
-                World world = srv.getWorld(packet.dim);
+                MinecraftServer srv = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+                Level world = srv.getLevel(packet.dim);
                 TileRefractionTable tmt = MiscUtils.getTileAt(world, packet.pos, TileRefractionTable.class, false);
                 if (tmt != null && !packet.constellations.isEmpty()) {
                     List<DrawnConstellation> cstList = packet.constellations.subList(0, Math.min(3, packet.constellations.size()));

@@ -15,16 +15,15 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
-
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
@@ -51,19 +50,23 @@ public class KeyCullingAttack extends KeyPerk {
     }
 
     private void onDamage(LivingDamageEvent event) {
+        // 1.20.1: El acceso a la fuente de daño ha cambiado
         DamageSource source = event.getSource();
-        if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) source.getTrueSource();
+        // getTrueSource() -> getEntity()
+        if (source.getEntity() instanceof Player player) {
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
             if (side.isServer() && prog.getPerkData().hasPerkEffect(this)) {
-                LivingEntity attacked = event.getEntityLiving();
+                // getEntityLiving() -> getEntity()
+                LivingEntity attacked = event.getEntity();
                 float actCull = PerkAttributeHelper.getOrCreateMap(player, side)
                         .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, CONFIG.cullHealth.get().floatValue());
                 float lifePerc = attacked.getHealth() / attacked.getMaxHealth();
                 if (lifePerc < actCull && AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), false)) {
-                    attacked.setHealth(0); // Try faithfully...
-                    attacked.getDataManager().set(LivingEntity.HEALTH, 0F); // ... then set just it forcefully.
+                    // 1.20.1: setHealth(0) sigue funcionando, pero el acceso a DataManager es diferente
+                    attacked.setHealth(0);
+                    // El acceso directo a DATA_HEALTH_ID es más limpio en esta versión
+                    attacked.die(source); // Es más seguro llamar a die() para asegurar que el servidor procese la muerte correctamente
                 }
             }
         }

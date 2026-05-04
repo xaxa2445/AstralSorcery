@@ -18,11 +18,10 @@ import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.RootPerk;
 import hellfirepvp.astralsorcery.common.perk.tick.PlayerTickPerk;
 import hellfirepvp.astralsorcery.common.util.DiminishingMultiplier;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.stats.StatisticsManager;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.stats.Stats;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nonnull;
@@ -54,15 +53,15 @@ public class RootVicio extends RootPerk implements PlayerTickPerk {
     }
 
     @Override
-    public void removePerkLogic(PlayerEntity player, LogicalSide side) {
+    public void removePerkLogic(Player player, LogicalSide side) {
         super.removePerkLogic(player, side);
 
         if (side.isServer()) {
-            this.moveTrackMap.computeIfAbsent(Stats.WALK_ONE_CM, s -> new HashMap<>()).remove(player.getUniqueID());
-            this.moveTrackMap.computeIfAbsent(Stats.SPRINT_ONE_CM, s -> new HashMap<>()).remove(player.getUniqueID());
-            this.moveTrackMap.computeIfAbsent(Stats.FLY_ONE_CM, s -> new HashMap<>()).remove(player.getUniqueID());
-            this.moveTrackMap.computeIfAbsent(Stats.AVIATE_ONE_CM, s -> new HashMap<>()).remove(player.getUniqueID());
-            this.moveTrackMap.computeIfAbsent(Stats.SWIM_ONE_CM, s -> new HashMap<>()).remove(player.getUniqueID());
+            this.moveTrackMap.computeIfAbsent(Stats.WALK_ONE_CM, s -> new HashMap<>()).remove(player.getUUID());
+            this.moveTrackMap.computeIfAbsent(Stats.SPRINT_ONE_CM, s -> new HashMap<>()).remove(player.getUUID());
+            this.moveTrackMap.computeIfAbsent(Stats.FLY_ONE_CM, s -> new HashMap<>()).remove(player.getUUID());
+            this.moveTrackMap.computeIfAbsent(Stats.AVIATE_ONE_CM, s -> new HashMap<>()).remove(player.getUUID());
+            this.moveTrackMap.computeIfAbsent(Stats.SWIM_ONE_CM, s -> new HashMap<>()).remove(player.getUUID());
         }
     }
 
@@ -76,21 +75,18 @@ public class RootVicio extends RootPerk implements PlayerTickPerk {
     }
 
     @Override
-    public void onPlayerTick(PlayerEntity player, LogicalSide side) {
-        if (!side.isServer() || !(player instanceof ServerPlayerEntity)) {
+    public void onPlayerTick(Player player, LogicalSide side) {
+        if (!side.isServer() || !(player instanceof ServerPlayer sPlayer)) {
             return;
         }
 
-        UUID uuid = player.getUniqueID();
-        ServerPlayerEntity sPlayer = (ServerPlayerEntity) player;
+        UUID uuid = player.getUUID();
         PlayerProgress prog = ResearchHelper.getProgress(player, side);
-
-        StatisticsManager mgr = sPlayer.getStats();
-        int walked = mgr.getValue(Stats.CUSTOM.get(Stats.WALK_ONE_CM));
-        int sprint = mgr.getValue(Stats.CUSTOM.get(Stats.SPRINT_ONE_CM));
-        int flown = mgr.getValue(Stats.CUSTOM.get(Stats.FLY_ONE_CM));
-        int elytra = mgr.getValue(Stats.CUSTOM.get(Stats.AVIATE_ONE_CM));
-        int swam = mgr.getValue(Stats.CUSTOM.get(Stats.SWIM_ONE_CM));
+        int walked = sPlayer.getStats().getValue(Stats.CUSTOM.get(Stats.WALK_ONE_CM));
+        int sprint = sPlayer.getStats().getValue(Stats.CUSTOM.get(Stats.SPRINT_ONE_CM));
+        int flown = sPlayer.getStats().getValue(Stats.CUSTOM.get(Stats.FLY_ONE_CM));
+        int elytra = sPlayer.getStats().getValue(Stats.CUSTOM.get(Stats.AVIATE_ONE_CM));
+        int swam = sPlayer.getStats().getValue(Stats.CUSTOM.get(Stats.SWIM_ONE_CM));
 
         int lastWalked = this.moveTrackMap.computeIfAbsent(Stats.WALK_ONE_CM, s -> new HashMap<>()).computeIfAbsent(uuid, u -> walked);
         int lastSprint = this.moveTrackMap.computeIfAbsent(Stats.SPRINT_ONE_CM, s -> new HashMap<>()).computeIfAbsent(uuid, u -> sprint);

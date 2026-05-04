@@ -17,9 +17,10 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.RootPerk;
 import hellfirepvp.astralsorcery.common.util.DiminishingMultiplier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.event.world.BlockEvent;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraftforge.event.level.BlockEvent; // Cambio de .world a .level
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -54,10 +55,10 @@ public class RootAevitas extends RootPerk {
     }
 
     private void onPlace(BlockEvent.EntityPlaceEvent event) {
-        if (!(event.getEntity() instanceof PlayerEntity)) {
+        if (!(event.getEntity() instanceof Player)) {
             return;
         }
-        PlayerEntity player = (PlayerEntity) event.getEntity();
+        Player player = (Player) event.getEntity();
         LogicalSide side = this.getSide(player);
         if (!side.isServer()) {
             return;
@@ -70,7 +71,7 @@ public class RootAevitas extends RootPerk {
 
         float hardness;
         try {
-            hardness = Math.max(event.getPlacedBlock().getBlockHardness(event.getWorld(), event.getPos()), 1F);
+            hardness = Math.max(event.getPlacedBlock().getDestroySpeed(event.getLevel(), event.getPos()), 1F);
         } catch (Exception exc) {
             hardness = 1F;
         }

@@ -20,6 +20,7 @@ import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.common.util.ColorUtils;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.fluids.FluidStack;
 
 import java.awt.*;
@@ -48,7 +49,7 @@ public class FXOrbitalInfuserLiquid extends FXSourceOrbital<FXFacingAtlasParticl
         Vector3 motion = this.getPosition().subtract(pos).crossProduct(this.getOrbitAxis()).normalize().multiply(0.2 + rand.nextFloat() * 0.04);
         motion.add(this.getOrbitAxis().normalize().multiply(0.2 + rand.nextFloat() * 0.05));
 
-        MiscUtils.applyRandomOffset(pos, rand, 0.15F);
+        MiscUtils.applyRandomOffset(pos, (RandomSource) rand, 0.15F);
         if (rand.nextInt(4) != 0) {
             effectRegistrar.apply(pos)
                     .setSprite(RenderingUtils.getParticleTexture(display))

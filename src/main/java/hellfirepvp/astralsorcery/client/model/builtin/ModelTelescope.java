@@ -10,13 +10,16 @@ package hellfirepvp.astralsorcery.client.model.builtin;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
+import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -27,6 +30,7 @@ import net.minecraft.client.model.geom.builders.PartDefinition;
  */
 public class ModelTelescope extends CustomModel {
 
+    public static ModelTelescope INSTANCE;
     private final ModelPart mountpiece;
     private final ModelPart opticalTube;
     private final ModelPart leg;
@@ -35,6 +39,14 @@ public class ModelTelescope extends CustomModel {
     private final ModelPart extension;
     private final ModelPart detail;
     private final ModelPart aperture_1;
+
+    public static final ModelLayerLocation TELESCOPE_LAYER = new ModelLayerLocation(
+            new ResourceLocation("astralsorcery", "telescope"), "main");
+
+    // En ModelTelescope.java
+    public ResourceLocation getTexture() {
+        return new ResourceLocation("astralsorcery", "textures/block/entity/telescope.png");
+    }
 
     public ModelTelescope(ModelPart root) {
         super((resKey) -> RenderTypesAS.MODEL_TELESCOPE);
@@ -51,6 +63,7 @@ public class ModelTelescope extends CustomModel {
         this.aperture_1 = this.opticalTube.getChild("aperture_1");
         this.aperture = this.opticalTube.getChild("aperture");
         this.detail = this.opticalTube.getChild("detail");
+        INSTANCE = this;
     }
 
     public static LayerDefinition createBodyLayer() {

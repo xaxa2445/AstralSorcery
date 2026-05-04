@@ -14,12 +14,15 @@ import hellfirepvp.astralsorcery.common.event.EventFlags;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.block.BlockUtils;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.PickaxeItem;
+import net.minecraft.world.item.TieredItem;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.TierSortingRegistry;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
@@ -50,39 +53,48 @@ public class KeyDigTypes extends KeyPerk {
             return;
         }
 
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getEntity();
         LogicalSide side = this.getSide(player);
         PlayerProgress prog = ResearchHelper.getProgress(player, side);
         if (prog.getPerkData().hasPerkEffect(this)) {
-            ItemStack heldMainHand = player.getHeldItemMainhand();
-            if (!heldMainHand.isEmpty() && heldMainHand.getItem().getToolTypes(heldMainHand).contains(ToolType.PICKAXE)) {
-                ToolType requiredTool = event.getTargetBlock().getHarvestTool();
-                if (requiredTool == null || requiredTool.equals(ToolType.SHOVEL) || requiredTool.equals(ToolType.AXE)) {
-                    event.setCanHarvest(true);
+            ItemStack heldMainHand = player.getMainHandItem(); // 1.20.1: getHeldItemMainhand() -> getMainHandItem()
+
+            // Verificamos si el item es una piqueta
+            if (!heldMainHand.isEmpty() && heldMainHand.getItem() instanceof PickaxeItem) {
+                BlockState state = event.getTargetBlock();
+
+                // 1.20.1: Verificamos si el bloque requiere hacha o pala mediante Tags
+                if (state.is(BlockTags.MINEABLE_WITH_AXE) || state.is(BlockTags.MINEABLE_WITH_SHOVEL)) {
+                    // 1.20.1: Primero verificamos si el ítem tiene un Tier definido
+                    if (heldMainHand.getItem() instanceof TieredItem tieredItem) {
+                        // Ahora pasamos el Tier del ítem (tieredItem.getTier()) en lugar del ItemStack
+                        if (TierSortingRegistry.isCorrectTierForDrops(tieredItem.getTier(), state)) {
+                            event.setCanHarvest(true);
+                        }
+                    }
                 }
             }
         }
     }
 
     private void onHarvestSpeed(PlayerEvent.BreakSpeed event) {
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getEntity();
         LogicalSide side = this.getSide(player);
         PlayerProgress prog = ResearchHelper.getProgress(player, side);
         if (prog.getPerkData().hasPerkEffect(this)) {
             BlockState broken = event.getState();
-            ItemStack playerMainHand = player.getHeldItemMainhand();
-            if (!playerMainHand.isEmpty()) {
-                if (playerMainHand.getItem().getToolTypes(playerMainHand).contains(ToolType.PICKAXE)) {
-                    if (!broken.isToolEffective(ToolType.PICKAXE) &&
-                            (broken.isToolEffective(ToolType.AXE) || broken.isToolEffective(ToolType.SHOVEL))) {
-                        EventFlags.CHECK_BREAK_SPEED.executeWithFlag(() -> {
-                            MiscUtils.tryMultiple(
-                                    () -> player.getDigSpeed(Blocks.STONE.getDefaultState(), event.getPos()),
-                                    () -> player.getDigSpeed(Blocks.STONE.getDefaultState(), null),
-                                    () -> BlockUtils.getSimpleBreakSpeed(player, playerMainHand, Blocks.STONE.getDefaultState())
-                            ).ifPresent(speed -> event.setNewSpeed(Math.max(event.getNewSpeed(), speed)));
-                        });
-                    }
+            ItemStack playerMainHand = player.getMainHandItem();
+            if (!playerMainHand.isEmpty() && playerMainHand.getItem() instanceof PickaxeItem) {
+                // Si la piqueta no es efectiva para este bloque, pero el hacha o pala sí lo serían
+                if (!playerMainHand.isCorrectToolForDrops(broken) &&
+                        (broken.is(BlockTags.MINEABLE_WITH_AXE) || broken.is(BlockTags.MINEABLE_WITH_SHOVEL))) {
+
+                    EventFlags.CHECK_BREAK_SPEED.executeWithFlag(() -> {
+                        MiscUtils.tryMultiple(
+                                () -> player.getDigSpeed(Blocks.STONE.defaultBlockState(), event.getPosition().orElse(null)),
+                                () -> BlockUtils.getSimpleBreakSpeed(player, playerMainHand, Blocks.STONE.defaultBlockState())
+                        ).ifPresent(speed -> event.setNewSpeed(Math.max(event.getNewSpeed(), speed)));
+                    });
                 }
             }
         }

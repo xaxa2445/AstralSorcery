@@ -30,8 +30,7 @@ public class ItemPerkSeal extends Item {
     public ItemPerkSeal() {
         super(new Properties()
                 .stacksTo(16)
-                .durability(0)
-                .tab(CommonProxy.ITEM_GROUP_AS));
+                .durability(0));
     }
 
     public static int getPlayerSealCount(Player player) {

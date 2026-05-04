@@ -8,18 +8,18 @@
 
 package hellfirepvp.astralsorcery.client.render.tile;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
-import com.mojang.blaze3d.vertex.IVertexBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
 import hellfirepvp.astralsorcery.client.model.builtin.ModelLens;
 import hellfirepvp.astralsorcery.client.model.builtin.ModelLensColored;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.common.tile.TileLens;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.core.BlockPos;
 
 import java.awt.*;
 import java.util.List;
@@ -33,20 +33,22 @@ import java.util.List;
  */
 public class RenderLens extends CustomTileEntityRenderer<TileLens> {
 
-    private static final ModelLens MODEL_LENS = new ModelLens();
-    private static final ModelLensColored MODEL_LENS_COLORED = new ModelLensColored();
+    private final ModelLens modelLens;
+    private final ModelLensColored modelLensColored;
 
-    public RenderLens(TileEntityRendererDispatcher tileRenderer) {
-        super(tileRenderer);
+    public RenderLens(BlockEntityRendererProvider.Context context) {
+        super(context);
+        this.modelLens = new ModelLens(context.bakeLayer(ModelLens.LENS_LAYER));
+        this.modelLensColored = new ModelLensColored(context.bakeLayer(ModelLensColored.LENS_COLORED_LAYER));
     }
 
     @Override
-    public void render(TileLens tile, float pTicks, MatrixStack renderStack, IRenderTypeBuffer renderTypeBuffer, int combinedLight, int combinedOverlay) {
+    public void render(TileLens tile, float pTicks, PoseStack renderStack, MultiBufferSource renderTypeBuffer, int combinedLight, int combinedOverlay) {
         List<BlockPos> linked = tile.getLinkedPositions();
         float degYaw = 0;
         float degPitch = 0;
 
-        renderStack.push();
+        renderStack.pushPose();
         switch (tile.getPlacedAgainst()) {
             case DOWN:
                 if (!linked.isEmpty() && linked.size() == 1) {
@@ -64,14 +66,14 @@ public class RenderLens extends CustomTileEntityRenderer<TileLens> {
 
                 renderStack.translate(0.5F, 1.5F, 0.5F);
 
-                renderStack.rotate(Vector3f.XP.rotationDegrees(180));
-                renderStack.rotate(Vector3f.YP.rotationDegrees(degYaw % 360));
+                renderStack.mulPose(Axis.XP.rotationDegrees(180));
+                renderStack.mulPose(Axis.YP.rotationDegrees(degYaw % 360));
 
                 if (tile.getColorType() != null) {
-                    renderStack.push();
-                    renderStack.rotate(Vector3f.YP.rotationDegrees(180));
+                    renderStack.pushPose();
+                    renderStack.mulPose(Axis.YP.rotationDegrees(180));
                     renderLensColored(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, tile.getColorType().getColor(), -degPitch);
-                    renderStack.pop();
+                    renderStack.popPose();
                 }
                 renderLens(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, degPitch);
                 break;
@@ -91,13 +93,13 @@ public class RenderLens extends CustomTileEntityRenderer<TileLens> {
 
                 renderStack.translate(0.5F, -0.5F, 0.5F);
 
-                renderStack.rotate(Vector3f.YP.rotationDegrees((-degYaw + 180) % 360));
+                renderStack.mulPose(Axis.YP.rotationDegrees((-degYaw + 180) % 360));
 
                 if (tile.getColorType() != null) {
-                    renderStack.push();
-                    renderStack.rotate(Vector3f.YP.rotationDegrees(180));
+                    renderStack.pushPose();
+                    renderStack.mulPose(Axis.YP.rotationDegrees(180));
                     renderLensColored(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, tile.getColorType().getColor(), degPitch);
-                    renderStack.pop();
+                    renderStack.popPose();
                 }
                 renderLens(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, -degPitch);
                 break;
@@ -117,14 +119,14 @@ public class RenderLens extends CustomTileEntityRenderer<TileLens> {
 
                 renderStack.translate(0.5F, 0.5F, 1.5F);
 
-                renderStack.rotate(Vector3f.XP.rotationDegrees(270));
-                renderStack.rotate(Vector3f.YP.rotationDegrees((-degYaw + 180) % 360));
+                renderStack.mulPose(Axis.XP.rotationDegrees(270));
+                renderStack.mulPose(Axis.YP.rotationDegrees((-degYaw + 180) % 360));
 
                 if (tile.getColorType() != null) {
-                    renderStack.push();
-                    renderStack.rotate(Vector3f.YP.rotationDegrees(180));
+                    renderStack.pushPose();
+                    renderStack.mulPose(Axis.YP.rotationDegrees(180));
                     renderLensColored(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, tile.getColorType().getColor(), -degPitch);
-                    renderStack.pop();
+                    renderStack.popPose();
                 }
                 renderLens(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, degPitch);
                 break;
@@ -144,14 +146,14 @@ public class RenderLens extends CustomTileEntityRenderer<TileLens> {
 
                 renderStack.translate(0.5F, 0.5F, -0.5F);
 
-                renderStack.rotate(Vector3f.XP.rotationDegrees(90));
-                renderStack.rotate(Vector3f.YP.rotationDegrees(degYaw % 360));
+                renderStack.mulPose(Axis.XP.rotationDegrees(90));
+                renderStack.mulPose(Axis.YP.rotationDegrees(degYaw % 360));
 
                 if (tile.getColorType() != null) {
-                    renderStack.push();
-                    renderStack.rotate(Vector3f.YP.rotationDegrees(180));
+                    renderStack.pushPose();
+                    renderStack.mulPose(Axis.YP.rotationDegrees(180));
                     renderLensColored(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, tile.getColorType().getColor(), degPitch);
-                    renderStack.pop();
+                    renderStack.popPose();
                 }
                 renderLens(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, -degPitch);
                 break;
@@ -171,14 +173,14 @@ public class RenderLens extends CustomTileEntityRenderer<TileLens> {
 
                 renderStack.translate(1.5F, 0.5F, 0.5F);
 
-                renderStack.rotate(Vector3f.ZP.rotationDegrees(90));
-                renderStack.rotate(Vector3f.YP.rotationDegrees((degYaw + 270 % 360)));
+                renderStack.mulPose(Axis.ZP.rotationDegrees(90));
+                renderStack.mulPose(Axis.YP.rotationDegrees((degYaw + 270 % 360)));
 
                 if (tile.getColorType() != null) {
-                    renderStack.push();
-                    renderStack.rotate(Vector3f.YP.rotationDegrees(180));
+                    renderStack.pushPose();
+                    renderStack.mulPose(Axis.YP.rotationDegrees(180));
                     renderLensColored(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, tile.getColorType().getColor(), -degPitch);
-                    renderStack.pop();
+                    renderStack.popPose();
                 }
                 renderLens(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, degPitch);
                 break;
@@ -198,39 +200,41 @@ public class RenderLens extends CustomTileEntityRenderer<TileLens> {
 
                 renderStack.translate(-0.5F, 0.5F, 0.5F);
 
-                renderStack.rotate(Vector3f.ZP.rotationDegrees(270));
-                renderStack.rotate(Vector3f.YP.rotationDegrees((-degYaw + 90 % 360)));
+                renderStack.mulPose(Axis.ZP.rotationDegrees(270));
+                renderStack.mulPose(Axis.YP.rotationDegrees((-degYaw + 90 % 360)));
 
                 if (tile.getColorType() != null) {
-                    renderStack.push();
-                    renderStack.rotate(Vector3f.YP.rotationDegrees(180));
+                    renderStack.pushPose();
+                    renderStack.mulPose(Axis.YP.rotationDegrees(180));
                     renderLensColored(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, tile.getColorType().getColor(), degPitch);
-                    renderStack.pop();
+                    renderStack.popPose();
                 }
                 renderLens(renderStack, renderTypeBuffer, combinedLight, combinedOverlay, -degPitch);
                 break;
             default:
                 break;
         }
-        renderStack.pop();
+        renderStack.popPose();
     }
 
-    private void renderLensColored(MatrixStack renderStack, IRenderTypeBuffer buffer, int combinedLight, int combinedOverlay, Color c, float pitch) {
-        MODEL_LENS_COLORED.glass.    rotateAngleX = pitch * 0.017453292F;
-        MODEL_LENS_COLORED.fitting1. rotateAngleX = pitch * 0.017453292F;
-        MODEL_LENS_COLORED.fitting2. rotateAngleX = pitch * 0.017453292F;
-        MODEL_LENS_COLORED.detail1_1.rotateAngleX = pitch * 0.017453292F;
-        MODEL_LENS_COLORED.detail1.  rotateAngleX = pitch * 0.017453292F;
+    private void renderLensColored(PoseStack renderStack, MultiBufferSource buffer, int combinedLight, int combinedOverlay, Color c, float pitch) {
+        float pitchRadians = pitch * 0.017453292F;
+        modelLensColored.glass.xRot = pitchRadians;
+        modelLensColored.fitting1.xRot = pitchRadians;
+        modelLensColored.fitting2.xRot = pitchRadians;
+        modelLensColored.detail1_1.xRot = pitchRadians;
+        modelLensColored.detail1.xRot = pitchRadians;
 
-        IVertexBuilder vb = buffer.getBuffer(RenderTypesAS.MODEL_LENS_COLORED_GLASS);
-        MODEL_LENS_COLORED.renderGlass(renderStack, vb, combinedLight, combinedOverlay, c.getRed() / 255F, c.getGreen() / 255F, c.getBlue() / 255F, 1F);
+        VertexConsumer vb = buffer.getBuffer(RenderTypesAS.MODEL_LENS_COLORED_GLASS);
+        modelLensColored.renderGlass(renderStack, vb, combinedLight, combinedOverlay, c.getRed() / 255F, c.getGreen() / 255F, c.getBlue() / 255F, 1F);
         RenderingUtils.refreshDrawing(vb, RenderTypesAS.MODEL_LENS_COLORED_GLASS);
-        MODEL_LENS_COLORED.render(renderStack, buffer, combinedLight, combinedOverlay);
+        modelLensColored.render(renderStack, buffer, combinedLight, combinedOverlay);
     }
 
-    private void renderLens(MatrixStack renderStack, IRenderTypeBuffer buffer, int combinedLight, int combinedOverlay, float pitch) {
-        MODEL_LENS.lens.rotateAngleX = pitch * 0.017453292F;
+    private void renderLens(PoseStack renderStack, MultiBufferSource buffer, int combinedLight, int combinedOverlay, float pitch) {
+        float pitchRadians = pitch * 0.017453292F;
+        modelLens.lens.xRot = pitchRadians;
 
-        MODEL_LENS.render(renderStack, buffer, combinedLight, combinedOverlay);
+        modelLens.render(renderStack, buffer, combinedLight, combinedOverlay);
     }
 }

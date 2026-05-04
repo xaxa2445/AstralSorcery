@@ -123,7 +123,7 @@ repositories {
 }
 
 dependencies {
-    implementation fg.deobf(files('libs/observerlib-1.20.1-1.0.0.jar'))
+    implementation fg.deobf(files('libs/observerlib-1.20.1-1.0.2.jar'))
     implementation fg.deobf(files("libs/Botania-1.20.1-450-FORGE.jar"))
     implementation fg.deobf(files("libs/Patchouli-1.20.1-85-FORGE.jar"))
     implementation fg.deobf(files("libs/curios-forge-5.14.1+1.20.1.jar"))

@@ -9,8 +9,10 @@
 package hellfirepvp.astralsorcery.client.screen;
 
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.screen.base.ConstellationDiscoveryScreen;
@@ -26,10 +28,11 @@ import hellfirepvp.astralsorcery.common.constellation.world.WorldContext;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.fml.LogicalSide;
 import org.lwjgl.opengl.GL11;
 
@@ -51,7 +54,7 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
     private final List<Point.Float> usedStars = new ArrayList<>(randomStars);
 
     public ScreenHandTelescope() {
-        super(new TranslationTextComponent("screen.astralsorcery.hand_telescope"), 216, 216);
+        super(Component.translatable("screen.astralsorcery.hand_telescope"), 216, 216);
     }
 
     @Nonnull
@@ -70,7 +73,7 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
             available.removeIf(c -> !(c instanceof IMajorConstellation) ||
                     used.contains(c) ||
                     !c.canDiscover(Minecraft.getInstance().player, ResearchHelper.getClientProgress()));
-            IConstellation cst = MiscUtils.getRandomEntry(available, gen);
+            IConstellation cst = MiscUtils.getRandomEntry(available, (RandomSource) gen);
             if (cst instanceof IMajorConstellation) {
                 used.add(cst);
                 float yaw = (gen.nextFloat() * 360F) - 180F;
@@ -87,7 +90,7 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
+    public void render(GuiGraphics renderStack, int mouseX, int mouseY, float pTicks) {
         RenderSystem.enableDepthTest();
         super.render(renderStack, mouseX, mouseY, pTicks);
 
@@ -96,15 +99,15 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
         this.drawTelescopeCell(renderStack, pTicks);
     }
 
-    private void drawTelescopeCell(MatrixStack renderStack, float pTicks) {
-        boolean canSeeSky = this.canObserverSeeSky(Minecraft.getInstance().player.getPosition(), 1);
-        float pitch = Minecraft.getInstance().player.getPitch(pTicks);
+    private void drawTelescopeCell(GuiGraphics renderStack, float pTicks) {
+        boolean canSeeSky = this.canObserverSeeSky(Minecraft.getInstance().player.blockPosition(), 1);
+        float pitch = Minecraft.getInstance().player.getViewXRot(pTicks);
         float angleOpacity = 0F;
         if (pitch < -60F) {
             angleOpacity = 1F;
         } else if (pitch < -10F) {
             angleOpacity = (Math.abs(pitch) - 10F) / 50F;
-            if (DayTimeHelper.isNight(Minecraft.getInstance().world)) {
+            if (DayTimeHelper.isNight(Minecraft.getInstance().level)) {
                 angleOpacity *= angleOpacity;
             }
         }
@@ -112,38 +115,40 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
 
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
-        RenderSystem.disableAlphaTest();
+        RenderSystem.defaultBlendFunc();
 
-        this.setBlitOffset(-10);
+
+        PoseStack blitz = renderStack.pose();
+        blitz.pushPose();
+        blitz.translate(0,0,-10);
         this.drawSkyBackground(renderStack, pTicks, canSeeSky, angleOpacity);
 
         if (!this.isInitialized()) {
-            this.setBlitOffset(0);
+            blitz.popPose();
 
-            RenderSystem.enableAlphaTest();
             Blending.DEFAULT.apply();
             RenderSystem.disableBlend();
             return;
         }
 
-        WorldContext ctx = SkyHandler.getContext(Minecraft.getInstance().world, LogicalSide.CLIENT);
+        WorldContext ctx = SkyHandler.getContext(Minecraft.getInstance().level, LogicalSide.CLIENT);
         if (ctx != null && canSeeSky) {
             Random gen = ctx.getDayRandom();
-            double guiFactor = Minecraft.getInstance().getMainWindow().getGuiScaleFactor();
+            double guiFactor = Minecraft.getInstance().getWindow().getGuiScale();
 
-            float playerYaw = Minecraft.getInstance().player.rotationYaw % 360F;
+            float playerYaw = Minecraft.getInstance().player.getYRot() % 360F;
             if (playerYaw < 0) {
                 playerYaw += 360F;
             }
             if (playerYaw >= 180F) {
                 playerYaw -= 360F;
             }
-            float playerPitch = Minecraft.getInstance().player.rotationPitch;
+            float playerPitch = Minecraft.getInstance().player.getXRot();
 
-            this.setBlitOffset(-9);
+            blitz.translate(0,0,-9);
             float starSize = 5F;
             TexturesAS.TEX_STAR_1.bindTexture();
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
                 for (Point.Float pos : this.usedStars) {
                     float brightness = 0.4F + (RenderingConstellationUtils.stdFlicker(ClientScheduler.getClientTick(), pTicks, 10 + gen.nextInt(20))) * 0.5F;
                     brightness = this.multiplyStarBrightness(pTicks, brightness);
@@ -154,8 +159,9 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
                             .draw();
                 }
             });
-
-            this.setBlitOffset(-7);
+            blitz.popPose();
+            blitz.pushPose();
+            blitz.translate(0,0,-7);
             for (DrawArea areas : this.getVisibleDrawAreas()) {
                 for (IConstellation cst : areas.getDisplayMap().keySet()) {
                     ConstellationDisplayInformation info = areas.getDisplayMap().get(cst);
@@ -171,25 +177,25 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
                     if ((Math.abs(diffYaw) <= maxDistance || Math.abs(playerYaw + 360F) <= maxDistance) &&
                             Math.abs(diffPitch) <= maxDistance) {
 
-                        float rainBr = 1F - Minecraft.getInstance().world.getRainStrength(pTicks);
-                        int wPart = MathHelper.floor(this.getGuiWidth() * 0.1F);
-                        int hPart = MathHelper.floor(this.getGuiHeight() * 0.1F);
+                        float rainBr = 1F - Minecraft.getInstance().level.getRainLevel(pTicks);
+                        int wPart = Mth.floor(this.getGuiWidth() * 0.1F);
+                        int hPart = Mth.floor(this.getGuiHeight() * 0.1F);
                         float xFactor = diffYaw   / 8F;
                         float yFactor = diffPitch / 8F;
 
                         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-                        GL11.glScissor(MathHelper.floor((this.getGuiLeft() + 5) * guiFactor),
-                                MathHelper.floor((this.getGuiTop() + 5) * guiFactor),
-                                MathHelper.floor((this.getGuiWidth() - 10) * guiFactor),
-                                MathHelper.floor((this.getGuiHeight() - 10) * guiFactor));
+                        GL11.glScissor(Mth.floor((this.getGuiLeft() + 5) * guiFactor),
+                                Mth.floor((this.getGuiTop() + 5) * guiFactor),
+                                Mth.floor((this.getGuiWidth() - 10) * guiFactor),
+                                Mth.floor((this.getGuiHeight() - 10) * guiFactor));
 
                         Map<StarLocation, Rectangle.Float> cstRenderInfo = RenderingConstellationUtils.renderConstellationIntoGUI(
-                                cst.getTierRenderColor(), cst, renderStack,
-                                this.getGuiLeft() + wPart + MathHelper.floor((xFactor / guiFactor) * this.getGuiWidth()),
-                                this.getGuiTop() + hPart + MathHelper.floor((yFactor / guiFactor) * this.getGuiHeight()),
+                                cst.getTierRenderColor(), cst, renderStack.pose(),
+                                this.getGuiLeft() + wPart + Mth.floor((xFactor / guiFactor) * this.getGuiWidth()),
+                                this.getGuiTop() + hPart + Mth.floor((yFactor / guiFactor) * this.getGuiHeight()),
                                 this.getGuiZLevel(),
-                                this.getGuiWidth() - MathHelper.floor(wPart * 1.5F),
-                                this.getGuiHeight() - MathHelper.floor(hPart * 1.5F),
+                                this.getGuiWidth() - Mth.floor(wPart * 1.5F),
+                                this.getGuiHeight() - Mth.floor(hPart * 1.5F),
                                 2F,
                                 () -> (0.3F + 0.7F * RenderingConstellationUtils.conCFlicker(ClientScheduler.getClientTick(), pTicks, 5 + gen.nextInt(15))) * rainBr * brMultiplier,
                                 ResearchHelper.getClientProgress().hasConstellationDiscovered(cst),
@@ -202,20 +208,20 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
                     }
                 }
             }
-
-            this.setBlitOffset(-5);
+            blitz.popPose();
+            blitz.pushPose();
+            blitz.translate(0,0,-5);
             this.renderDrawnLines(renderStack, gen, pTicks);
         }
 
-        this.setBlitOffset(0);
-        RenderSystem.enableAlphaTest();
+        blitz.popPose();
         Blending.DEFAULT.apply();
         RenderSystem.disableBlend();
     }
 
     @Override
     public void mouseMoved(double xPos, double yPos) {
-        if (!Minecraft.getInstance().mouseHelper.isMouseGrabbed()) {
+        if (!Minecraft.getInstance().mouseHandler.isMouseGrabbed()) {
             return;
         }
 
@@ -223,10 +229,10 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
         int width = guiWidth - 12, height = guiHeight - 12;
 
         Minecraft mc = Minecraft.getInstance();
-        double xDiff = mc.mouseHelper.getMouseX() - (xPos / ((double) mc.getMainWindow().getScaledWidth()  / mc.getMainWindow().getWidth()));
-        double yDiff = mc.mouseHelper.getMouseY() - (yPos / ((double) mc.getMainWindow().getScaledHeight() / mc.getMainWindow().getHeight()));
+        double xDiff = mc.mouseHandler.xpos() - (xPos / ((double) mc.getWindow().getGuiScaledWidth()  / mc.getWindow().getWidth()));
+        double yDiff = mc.mouseHandler.ypos() - (yPos / ((double) mc.getWindow().getGuiScaledHeight() / mc.getWindow().getHeight()));
         if (Minecraft.getInstance().player != null &&
-                Minecraft.getInstance().player.getPitch(1.0F) <= -89.99F && yDiff > 0) {
+                Minecraft.getInstance().player.getXRot() <= -89.99F && yDiff > 0) {
             yDiff = 0;
         }
 
@@ -247,9 +253,9 @@ public class ScreenHandTelescope extends ConstellationDiscoveryScreen<Constellat
         }
     }
 
-    private void drawSkyBackground(MatrixStack renderStack, float pTicks, boolean canSeeSky, float angleOpacity) {
+    private void drawSkyBackground(GuiGraphics renderStack, float pTicks, boolean canSeeSky, float angleOpacity) {
         Tuple<Color, Color> rgbFromTo = SkyScreen.getSkyGradient(canSeeSky, angleOpacity, pTicks);
-        RenderingDrawUtils.drawGradientRect(renderStack, this.getGuiZLevel(),
+        RenderingDrawUtils.drawGradientRect(renderStack.pose(), this.getGuiZLevel(),
                 this.guiLeft + 4, this.guiTop + 4,
                 this.guiLeft + this.guiWidth - 8, this.guiTop + this.guiHeight - 8,
                 rgbFromTo.getA().getRGB(), rgbFromTo.getB().getRGB());

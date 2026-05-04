@@ -15,11 +15,11 @@ import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -51,33 +51,41 @@ public class KeyBleed extends KeyPerk {
 
     private void onAttack(LivingHurtEvent event) {
         DamageSource source = event.getSource();
-        if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) source.getTrueSource();
+
+        // 1.20.1: getTrueSource() -> getEntity() y PlayerEntity -> Player
+        if (source.getEntity() instanceof Player player) {
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
+
             if (prog.getPerkData().hasPerkEffect(this)) {
-                LivingEntity target = event.getEntityLiving();
+                // getEntityLiving() -> getEntity()
+                LivingEntity target = event.getEntity();
 
                 double chance = CONFIG.bleedChance.get();
                 chance = PerkAttributeHelper.getOrCreateMap(player, side)
                         .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_BLEED_CHANCE, (float) chance);
-                if (rand.nextFloat() < chance) {
-                    int stackCap = 3; //So the "real" stackcap is 'amplifier = 3' that means we always have to be lower than this value.
+
+                // Usamos el generador aleatorio de la entidad
+                if (player.getRandom().nextFloat() < chance) {
+                    int stackCap = 3;
                     stackCap = Math.round(PerkAttributeHelper.getOrCreateMap(player, side)
                             .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_BLEED_STACKS, stackCap));
+
                     int duration = CONFIG.bleedDuration.get();
                     duration = Math.round(PerkAttributeHelper.getOrCreateMap(player, side)
                             .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_BLEED_DURATION, duration));
 
                     int setAmplifier = 0;
-                    if (target.isPotionActive(EffectsAS.EFFECT_BLEED)) {
-                        EffectInstance pe = target.getActivePotionEffect(EffectsAS.EFFECT_BLEED);
+                    // isPotionActive -> hasEffect | getActivePotionEffect -> getEffect
+                    if (target.hasEffect(EffectsAS.EFFECT_BLEED)) {
+                        MobEffectInstance pe = target.getEffect(EffectsAS.EFFECT_BLEED);
                         if (pe != null) {
                             setAmplifier = Math.min(pe.getAmplifier() + 1, stackCap - 1);
                         }
                     }
 
-                    target.addPotionEffect(new EffectInstance(EffectsAS.EFFECT_BLEED, duration, setAmplifier, false, true));
+                    // addPotionEffect -> addEffect | EffectInstance -> MobEffectInstance
+                    target.addEffect(new MobEffectInstance(EffectsAS.EFFECT_BLEED, duration, setAmplifier, false, true));
                 }
             }
         }

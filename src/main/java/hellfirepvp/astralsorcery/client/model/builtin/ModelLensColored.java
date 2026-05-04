@@ -11,12 +11,14 @@ package hellfirepvp.astralsorcery.client.model.builtin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
+import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -33,6 +35,10 @@ public class ModelLensColored extends CustomModel {
     public final ModelPart detail1_1;
     public final ModelPart fitting2;
     public final ModelPart fitting1;
+        // La "llave" para el modelo de la lente coloreada
+        public static final ModelLayerLocation LENS_COLORED_LAYER = new ModelLayerLocation(
+                new ResourceLocation("astralsorcery", "lens_colored"), "main");
+
 
     public ModelLensColored(ModelPart root) {
         super((resKey) -> RenderTypesAS.MODEL_LENS_COLORED_SOLID);

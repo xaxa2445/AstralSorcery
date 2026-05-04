@@ -11,12 +11,14 @@ package hellfirepvp.astralsorcery.client.model.builtin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
+import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -30,6 +32,9 @@ public class ModelObservatory extends CustomModel {
     private final ModelPart base;
     private final ModelPart seat;
     private final ModelPart tube;
+
+    public static final ModelLayerLocation OBSERVATORY_LAYER = new ModelLayerLocation(
+            new ResourceLocation("astralsorcery", "observatory"), "main");
 
     public ModelObservatory(ModelPart root) {
         super((resKey) -> RenderTypesAS.MODEL_OBSERVATORY);

@@ -16,8 +16,8 @@ import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
 import net.minecraft.entity.ai.attributes.Attribute;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nonnull;
@@ -37,21 +37,21 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
     }
 
     @Override
-    public void onApply(PlayerEntity player, LogicalSide side, ModifierSource source) {
+    public void onApply(Player player, LogicalSide side, ModifierSource source) {
         super.onApply(player, side, source);
 
         refreshAttribute(player);
     }
 
     @Override
-    public void onRemove(PlayerEntity player, LogicalSide side, boolean removedCompletely, ModifierSource source) {
+    public void onRemove(Player player, LogicalSide side, boolean removedCompletely, ModifierSource source) {
         super.onRemove(player, side, removedCompletely, source);
 
         refreshAttribute(player);
     }
 
     @Override
-    public void onModeApply(PlayerEntity player, ModifierType mode, LogicalSide side) {
+    public void onModeApply(Player player, ModifierType mode, LogicalSide side) {
         super.onModeApply(player, mode, side);
 
         ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
@@ -88,7 +88,7 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
     }
 
     @Override
-    public void onModeRemove(PlayerEntity player, ModifierType mode, LogicalSide side, boolean removedCompletely) {
+    public void onModeRemove(Player player, ModifierType mode, LogicalSide side, boolean removedCompletely) {
         super.onModeRemove(player, mode, side, removedCompletely);
 
         ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
@@ -123,15 +123,15 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
 
     static class DynamicAttributeModifier extends AttributeModifier {
 
-        private PlayerEntity player;
+        private Player player;
         private LogicalSide side;
         private PerkAttributeType type;
 
-        public DynamicAttributeModifier(UUID idIn, String nameIn, PerkAttributeType type, ModifierType mode, PlayerEntity player, LogicalSide side) {
+        public DynamicAttributeModifier(UUID idIn, String nameIn, PerkAttributeType type, ModifierType mode, Player player, LogicalSide side) {
             this(idIn, nameIn, type, mode.getVanillaAttributeOperation(), player, side);
         }
 
-        public DynamicAttributeModifier(UUID idIn, String nameIn, PerkAttributeType type, Operation operationIn, PlayerEntity player, LogicalSide side) {
+        public DynamicAttributeModifier(UUID idIn, String nameIn, PerkAttributeType type, Operation operationIn, Player player, LogicalSide side) {
             super(idIn, nameIn, operationIn == Operation.MULTIPLY_TOTAL ? 1 : 0, operationIn);
             this.player = player;
             this.side = side;

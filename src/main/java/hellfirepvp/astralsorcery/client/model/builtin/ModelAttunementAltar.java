@@ -11,12 +11,14 @@ package hellfirepvp.astralsorcery.client.model.builtin;
 import com.mojang.blaze3d.vertex.PoseStack; // Antes MatrixStack
 import com.mojang.blaze3d.vertex.VertexConsumer; // Antes IVertexBuilder
 import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
+import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart; // Antes ModelRenderer
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -28,6 +30,8 @@ public class ModelAttunementAltar extends CustomModel {
 
     private final ModelPart base;
     private final ModelPart hovering;
+    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(
+            new ResourceLocation("astralsorcery", "attunement_altar"), "main");
 
     public ModelAttunementAltar(ModelPart root) {
         super((resKey) -> RenderTypesAS.MODEL_ATTUNEMENT_ALTAR);

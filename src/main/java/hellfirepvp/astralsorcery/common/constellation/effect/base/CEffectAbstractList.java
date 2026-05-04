@@ -26,6 +26,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.ForgeConfigSpec;
 
@@ -136,7 +137,7 @@ public abstract class CEffectAbstractList<T extends CEffectAbstractList.ListEntr
     @Nullable
     public T getRandomElement() {
         // En 1.20.1, si MiscUtils usa RandomSource:
-        return MiscUtils.getRandomEntry(this.elements,new Random(rand.nextLong()));
+        return MiscUtils.getRandomEntry(this.elements, (RandomSource) new Random(rand.nextLong()));
     }
 
     @Nullable

@@ -29,7 +29,7 @@ public class SolarEclipse extends CelestialEvent {
     private int eventTick = 0;
 
     @Override
-    public void tick(World world, Random rand, WorldContext ctx) {
+    public void tick(Level world, Random rand, WorldContext ctx) {
         for (int i = 0; i < 12 + rand.nextInt(12); i++) {
             rand.nextLong(); //Flush
         }

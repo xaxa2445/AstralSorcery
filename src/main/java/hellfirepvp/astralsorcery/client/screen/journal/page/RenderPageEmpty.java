@@ -8,7 +8,8 @@
 
 package hellfirepvp.astralsorcery.client.screen.journal.page;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+
+import net.minecraft.client.gui.GuiGraphics;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -26,5 +27,5 @@ public class RenderPageEmpty extends RenderablePage {
     }
 
     @Override
-    public void render(MatrixStack renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {}
+    public void render(GuiGraphics renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {}
 }

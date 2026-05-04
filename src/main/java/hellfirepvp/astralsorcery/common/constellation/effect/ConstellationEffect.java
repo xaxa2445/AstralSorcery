@@ -51,7 +51,7 @@ import java.util.Random;
  */
 public abstract class ConstellationEffect {
 
-    protected static final Random rand = new Random();
+    protected static final RandomSource rand = RandomSource.create();
     protected static final AABB BOX = new AABB(0, 0, 0, 1, 1, 1);
 
     private final IWeakConstellation cst;

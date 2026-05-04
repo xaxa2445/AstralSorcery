@@ -8,16 +8,17 @@
 
 package hellfirepvp.astralsorcery.client.render.tile;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.model.builtin.ModelObservatory;
 import hellfirepvp.astralsorcery.client.util.RenderingVectorUtils;
 import hellfirepvp.astralsorcery.common.entity.technical.EntityObservatoryHelper;
 import hellfirepvp.astralsorcery.common.tile.TileObservatory;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.util.math.vector.Vector3f;
-import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.mojang.math.Axis;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 
 /**
@@ -29,18 +30,20 @@ import net.minecraft.world.entity.player.Player;
  */
 public class RenderObservatory extends CustomTileEntityRenderer<TileObservatory> {
 
-    private static final ModelObservatory MODEL_OBSERVATORY = new ModelObservatory();
+    private final ModelObservatory modelObservatory;
 
-    public RenderObservatory(TileEntityRendererDispatcher tileRenderer) {
-        super(tileRenderer);
+    public RenderObservatory(BlockEntityRendererProvider.Context context) {
+        super(context);
+        // Horneamos la capa del observatorio (asegúrate de definir OBSERVATORY_LAYER en el modelo)
+        this.modelObservatory = new ModelObservatory(context.bakeLayer(ModelObservatory.OBSERVATORY_LAYER));
     }
 
     @Override
-    public void render(TileObservatory tile, float pTicks, MatrixStack renderStack, IRenderTypeBuffer renderTypeBuffer, int combinedLight, int combinedOverlay) {
+    public void render(TileObservatory tile, float pTicks, PoseStack renderStack, MultiBufferSource renderTypeBuffer, int combinedLight, int combinedOverlay) {
         Entity ridden;
-        PlayerEntity player = Minecraft.getInstance().player;
+        Player player = Minecraft.getInstance().player;
         if (player != null &&
-                (ridden = Minecraft.getInstance().player.getRidingEntity()) != null &&
+                (ridden = Minecraft.getInstance().player.getVehicle()) != null &&
                 ridden instanceof EntityObservatoryHelper &&
                 ((EntityObservatoryHelper) ridden).getAssociatedObservatory() != null) {
             ((EntityObservatoryHelper) ridden).applyObservatoryRotationsFrom(tile, player, false);
@@ -55,15 +58,15 @@ public class RenderObservatory extends CustomTileEntityRenderer<TileObservatory>
         float iPitchDegree = RenderingVectorUtils.interpolateRotation(prevPitch, pitch, pTicks);
 
 
-        renderStack.push();
+        renderStack.pushPose();
         renderStack.translate(0.5F, 1.5F, 0.5F);
-        renderStack.rotate(Vector3f.XP.rotationDegrees(180F));
-        renderStack.rotate(Vector3f.YP.rotationDegrees(180F));
+        renderStack.mulPose(Axis.XP.rotationDegrees(180F));
+        renderStack.mulPose(Axis.YP.rotationDegrees(180F));
         //renderStack.scale(0.0625F, 0.0625F, 0.0625F);
 
-        MODEL_OBSERVATORY.setupRotations(iYawDegree, iPitchDegree);
-        MODEL_OBSERVATORY.render(renderStack, renderTypeBuffer, combinedLight, combinedOverlay);
+        this.modelObservatory.setupRotations(iYawDegree, iPitchDegree);
+        this.modelObservatory.render(renderStack, renderTypeBuffer, combinedLight, combinedOverlay);
 
-        renderStack.pop();
+        renderStack.popPose();
     }
 }

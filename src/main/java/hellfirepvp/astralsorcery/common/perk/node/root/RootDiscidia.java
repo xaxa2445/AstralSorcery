@@ -17,10 +17,11 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.RootPerk;
 import hellfirepvp.astralsorcery.common.util.DiminishingMultiplier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.CombatTracker;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.damagesource.CombatTracker;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -58,14 +59,13 @@ public class RootDiscidia extends RootPerk {
 
     private void onDamage(LivingDamageEvent event) {
         DamageSource ds = event.getSource();
-        PlayerEntity player = null;
-        if (ds.getImmediateSource() != null &&
-                ds.getImmediateSource() instanceof PlayerEntity) {
-            player = (PlayerEntity) ds.getImmediateSource();
+        Player player = null;
+        if (ds.getDirectEntity() instanceof Player p) {
+            player = p;
         }
-        if (player == null && ds.getTrueSource() != null &&
-                ds.getTrueSource() instanceof PlayerEntity) {
-            player = (PlayerEntity) ds.getTrueSource();
+        // getEntity() reemplaza a getTrueSource()
+        if (player == null && ds.getEntity() instanceof Player p) {
+            player = p;
         }
         if (player == null) {
             return;
@@ -82,9 +82,12 @@ public class RootDiscidia extends RootPerk {
         }
 
         float mul = 4.0F;
-        CombatTracker combat = event.getEntityLiving().getCombatTracker();
-        if (combat.inCombat) {
-            if (combat.getCombatDuration() > (2 * 60 * 20)) {
+        LivingEntity target = event.getEntity();
+        CombatTracker combat = target.getCombatTracker();
+        int combatDuration = combat.getCombatDuration();
+
+        if (combatDuration > 0) { // Si la duración es > 0, técnicamente está "en combate"
+            if (combatDuration > (2 * 60 * 20)) {
                 mul = 0.01F;
             }
         }

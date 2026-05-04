@@ -10,8 +10,8 @@ package hellfirepvp.astralsorcery.client.screen.base;
 
 import hellfirepvp.astralsorcery.common.util.tile.NamedInventoryTile;
 import net.minecraft.client.Minecraft;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -20,7 +20,7 @@ import net.minecraft.world.level.Level;
  * Created by HellFirePvP
  * Date: 02.08.2019 / 20:35
  */
-public class TileEntityScreen<T extends TileEntity & NamedInventoryTile> extends WidthHeightScreen {
+public class TileEntityScreen<T extends BlockEntity & NamedInventoryTile> extends WidthHeightScreen {
 
     private final T tile;
 
@@ -37,10 +37,10 @@ public class TileEntityScreen<T extends TileEntity & NamedInventoryTile> extends
     public void tick() {
         super.tick();
 
-        World clWorld = Minecraft.getInstance().world;
+        Level clWorld = Minecraft.getInstance().level;
         if (tile.isRemoved() ||
                 clWorld == null ||
-                !clWorld.getDimensionKey().equals(tile.getWorld().getDimensionKey())) {
+                !clWorld.dimension().equals(tile.getLevel().dimension())) {
             this.onClose();
         }
     }

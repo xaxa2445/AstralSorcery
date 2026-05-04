@@ -8,20 +8,19 @@
 
 package hellfirepvp.astralsorcery.client.render.entity;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import hellfirepvp.astralsorcery.client.util.Blending;
 import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.common.entity.EntitySpectralTool;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.texture.AtlasTexture;
-import net.minecraft.item.AxeItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.client.registry.IRenderFactory;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -32,40 +31,32 @@ import net.minecraftforge.fml.client.registry.IRenderFactory;
  */
 public class RenderEntitySpectralTool extends EntityRenderer<EntitySpectralTool> {
 
-    protected RenderEntitySpectralTool(EntityRendererManager renderManager) {
-        super(renderManager);
+    public RenderEntitySpectralTool(EntityRendererProvider.Context context) {
+        super(context);
     }
 
     @Override
-    public void render(EntitySpectralTool entity, float entityYaw, float partialTicks, MatrixStack renderStack, IRenderTypeBuffer buffer, int packedLight) {
+    public void render(EntitySpectralTool entity, float entityYaw, float partialTicks, PoseStack renderStack, MultiBufferSource buffer, int packedLight) {
         ItemStack stack = entity.getItem();
         if (stack.isEmpty() || !entity.isAlive()) {
             return;
         }
 
-        renderStack.push();
-        renderStack.translate(0, entity.getHeight() / 2, 0);
-        renderStack.rotate(Vector3f.YP.rotationDegrees(-entityYaw - 90));
+        renderStack.pushPose();
+        renderStack.translate(0, entity.getBbHeight() / 2, 0);
+        renderStack.mulPose(Axis.YP.rotationDegrees(-entityYaw - 90));
         if (stack.getItem() instanceof AxeItem) {
-            renderStack.rotate(Vector3f.XP.rotationDegrees(180));
-            renderStack.rotate(Vector3f.ZP.rotationDegrees(270));
+            renderStack.mulPose(Axis.XP.rotationDegrees(180));
+            renderStack.mulPose(Axis.ZP.rotationDegrees(270));
         }
 
         RenderingUtils.renderTranslucentItemStackModelGround(stack, renderStack, ColorsAS.SPECTRAL_TOOL, Blending.CONSTANT_ALPHA, 63);
 
-        renderStack.pop();
+        renderStack.popPose();
     }
 
     @Override
-    public ResourceLocation getEntityTexture(EntitySpectralTool entity) {
-        return AtlasTexture.LOCATION_BLOCKS_TEXTURE;
-    }
-
-    public static class Factory implements IRenderFactory<EntitySpectralTool> {
-
-        @Override
-        public EntityRenderer<? super EntitySpectralTool> createRenderFor(EntityRendererManager manager) {
-            return new RenderEntitySpectralTool(manager);
-        }
+    public ResourceLocation getTextureLocation(EntitySpectralTool entity) { // getEntityTexture -> getTextureLocation
+        return TextureAtlas.LOCATION_BLOCKS; // AtlasTexture.LOCATION_BLOCKS_TEXTURE -> TextureAtlas.LOCATION_BLOCKS
     }
 }

@@ -11,9 +11,11 @@ package hellfirepvp.astralsorcery.common.tile;
 import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.base.TileEntitySynchronized;
 import hellfirepvp.astralsorcery.common.util.tile.NamedInventoryTile;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.state.BlockState;
+
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -26,8 +28,8 @@ public class TileTelescope extends TileEntitySynchronized implements NamedInvent
 
     private TelescopeRotation rotation = TelescopeRotation.N;
 
-    public TileTelescope() {
-        super(TileEntityTypesAS.TELESCOPE);
+    public TileTelescope(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.TELESCOPE, pos, state);
     }
 
     public TelescopeRotation getRotation() {
@@ -40,22 +42,22 @@ public class TileTelescope extends TileEntitySynchronized implements NamedInvent
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.rotation = TelescopeRotation.values()[compound.getInt("rotation")];
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         compound.putInt("rotation", rotation.ordinal());
     }
 
     @Override
-    public ITextComponent getDisplayName() {
-        return new TranslationTextComponent("screen.astralsorcery.telescope");
+    public Component getDisplayName() {
+        return Component.translatable("screen.astralsorcery.telescope");
     }
 
     public static enum TelescopeRotation {

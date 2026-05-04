@@ -11,8 +11,8 @@ package hellfirepvp.astralsorcery.common.container.slot;
 import hellfirepvp.astralsorcery.common.item.base.IConstellationFocus;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.container.Slot;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.SlotItemHandler;
 
@@ -35,33 +35,39 @@ public class SlotConstellationFocus extends SlotItemHandler {
     }
 
     @Override
-    public boolean isItemValid(ItemStack stack) {
-        return !stack.isEmpty() && stack.getItem() instanceof IConstellationFocus && ((IConstellationFocus) stack.getItem()).getFocusConstellation(stack) != null;
+    public boolean mayPlace(@Nonnull ItemStack stack) { // isItemValid -> mayPlace
+        return !stack.isEmpty() &&
+                stack.getItem() instanceof IConstellationFocus focus &&
+                focus.getFocusConstellation(stack) != null;
     }
 
+    @Nonnull
     @Override
-    public ItemStack getStack() {
+    public ItemStack getItem() { // getStack -> getItem
         return this.altar.getFocusItem();
     }
 
     @Override
-    public void putStack(@Nonnull ItemStack stack) {
+    public void set(@Nonnull ItemStack stack) { // putStack -> set
         this.altar.setFocusItem(stack);
+        this.setChanged(); // markDirty/markForUpdate interno
     }
 
     @Override
-    public boolean canTakeStack(PlayerEntity playerIn) {
+    public boolean mayPickup(Player playerIn) { // canTakeStack -> mayPickup
         return true;
     }
 
     @Override
-    public ItemStack onTake(PlayerEntity thePlayer, ItemStack stack) {
+    public void onTake(@Nonnull Player thePlayer, @Nonnull ItemStack stack) { // Cambiado de ItemStack a void
         this.altar.markForUpdate();
-        return super.onTake(thePlayer, stack);
+        super.onTake(thePlayer, stack); // Ya no se devuelve nada aquí
     }
 
+    @Nonnull
     @Override
-    public ItemStack decrStackSize(int amount) {
+    public ItemStack remove(int amount) { // decrStackSize -> remove
+        // Como el límite es 1, cualquier extracción devuelve el item completo y limpia el altar
         ItemStack focus = this.altar.getFocusItem();
         this.altar.setFocusItem(ItemStack.EMPTY);
         return focus;
@@ -73,12 +79,12 @@ public class SlotConstellationFocus extends SlotItemHandler {
     }
 
     @Override
-    public int getItemStackLimit(ItemStack stack) {
+    public int getMaxStackSize() { // getSlotStackLimit -> getMaxStackSize
         return 1;
     }
 
     @Override
-    public int getSlotStackLimit() {
+    public int getMaxStackSize(@Nonnull ItemStack stack) { // getItemStackLimit -> getMaxStackSize
         return 1;
     }
 

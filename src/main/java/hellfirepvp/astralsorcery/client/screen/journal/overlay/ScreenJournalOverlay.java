@@ -8,12 +8,15 @@
 
 package hellfirepvp.astralsorcery.client.screen.journal.overlay;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+
+import com.mojang.blaze3d.vertex.PoseStack;
 import hellfirepvp.astralsorcery.client.screen.journal.ScreenJournal;
 import hellfirepvp.astralsorcery.client.screen.journal.ScreenJournalPerkTree;
 import hellfirepvp.astralsorcery.client.screen.journal.ScreenJournalProgression;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.text.ITextComponent;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -26,7 +29,7 @@ public abstract class ScreenJournalOverlay extends ScreenJournal {
 
     private final ScreenJournal origin;
 
-    protected ScreenJournalOverlay(ITextComponent titleIn, ScreenJournal origin) {
+    protected ScreenJournalOverlay(Component titleIn, ScreenJournal origin) {
         super(titleIn, origin.getGuiHeight(), origin.getGuiWidth(), NO_BOOKMARK);
         this.origin = origin;
     }
@@ -37,14 +40,18 @@ public abstract class ScreenJournalOverlay extends ScreenJournal {
     }
 
     @Override
-    public void init(Minecraft mc, int width, int height) {
-        super.init(mc, width, height);
+    protected void init() { // El método ahora no recibe parámetros y es protected
+        super.init();
 
-        origin.init(mc, width, height);
+        // En la 1.20.1, el objeto Minecraft y las dimensiones ya están en la clase base
+        // Pasamos los miembros 'minecraft', 'width' y 'height' al origen
+        if (this.minecraft != null) {
+            this.origin.init(this.minecraft, this.width, this.height);
+        }
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
+    public void render(GuiGraphics renderStack, int mouseX, int mouseY, float pTicks) {
         super.render(renderStack, mouseX, mouseY, pTicks);
 
         origin.render(renderStack, 0, 0, pTicks);
@@ -56,20 +63,21 @@ public abstract class ScreenJournalOverlay extends ScreenJournal {
     }
 
     @Override
-    public void closeScreen() {
-        Minecraft.getInstance().displayGuiScreen(this.origin);
-    }
-
-    @Override
     public void onClose() {
         super.onClose();
 
-        if (origin instanceof ScreenJournalProgression) {
-            ((ScreenJournalProgression) origin).expectReInit();
+        // Notificamos a las pantallas de origen si necesitan reconstruirse
+        if (origin instanceof ScreenJournalProgression progression) {
+            progression.expectReInit();
         }
 
-        if (origin instanceof ScreenJournalPerkTree) {
-            ((ScreenJournalPerkTree) origin).expectReinit = true;
+        if (origin instanceof ScreenJournalPerkTree perkTree) {
+            perkTree.expectReinit = true;
+        }
+
+        // Volvemos a la pantalla de origen de forma segura
+        if (Minecraft.getInstance().screen == this) {
+            Minecraft.getInstance().setScreen(this.origin);
         }
     }
 
@@ -79,8 +87,8 @@ public abstract class ScreenJournalOverlay extends ScreenJournal {
             return true;
         }
 
-        if (Minecraft.getInstance().currentScreen != this && Minecraft.getInstance().currentScreen != origin) {
-            Minecraft.getInstance().displayGuiScreen(origin);
+        if (Minecraft.getInstance().screen != this && Minecraft.getInstance().screen != origin) {
+            Minecraft.getInstance().setScreen(origin);
             return true;
         }
         return false;

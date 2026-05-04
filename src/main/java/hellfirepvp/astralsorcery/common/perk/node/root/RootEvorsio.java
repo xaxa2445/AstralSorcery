@@ -17,11 +17,11 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.RootPerk;
 import hellfirepvp.astralsorcery.common.util.DiminishingMultiplier;
-import net.minecraft.block.BlockState;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.IWorld;
-import net.minecraftforge.event.world.BlockEvent;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.event.level.BlockEvent; // Cambio de world a level
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
@@ -57,7 +57,7 @@ public class RootEvorsio extends RootPerk {
     }
 
     private void onBreak(BlockEvent.BreakEvent event) {
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getPlayer();
         LogicalSide side = this.getSide(player);
 
         if (!side.isServer()) {
@@ -70,10 +70,10 @@ public class RootEvorsio extends RootPerk {
         }
 
         BlockState broken = event.getState();
-        IWorld world = event.getWorld();
+        LevelAccessor world = event.getLevel();
         float gainedExp;
         try {
-            gainedExp = broken.getBlockHardness(world, event.getPos());
+            gainedExp = broken.getDestroySpeed(world, event.getPos());
         } catch (Exception exc) {
             gainedExp = 0.5F;
         }

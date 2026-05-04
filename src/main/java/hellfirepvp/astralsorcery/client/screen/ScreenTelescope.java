@@ -8,8 +8,10 @@
 
 package hellfirepvp.astralsorcery.client.screen;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.lib.TexturesAS;
 import hellfirepvp.astralsorcery.client.screen.base.NavigationArrowScreen;
@@ -28,7 +30,8 @@ import hellfirepvp.astralsorcery.common.network.play.client.PktRotateTelescope;
 import hellfirepvp.astralsorcery.common.tile.TileTelescope;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
 import org.lwjgl.opengl.GL11;
 
@@ -82,7 +85,7 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
             Point foundPoint;
             TelescopeRotationDrawArea associatedArea;
             do {
-                associatedArea = MiscUtils.getRandomEntry(drawAreas, gen);
+                associatedArea = MiscUtils.getRandomEntry(drawAreas, (RandomSource) gen);
                 foundPoint = findEmptySpace(gen, associatedArea);
             } while (foundPoint == null);
             associatedArea.addConstellationToArea(constellation, foundPoint, DEFAULT_CONSTELLATION_SIZE);
@@ -107,7 +110,7 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
     }
 
     @Override
-    public void render(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
+    public void render(GuiGraphics renderStack, int mouseX, int mouseY, float pTicks) {
         RenderSystem.enableDepthTest();
         super.render(renderStack, mouseX, mouseY, pTicks);
 
@@ -118,32 +121,32 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
         this.drawNavArrows(renderStack, mouseX, mouseY, pTicks);
     }
 
-    private void drawNavArrows(MatrixStack renderStack, int mouseX, int mouseY, float pTicks) {
+    private void drawNavArrows(GuiGraphics renderStack, int mouseX, int mouseY, float pTicks) {
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
 
-        this.rectArrowCCW = this.drawArrow(renderStack, guiLeft - 40, guiTop + (guiHeight / 2), this.getGuiZLevel(), Type.LEFT, mouseX, mouseY, pTicks);
-        this.rectArrowCW = this.drawArrow(renderStack, guiLeft + guiWidth + 10, guiTop + (guiHeight / 2), this.getGuiZLevel(), Type.RIGHT, mouseX, mouseY, pTicks);
+        this.rectArrowCCW = this.drawArrow(renderStack.pose(), guiLeft - 40, guiTop + (guiHeight / 2), this.getGuiZLevel(), Type.LEFT, mouseX, mouseY, pTicks);
+        this.rectArrowCW = this.drawArrow(renderStack.pose(), guiLeft + guiWidth + 10, guiTop + (guiHeight / 2), this.getGuiZLevel(), Type.RIGHT, mouseX, mouseY, pTicks);
 
         RenderSystem.disableBlend();
     }
 
-    private void drawConstellationCell(MatrixStack renderStack, float pTicks) {
-        boolean canSeeSky = this.canObserverSeeSky(this.getTile().getPos(), 1);
+    private void drawConstellationCell(GuiGraphics renderStack, float pTicks) {
+        boolean canSeeSky = this.canObserverSeeSky(this.getTile().getBlockPos(), 1);
 
-        RenderSystem.disableAlphaTest();
         RenderSystem.enableBlend();
         Blending.DEFAULT.apply();
+        RenderSystem.disableCull();
 
-        this.setBlitOffset(-10);
+        renderStack.pose().pushPose();
+        renderStack.pose().translate(0,0,-10);
         this.drawSkyBackground(renderStack, pTicks, canSeeSky);
 
         if (!this.isInitialized()) {
-            this.setBlitOffset(0);
+            renderStack.pose().popPose(); // Reset a 0
 
             Blending.DEFAULT.apply();
             RenderSystem.disableBlend();
-            RenderSystem.enableAlphaTest();
             return;
         }
 
@@ -156,10 +159,11 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
                 gen.nextFloat(); //Flush
             }
 
-            this.setBlitOffset(-9);
+            renderStack.pose().pushPose();
+            renderStack.pose().translate(0,0,-9);
             float starSize = 5F;
             TexturesAS.TEX_STAR_1.bindTexture();
-            RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX, buf -> {
+            RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX, buf -> {
                 for (int i = 0; i < 72 + gen.nextInt(108); i++) {
                     float innerOffsetX = starSize + gen.nextFloat() * (guiWidth  - starSize * 2) + this.getGuiLeft();
                     float innerOffsetY = starSize + gen.nextFloat() * (guiHeight - starSize * 2) + this.getGuiTop();
@@ -172,9 +176,11 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
                             .color(brightness, brightness, brightness, brightness)
                             .draw();
                 }
+                renderStack.pose().popPose();
             });
 
-            this.setBlitOffset(-7);
+            renderStack.pose().pushPose();
+            renderStack.pose().translate(0,0,-7);
             for (TelescopeRotationDrawArea area : this.getVisibleDrawAreas()) {
                 for (IConstellation cst : area.getDisplayMap().keySet()) {
                     ConstellationDisplayInformation info = area.getDisplayMap().get(cst);
@@ -183,9 +189,9 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
                     Point pos = info.getRenderPosition();
                     int size = (int) info.getRenderSize();
 
-                    float rainBr = 1F - Minecraft.getInstance().world.getRainStrength(pTicks);
+                    float rainBr = 1F - Minecraft.getInstance().level.getRainLevel(pTicks);
                     Map<StarLocation, Rectangle.Float> cstRenderInfo = RenderingConstellationUtils.renderConstellationIntoGUI(
-                            cst, renderStack,
+                            cst, renderStack.pose(),
                             pos.x + guiLeft,
                             pos.y + guiTop,
                             this.getGuiZLevel(),
@@ -198,21 +204,23 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
                     info.getFrameDrawInformation().putAll(cstRenderInfo);
                 }
             }
+            renderStack.pose().popPose();
 
-            this.setBlitOffset(-5);
+            renderStack.pose().pushPose();
+            renderStack.pose().translate(0,0,-5);
             this.renderDrawnLines(renderStack, gen, pTicks);
+            renderStack.pose().popPose();
         }
 
-        this.setBlitOffset(0);
+        renderStack.pose().translate(0,0,0);
 
         Blending.DEFAULT.apply();
         RenderSystem.disableBlend();
-        RenderSystem.enableAlphaTest();
     }
 
-    private void drawSkyBackground(MatrixStack renderStack, float pTicks, boolean canSeeSky) {
+    private void drawSkyBackground(GuiGraphics renderStack, float pTicks, boolean canSeeSky) {
         Tuple<Color, Color> rgbFromTo = SkyScreen.getSkyGradient(canSeeSky, 1F, pTicks);
-        RenderingDrawUtils.drawGradientRect(renderStack, this.getGuiZLevel(),
+        RenderingDrawUtils.drawGradientRect(renderStack.pose(), this.getGuiZLevel(),
                 this.guiLeft + 5, this.guiTop + 5,
                 this.guiLeft + this.guiWidth - 5, this.guiTop + this.guiHeight - 5,
                 rgbFromTo.getA().getRGB(), rgbFromTo.getB().getRGB());
@@ -225,12 +233,12 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
 
         Point p = new Point((int) mouseX, (int) mouseY);
         if (rectArrowCW != null && rectArrowCW.contains(p)) {
-            PktRotateTelescope pkt = new PktRotateTelescope(true, this.getTile().getWorld().getDimensionKey(), this.getTile().getPos());
+            PktRotateTelescope pkt = new PktRotateTelescope(true, this.getTile().getLevel().dimension(), this.getTile().getBlockPos());
             PacketChannel.CHANNEL.sendToServer(pkt);
             return true;
         }
         if (rectArrowCCW != null && rectArrowCCW.contains(p)) {
-            PktRotateTelescope pkt = new PktRotateTelescope(false, this.getTile().getWorld().getDimensionKey(), this.getTile().getPos());
+            PktRotateTelescope pkt = new PktRotateTelescope(false, this.getTile().getLevel().dimension(), this.getTile().getBlockPos());
             PacketChannel.CHANNEL.sendToServer(pkt);
             return true;
         }

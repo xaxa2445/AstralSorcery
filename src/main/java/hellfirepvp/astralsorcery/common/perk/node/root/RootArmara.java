@@ -17,10 +17,10 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.RootPerk;
 import hellfirepvp.astralsorcery.common.util.DiminishingMultiplier;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.CombatTracker;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.CombatTracker;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -57,11 +57,11 @@ public class RootArmara extends RootPerk {
     }
 
     private void onHurt(LivingHurtEvent event) {
-        if (!(event.getEntityLiving() instanceof PlayerEntity)) {
+        if (!(event.getEntity() instanceof Player)) {
             return;
         }
 
-        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        Player player = (Player) event.getEntity();
         LogicalSide side = this.getSide(player);
         if (!side.isServer()) {
             return;
@@ -74,14 +74,19 @@ public class RootArmara extends RootPerk {
 
         float mul = 0.5F;
         CombatTracker combat = player.getCombatTracker();
-        if (combat.inCombat) {
-            //noone is this long in combat...
-            if (combat.getCombatDuration() <= (4 * 60 * 20)) {
+        int combatDuration = combat.getCombatDuration();
+
+        // Solución al error de visibilidad detectado anteriormente
+        if (combatDuration > 0) {
+            // Si el combate dura menos de 4 minutos (en ticks), damos mucha experiencia
+            if (combatDuration <= (4 * 60 * 20)) {
                 mul = 10.0F;
             } else {
+                // Penalización por combate extremadamente largo (prevención de cheese)
                 mul = 0.05F;
             }
-        } else if (event.getSource().getTrueSource() instanceof LivingEntity) {
+        } else if (event.getSource().getEntity() instanceof LivingEntity) {
+            // Si no estaba en combate pero el daño viene de una entidad viviente
             mul = 3.0F;
         }
 

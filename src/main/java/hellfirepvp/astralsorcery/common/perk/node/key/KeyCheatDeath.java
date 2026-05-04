@@ -16,9 +16,9 @@ import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.perk.CooldownPerk;
 import hellfirepvp.astralsorcery.common.perk.PerkCooldownHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -52,15 +52,15 @@ public class KeyCheatDeath extends KeyPerk implements CooldownPerk {
     }
 
     private void onDeath(LivingDeathEvent event) {
-        if (event.getEntityLiving() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
             LogicalSide side = this.getSide(player);
             PlayerProgress progress = ResearchHelper.getProgress(player, side);
             if (side.isServer() && progress.getPerkData().hasPerkEffect(this)) {
                 if (!PerkCooldownHelper.isCooldownActiveForPlayer(player, this) &&
                         AlignmentChargeHandler.INSTANCE.drainCharge(player, side, CONFIG.chargeCost.get(), false)) {
                     PerkCooldownHelper.setCooldownActiveForPlayer(player, this, CONFIG.cooldownPotionApplication.get());
-                    player.addPotionEffect(new EffectInstance(EffectsAS.EFFECT_CHEAT_DEATH,
+                    player.addEffect(new MobEffectInstance(EffectsAS.EFFECT_CHEAT_DEATH,
                             CONFIG.potionDuration.get(),
                             CONFIG.potionAmplifier.get(),
                             true, false, true));
@@ -70,7 +70,7 @@ public class KeyCheatDeath extends KeyPerk implements CooldownPerk {
     }
 
     @Override
-    public void onCooldownTimeout(PlayerEntity player) {}
+    public void onCooldownTimeout(Player player) {}
 
     private static class Config extends ConfigEntry {
 
