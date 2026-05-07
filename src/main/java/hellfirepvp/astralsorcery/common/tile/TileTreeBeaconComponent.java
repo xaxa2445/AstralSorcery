@@ -12,8 +12,10 @@ import hellfirepvp.astralsorcery.common.lib.TileEntityTypesAS;
 import hellfirepvp.astralsorcery.common.tile.base.TileFakedState;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.state.BlockState;
+
 
 import javax.annotation.Nonnull;
 
@@ -28,19 +30,19 @@ public class TileTreeBeaconComponent extends TileFakedState {
 
     private BlockPos treeBeaconPos = BlockPos.ZERO;
 
-    public TileTreeBeaconComponent() {
-        super(TileEntityTypesAS.TREE_BEACON_COMPONENT);
+    public TileTreeBeaconComponent(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.TREE_BEACON_COMPONENT, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
-        if (!this.getWorld().isRemote() && this.getTicksExisted() % 200 == 0) {
+        if (!this.getLevel().isClientSide() && this.getTicksExisted() % 200 == 0) {
             if (this.getTreeBeaconPos().equals(BlockPos.ZERO)) {
                 this.removeSelf();
             } else {
-                TileTreeBeacon ttb = MiscUtils.getTileAt(this.getWorld(), this.getTreeBeaconPos(), TileTreeBeacon.class, false);
+                TileTreeBeacon ttb = MiscUtils.getTileAt(this.getLevel(), this.getTreeBeaconPos(), TileTreeBeacon.class, false);
                 if (ttb == null) {
                     this.removeSelf();
                 }
@@ -59,14 +61,14 @@ public class TileTreeBeaconComponent extends TileFakedState {
     }
 
     @Override
-    public void readCustomNBT(CompoundNBT compound) {
+    public void readCustomNBT(CompoundTag compound) {
         super.readCustomNBT(compound);
 
         this.treeBeaconPos = NBTHelper.readFromSubTag(compound, "treeBeaconPos", NBTHelper::readBlockPosFromNBT);
     }
 
     @Override
-    public void writeCustomNBT(CompoundNBT compound) {
+    public void writeCustomNBT(CompoundTag compound) {
         super.writeCustomNBT(compound);
 
         NBTHelper.setAsSubTag(compound, "treeBeaconPos", tag -> NBTHelper.writeBlockPosToNBT(this.treeBeaconPos, tag));

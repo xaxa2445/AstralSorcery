@@ -16,12 +16,13 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.data.WorldCacheDomain;
 import hellfirepvp.observerlib.common.data.base.GlobalWorldData;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.Constants;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.nbt.ListTag;     // ListNBT -> ListTag
+import net.minecraft.nbt.Tag;         // Reemplaza Constants.NBT
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level; // World -> Level
+import net.minecraft.world.phys.AABB;   // AxisAlignedBB -> AABB
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -53,7 +54,7 @@ public class StorageNetworkBuffer extends GlobalWorldData {
 
         for (StorageNetwork network : this.rawNetworks.values()) {
             for (StorageNetwork.CoreArea core : network.getCores()) {
-                AxisAlignedBB box = core.getRealBox();
+                AABB box = core.getRealBox();
                 ChunkPos from = Vector3.getMin(box).toChunkPos();
                 ChunkPos to   = Vector3.getMax(box).toChunkPos();
 
@@ -69,10 +70,10 @@ public class StorageNetworkBuffer extends GlobalWorldData {
     }
 
     @Override
-    public void writeToNBT(CompoundNBT compound) {
-        ListNBT networks = new ListNBT();
+    public void writeToNBT(CompoundTag compound) {
+        ListTag networks = new ListTag();
         for (StorageNetwork network : this.rawNetworks.values()) {
-            CompoundNBT tag = new CompoundNBT();
+            CompoundTag tag = new CompoundTag();
             network.writeToNBT(tag);
             networks.add(tag);
         }
@@ -80,12 +81,12 @@ public class StorageNetworkBuffer extends GlobalWorldData {
     }
 
     @Override
-    public void readFromNBT(CompoundNBT compound) {
+    public void readFromNBT(CompoundTag compound) {
         this.rawNetworks.clear();
 
-        ListNBT networks = compound.getList("networks", Constants.NBT.TAG_COMPOUND);
+        ListTag networks = compound.getList("networks", Tag.TAG_COMPOUND);
         for (int i = 0; i < networks.size(); i++) {
-            CompoundNBT tag = networks.getCompound(i);
+            CompoundTag tag = networks.getCompound(i);
             StorageNetwork net = new StorageNetwork();
             net.readFromNBT(tag);
             if (net.getCores().isEmpty()) {
@@ -93,7 +94,7 @@ public class StorageNetworkBuffer extends GlobalWorldData {
             }
             StorageNetwork.CoreArea master = net.getMaster();
             if (master == null) {
-                master = MiscUtils.getRandomEntry(net.getCores(), rand);
+                master = MiscUtils.getRandomEntry(net.getCores(), (RandomSource) rand);
             }
             this.rawNetworks.put(master.getPos(), net);
         }
@@ -102,6 +103,6 @@ public class StorageNetworkBuffer extends GlobalWorldData {
     }
 
     @Override
-    public void updateTick(World world) {}
+    public void updateTick(Level world) {}
 
 }

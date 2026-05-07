@@ -25,8 +25,7 @@ public class ItemChisel extends Item {
 
     public ItemChisel() {
         super(new Properties()
-                .durability(72) // maxDamage -> durability
-                .tab(CommonProxy.ITEM_GROUP_AS)); // luego esto habrá que modernizarlo
+                .durability(72)); // maxDamage -> durability
     }
 
     @Override

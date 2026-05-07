@@ -71,8 +71,8 @@ public class BlockObservatory extends BaseEntityBlock implements LargeBlock, Cus
         // worldIn.isRemote -> worldIn.isClientSide
         if (!worldIn.isClientSide()) {
             TileObservatory observatory = MiscUtils.getTileAt(worldIn, pos, TileObservatory.class, false);
-            // !player.isSneaking() -> !player.isShiftKeyDown()
-            if (observatory != null && observatory.isUsable() && !player.isShiftKeyDown()) {
+            // !player.isCrouching() -> !player.isCrouching()
+            if (observatory != null && observatory.isUsable() && !player.isCrouching()) {
                 Entity entity = observatory.findRideableObservatoryEntity();
                 if (entity != null) {
                     // getRidingEntity() -> getVehicle()

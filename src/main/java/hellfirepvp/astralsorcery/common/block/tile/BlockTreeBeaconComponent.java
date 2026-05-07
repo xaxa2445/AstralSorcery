@@ -10,17 +10,16 @@ package hellfirepvp.astralsorcery.common.block.tile;
 
 import hellfirepvp.astralsorcery.common.block.base.BlockFakedState;
 import hellfirepvp.astralsorcery.common.tile.TileTreeBeaconComponent;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialColor;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-
-import javax.annotation.Nullable;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
+import org.jetbrains.annotations.Nullable;
 import java.util.Random;
 
 /**
@@ -33,20 +32,27 @@ import java.util.Random;
 public class BlockTreeBeaconComponent extends BlockFakedState {
 
     public BlockTreeBeaconComponent() {
-        super(Properties.create(Material.BARRIER, MaterialColor.AIR)
-                .hardnessAndResistance(-1F, 3600000.0F)
-                .setLightLevel(state -> 12));
+        // 1.20.1: Material se elimina; se definen propiedades directamente
+        super(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.NONE)
+                .replaceable() // Reemplaza el comportamiento de Material.BARRIER en parte
+                .noLootTable()
+                .strength(-1.0F, 3600000.0F)
+                .lightLevel(state -> 12)
+                .noOcclusion()
+                .pushReaction(PushReaction.BLOCK)); // Evita que pistones lo muevan
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, World world, BlockPos pos, Random rand) {
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource rand) {
+        // En 1.20.1 se usa RandomSource en lugar de Random para mejor rendimiento
         this.playParticles(world, pos, rand);
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TileTreeBeaconComponent();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        // EntityBlock requiere pos y state para crear el Tile (BlockEntity)
+        return new TileTreeBeaconComponent(pos, state);
     }
 }

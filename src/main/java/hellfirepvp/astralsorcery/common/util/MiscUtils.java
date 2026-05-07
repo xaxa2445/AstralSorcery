@@ -35,6 +35,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.*;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkSource;
@@ -638,14 +640,14 @@ public class MiscUtils {
         return (val) -> executeWithChunk(world, posFn.apply(val), val, Function.identity());
     }
 
-    public static <T> T eitherOf(Random r, T... selection) {
+    public static <T> T eitherOf(RandomSource r, T... selection) {
         if (selection.length == 0) {
             return null;
         }
         return selection[r.nextInt(selection.length)];
     }
 
-    public static <T> T eitherOf(Random r, Supplier<T>... selection) {
+    public static <T> T eitherOf(RandomSource r, Supplier<T>... selection) {
         if (selection.length == 0) {
             return null;
         }
@@ -695,6 +697,19 @@ public class MiscUtils {
             return true;
         }
         return false;
+    }
+
+    public static void tickBlockEntity(ServerLevel world, BlockEntity be) {
+        if (be == null || be.isRemoved()) return;
+
+        BlockState state = be.getBlockState();
+        // Buscamos el ticker registrado para este tipo de BlockEntity
+        BlockEntityTicker<BlockEntity> ticker = state.getTicker(world, (BlockEntityType<BlockEntity>) be.getType());
+
+        if (ticker != null) {
+            // Ejecutamos el tick manualmente pasando el contexto requerido
+            ticker.tick(world, be.getBlockPos(), state, be);
+        }
     }
 
 }

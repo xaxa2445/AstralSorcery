@@ -28,8 +28,7 @@ public class ItemHandTelescope extends Item {
 
     public ItemHandTelescope() {
         super(new Properties()
-                .stacksTo(1) // maxStackSize -> stacksTo
-                .tab(CommonProxy.ITEM_GROUP_AS)); // group -> tab
+                .stacksTo(1)); // maxStackSize -> stacksTo
     }
 
     @Override

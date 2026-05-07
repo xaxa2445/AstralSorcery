@@ -105,7 +105,7 @@ public interface LinkableTileEntity {
      * @return boolean true if the select actually selected it, false for any other selection modification
      */
     default public boolean onSelect(Player player) {
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             for (BlockPos linkTo : Lists.newArrayList(getLinkedPositions())) {
                 tryUnlink(player, linkTo);
             }

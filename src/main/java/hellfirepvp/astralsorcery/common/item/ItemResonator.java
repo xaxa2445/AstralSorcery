@@ -213,7 +213,7 @@ public class ItemResonator extends Item implements OverrideInteractItem {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
-        if (!world.isClientSide() && player.isShiftKeyDown()) {
+        if (!world.isClientSide() && player.isCrouching()) {
             if (cycleUpgrade(player, player.getItemInHand(hand))) {
                 return InteractionResultHolder.success(player.getItemInHand(hand));
             }

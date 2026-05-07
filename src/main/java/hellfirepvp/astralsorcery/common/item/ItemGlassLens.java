@@ -21,7 +21,6 @@ import net.minecraft.world.item.Item;
 public class ItemGlassLens extends Item {
 
     public ItemGlassLens() {
-        super(new Properties()
-                .tab(CommonProxy.ITEM_GROUP_AS)); // group -> tab
+        super(new Properties());
     }
 }

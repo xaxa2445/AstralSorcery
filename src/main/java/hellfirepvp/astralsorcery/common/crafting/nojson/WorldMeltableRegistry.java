@@ -11,10 +11,10 @@ package hellfirepvp.astralsorcery.common.crafting.nojson;
 import hellfirepvp.astralsorcery.common.crafting.nojson.meltable.BlockMeltableRecipe;
 import hellfirepvp.astralsorcery.common.crafting.nojson.meltable.FurnaceMeltableRecipe;
 import hellfirepvp.astralsorcery.common.crafting.nojson.meltable.WorldMeltableRecipe;
-import net.minecraft.block.Blocks;
+import net.minecraft.core.BlockPos;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.Tags;
 
 import javax.annotation.Nullable;
@@ -32,17 +32,17 @@ public class WorldMeltableRegistry extends CustomRecipeRegistry<WorldMeltableRec
 
     @Override
     public void init() {
-        this.register(BlockMeltableRecipe.of(BlockTags.ICE, Blocks.WATER.getDefaultState()));
-        this.register(BlockMeltableRecipe.of(Tags.Blocks.STONE, Blocks.LAVA.getDefaultState()));
-        this.register(BlockMeltableRecipe.of(Tags.Blocks.NETHERRACK, Blocks.LAVA.getDefaultState()));
-        this.register(BlockMeltableRecipe.of(Tags.Blocks.OBSIDIAN, Blocks.LAVA.getDefaultState()));
-        this.register(BlockMeltableRecipe.of(Blocks.MAGMA_BLOCK.getDefaultState(), Blocks.LAVA.getDefaultState()));
+        this.register(BlockMeltableRecipe.of(BlockTags.ICE, Blocks.WATER.defaultBlockState()));
+        this.register(BlockMeltableRecipe.of(Tags.Blocks.STONE, Blocks.LAVA.defaultBlockState()));
+        this.register(BlockMeltableRecipe.of(Tags.Blocks.NETHERRACK, Blocks.LAVA.defaultBlockState()));
+        this.register(BlockMeltableRecipe.of(Tags.Blocks.OBSIDIAN, Blocks.LAVA.defaultBlockState()));
+        this.register(BlockMeltableRecipe.of(Blocks.MAGMA_BLOCK.defaultBlockState(), Blocks.LAVA.defaultBlockState()));
 
         this.register(new FurnaceMeltableRecipe());
     }
 
     @Nullable
-    public WorldMeltableRecipe getRecipeFor(World world, BlockPos pos) {
+    public WorldMeltableRecipe getRecipeFor(Level world, BlockPos pos) {
         return this.getRecipes()
                 .stream()
                 .filter(recipe -> recipe.canMelt(world, pos))

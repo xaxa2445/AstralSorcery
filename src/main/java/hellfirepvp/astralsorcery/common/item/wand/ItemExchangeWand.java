@@ -209,7 +209,7 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
             return InteractionResult.SUCCESS;
         }
 
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             ItemBlockStorage.storeBlockState(stack, world, pos);
             return InteractionResult.SUCCESS;
         }
@@ -247,7 +247,7 @@ public class ItemExchangeWand extends Item implements ItemBlockStorage, ItemOver
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             SizeMode nextMode = getSizeMode(held).next();
             setSizeMode(held, nextMode);
             player.displayClientMessage(nextMode.getDisplay(), true);

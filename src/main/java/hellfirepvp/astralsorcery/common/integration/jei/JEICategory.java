@@ -8,13 +8,16 @@
 
 package hellfirepvp.astralsorcery.common.integration.jei;
 
-import mezz.jei.api.gui.ingredient.IGuiFluidStackGroup;
+import mezz.jei.api.constants.VanillaTypes;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.drawable.IDrawable;
+import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,18 +30,15 @@ import java.util.List;
  * Created by HellFirePvP
  * Date: 05.09.2020 / 12:38
  */
-public abstract class JEICategory<T extends IRecipe<?>> implements IRecipeCategory<T> {
+public abstract class JEICategory<T extends Recipe<?>> implements IRecipeCategory<T> {
 
-    private final String locTitle;
-    private final ResourceLocation uid;
+    private final Component title;
+    private final RecipeType<T> recipeType;
 
-    public JEICategory(ResourceLocation categoryId) {
-        this(category(categoryId), categoryId);
-    }
-
-    public JEICategory(String unlocTitle, ResourceLocation uid) {
-        this.locTitle = I18n.format(unlocTitle);
-        this.uid = uid;
+    public JEICategory(RecipeType<T> recipeType) {
+        this.recipeType = recipeType;
+        // En 1.20.1 usamos Component.translatable para localización
+        this.title = Component.translatable(category(recipeType.getUid()));
     }
 
     protected static String category(ResourceLocation categoryId) {
@@ -46,26 +46,29 @@ public abstract class JEICategory<T extends IRecipe<?>> implements IRecipeCatego
     }
 
     protected static List<ItemStack> ingredientStacks(Ingredient ingredient) {
-        return Arrays.asList(ingredient.getMatchingStacks());
+        return Arrays.asList(ingredient.getItems()); // getMatchingStacks -> getItems
     }
 
-    protected static void initFluidInput(IGuiFluidStackGroup group, int index, int x, int y) {
-        group.init(index, true, x + 1, y + 1, 16, 16, 1000, false, null);
-    }
-
-    protected static void initFluidOutput(IGuiFluidStackGroup group, int index, int x, int y) {
-        group.init(index, false, x + 1, y + 1, 16, 16, 1000, false, null);
+    protected static void addFluidInput(IRecipeLayoutBuilder builder, int x, int y, long amount) {
+        builder.addSlot(mezz.jei.api.recipe.RecipeIngredientRole.INPUT, x + 1, y + 1)
+                .addFluidStack(net.minecraft.world.level.material.Fluids.WATER, amount) // Ejemplo
+                .setFluidRenderer(amount, false, 16, 16);
     }
 
     public abstract List<T> getRecipes();
 
     @Override
-    public ResourceLocation getUid() {
-        return uid;
+    public RecipeType<T> getRecipeType() {
+        return recipeType;
     }
 
     @Override
-    public String getTitle() {
-        return locTitle;
+    public Component getTitle() {
+        return title;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName(T recipe) {
+        return recipe.getId();
     }
 }

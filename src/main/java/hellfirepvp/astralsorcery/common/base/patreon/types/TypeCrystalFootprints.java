@@ -17,7 +17,7 @@ import hellfirepvp.astralsorcery.common.base.patreon.PatreonEffect;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.Effects;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.TickEvent;
@@ -56,7 +56,7 @@ public class TypeCrystalFootprints extends PatreonEffect implements ITickHandler
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = (PlayerEntity) context[0];
+        Player player = (Player) context[0];
         LogicalSide side = (LogicalSide) context[1];
 
         if (side.isClient() &&
@@ -67,19 +67,19 @@ public class TypeCrystalFootprints extends PatreonEffect implements ITickHandler
         }
     }
 
-    private boolean shouldDoEffect(PlayerEntity player) {
-        return player.getUniqueID().equals(playerUUID) &&
-                !player.isPotionActive(Effects.INVISIBILITY) &&
-                player.isOnGround();
+    private boolean shouldDoEffect(Player player) {
+        return player.getUUID().equals(playerUUID) &&
+                !player.hasEffect(MobEffects.INVISIBILITY) &&
+                player.onGround();
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void spawnFootprint(PlayerEntity player) {
+    private void spawnFootprint(Player player) {
         Vector3 pos = Vector3.atEntityCorner(player)
-                .subtract(player.getWidth() / 2, 0.1, player.getWidth() / 2)
-                .add(player.getWidth() * rand.nextFloat(), 0, player.getWidth() * rand.nextFloat());
+                .subtract(player.getBbWidth() / 2, 0.1, player.getBbWidth() / 2)
+                .add(player.getBbWidth() * rand.nextFloat(), 0, player.getBbWidth() * rand.nextFloat());
 
-        if (player.getEntityWorld().isAirBlock(pos.toBlockPos())) {
+        if (player.level().getBlockState(pos.toBlockPos()).isAir()) {
             return;
         }
 

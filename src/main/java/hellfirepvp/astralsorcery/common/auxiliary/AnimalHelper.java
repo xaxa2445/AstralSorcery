@@ -9,8 +9,11 @@
 package hellfirepvp.astralsorcery.common.auxiliary;
 
 import hellfirepvp.astralsorcery.common.CommonProxy;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.animal.Animal; // AnimalEntity -> Animal
 import net.minecraft.world.entity.animal.Squid;  // SquidEntity -> Squid
@@ -75,8 +78,10 @@ public class AnimalHelper {
 
         @Override
         public List<ItemStack> generateDrops(@Nonnull LivingEntity entity, Level world, RandomSource rand, float luck) {
+            DamageSource astralDamage = new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                    .getHolderOrThrow(ASDamageTypes.STELLAR));
             // Usamos el EntityUtils que arreglamos, pasando el DamageSource de Astral
-            return EntityUtils.generateLoot(entity, rand, CommonProxy.DAMAGE_SOURCE_STELLAR, null);
+            return EntityUtils.generateLoot(entity, rand, astralDamage, null);
         }
     }
 

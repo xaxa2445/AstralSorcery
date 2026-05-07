@@ -78,7 +78,7 @@ public class CelestialGatewayFilter {
 
         try {
             // CompressedStreamTools -> NbtIo
-            CompoundTag tag = NbtIo.read(this.gatewayFilter.toPath());
+            CompoundTag tag = NbtIo.read(this.gatewayFilter);
             if (tag == null) return;
 
             // Constants.NBT.TAG_STRING ahora se usa directamente el ID 8 o Tag.TAG_STRING
@@ -102,7 +102,7 @@ public class CelestialGatewayFilter {
             }
             CompoundTag cmp = new CompoundTag();
             cmp.put("list", list);
-            NbtIo.write(cmp, this.gatewayFilter.toPath());
+            NbtIo.write(cmp, this.gatewayFilter);
         } catch (IOException ignored) {}
     }
 }

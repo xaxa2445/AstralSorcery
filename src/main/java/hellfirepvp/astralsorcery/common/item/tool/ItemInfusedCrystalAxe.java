@@ -53,7 +53,7 @@ public class ItemInfusedCrystalAxe extends ItemCrystalAxe implements EquipmentAt
     public boolean onBlockStartBreak(ItemStack itemstack, BlockPos pos, Player player) {
         Level level = player.level();
         if (!level.isClientSide() &&
-                !player.isShiftKeyDown() &&
+                !player.isCrouching() &&
                 !player.getCooldowns().isOnCooldown(itemstack.getItem()) &&
                 player instanceof ServerPlayer) {
 

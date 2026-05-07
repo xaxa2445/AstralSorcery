@@ -19,34 +19,33 @@ import hellfirepvp.astralsorcery.common.tile.TilePrism;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.state.BooleanProperty;
-import net.minecraft.state.EnumProperty;
-import net.minecraft.state.StateContainer;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ActionResultType;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockDisplayReader;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.ToolType;
-
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -57,20 +56,22 @@ import javax.annotation.Nullable;
  */
 public class BlockPrism extends BlockStarlightNetwork implements CustomItemBlock, BlockDynamicColor {
 
-    private static final VoxelShape PRISM_DOWN =  VoxelShapes.create(3D / 16D, 0,      3D / 16D, 13D / 16D, 14D / 16D, 13D / 16D);
-    private static final VoxelShape PRISM_UP =    VoxelShapes.create(3D / 16D, 2D / 16D, 3D / 16D, 13D / 16D, 1,       13D / 16D);
-    private static final VoxelShape PRISM_NORTH = VoxelShapes.create(3D / 16D, 3D / 16D, 0,      13D / 16D, 13D / 16D, 14D / 16D);
-    private static final VoxelShape PRISM_SOUTH = VoxelShapes.create(3D / 16D, 3D / 16D, 2D / 16D, 13D / 16D, 13D / 16D, 1);
-    private static final VoxelShape PRISM_EAST =  VoxelShapes.create(2D / 16D, 3D / 16D, 3D / 16D, 1,       13D / 16D, 13D / 16D);
-    private static final VoxelShape PRISM_WEST =  VoxelShapes.create(0,      3D / 16D, 3D / 16D, 14D / 16D, 13D / 16D, 13D / 16D);
-    
-    public static EnumProperty<Direction> PLACED_AGAINST = EnumProperty.create("against", Direction.class);
-    public static BooleanProperty HAS_COLORED_LENS = BooleanProperty.create("has_lens");
+    private static final VoxelShape PRISM_DOWN =  Shapes.box(3D / 16D, 0,      3D / 16D, 13D / 16D, 14D / 16D, 13D / 16D);
+    private static final VoxelShape PRISM_UP =    Shapes.box(3D / 16D, 2D / 16D, 3D / 16D, 13D / 16D, 1,       13D / 16D);
+    private static final VoxelShape PRISM_NORTH = Shapes.box(3D / 16D, 3D / 16D, 0,      13D / 16D, 13D / 16D, 14D / 16D);
+    private static final VoxelShape PRISM_SOUTH = Shapes.box(3D / 16D, 3D / 16D, 2D / 16D, 13D / 16D, 13D / 16D, 1);
+    private static final VoxelShape PRISM_EAST =  Shapes.box(2D / 16D, 3D / 16D, 3D / 16D, 1,       13D / 16D, 13D / 16D);
+    private static final VoxelShape PRISM_WEST =  Shapes.box(0,      3D / 16D, 3D / 16D, 14D / 16D, 13D / 16D, 13D / 16D);
+
+    public static final DirectionProperty PLACED_AGAINST = BlockStateProperties.FACING;
+    public static final BooleanProperty HAS_COLORED_LENS = BooleanProperty.create("has_lens");
+
 
     public BlockPrism() {
-        super(PropertiesGlass.coatedGlass()
-                .harvestTool(ToolType.PICKAXE));
-        setDefaultState(this.getStateContainer().getBaseState().with(PLACED_AGAINST, Direction.DOWN).with(HAS_COLORED_LENS, false));
+        super(PropertiesGlass.coatedGlass()); // Nota: HarvestTool ahora se maneja vía Tags (Datagen)
+        this.registerDefaultState(this.stateDefinition.any()
+                .setValue(PLACED_AGAINST, Direction.DOWN)
+                .setValue(HAS_COLORED_LENS, false));
     }
 
     @Override
@@ -79,61 +80,61 @@ public class BlockPrism extends BlockStarlightNetwork implements CustomItemBlock
     }
 
     @Override
-    public void onBlockHarvested(World world, BlockPos pos, BlockState state, PlayerEntity player) {
+    public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
         TilePrism lens = MiscUtils.getTileAt(world, pos, TilePrism.class, true);
-        if (lens != null && !world.isRemote() && !player.isCreative()) {
+        if (lens != null && !world.isClientSide() && !player.isCreative()) {
             if (lens.getColorType() != null) {
                 ItemStack drop = lens.getColorType().getStack();
                 ItemUtils.dropItemNaturally(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop);
             }
         }
-        super.onBlockHarvested(world, pos, state, player);
+        super.playerWillDestroy(world, pos, state, player);
     }
 
     @Override
-    public ActionResultType onBlockActivated(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockRayTraceResult hit) {
-        if (!world.isRemote() && player.isSneaking()) {
+    public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!world.isClientSide && player.isCrouching()) {
             TilePrism lens = MiscUtils.getTileAt(world, pos, TilePrism.class, true);
             if (lens != null && lens.getColorType() != null) {
                 ItemStack drop = lens.getColorType().getStack();
                 if (!player.isCreative()) {
-                    if (player.getHeldItem(hand).isEmpty()) {
-                        player.setHeldItem(hand, drop);
+                    if (player.getItemInHand(hand).isEmpty()) {
+                        player.setItemInHand(hand, drop);
                     } else {
-                        if (!player.inventory.addItemStackToInventory(drop)) {
+                        if (!player.getInventory().add(drop)) {
                             ItemUtils.dropItem(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop);
                         }
                     }
                 }
-                SoundHelper.playSoundAround(SoundsAS.BLOCK_COLOREDLENS_ATTACH, world, pos, 0.8F, 1.5F);
+                SoundHelper.playSoundAround(SoundsAS.BLOCK_COLOREDLENS_ATTACH.getSoundEvent(), world, pos, 0.8F, 1.5F);
                 lens.setColorType(null);
-                return ActionResultType.SUCCESS;
+                return InteractionResult.SUCCESS;
             }
         }
-        return ActionResultType.PASS;
+        return InteractionResult.PASS;
     }
 
     @Override
-    protected void fillStateContainer(StateContainer.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(PLACED_AGAINST, HAS_COLORED_LENS);
     }
 
     @Nullable
     @Override
-    public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.getDefaultState().with(PLACED_AGAINST, context.getFace().getOpposite());
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return this.defaultBlockState().setValue(PLACED_AGAINST, context.getClickedFace().getOpposite());
     }
 
     @Override
-    public void onReplaced(BlockState state, World worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
+    public void onRemove(BlockState state, Level worldIn, BlockPos pos, BlockState newState, boolean isMoving) {
         if (state.getBlock() != newState.getBlock()) {
-            super.onReplaced(state, worldIn, pos, newState, isMoving);
+            super.onRemove(state, worldIn, pos, newState, isMoving);
         }
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public int getColor(BlockState state, @Nullable IBlockDisplayReader world, @Nullable BlockPos pos, int tintIndex) {
+    public int getColor(BlockState state, @Nullable BlockAndTintGetter world, @Nullable BlockPos pos, int tintIndex) {
         if (tintIndex != 3) { //prism_colored_all.json
             return 0xFFFFFFFF;
         }
@@ -148,37 +149,31 @@ public class BlockPrism extends BlockStarlightNetwork implements CustomItemBlock
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
-        switch (state.get(PLACED_AGAINST)) {
-            case UP:
-                return PRISM_UP;
-            case NORTH:
-                return PRISM_NORTH;
-            case SOUTH:
-                return PRISM_SOUTH;
-            case WEST:
-                return PRISM_WEST;
-            case EAST:
-                return PRISM_EAST;
-            default:
-            case DOWN:
-                return PRISM_DOWN;
-        }
+    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
+        Direction dir = state.getValue(PLACED_AGAINST);
+        return switch (dir) {
+            case UP -> PRISM_UP;
+            case NORTH -> PRISM_NORTH;
+            case SOUTH -> PRISM_SOUTH;
+            case WEST -> PRISM_WEST;
+            case EAST -> PRISM_EAST;
+            default -> PRISM_DOWN;
+        };
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter worldIn, BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TilePrism();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new TilePrism(pos, state);
     }
 }

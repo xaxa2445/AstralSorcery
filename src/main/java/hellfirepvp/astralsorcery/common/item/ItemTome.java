@@ -60,11 +60,11 @@ public class ItemTome extends Item implements PerkExperienceRevealer {
         ItemStack held = player.getItemInHand(hand);
 
         if (world.isClientSide()) {
-            if (!player.isShiftKeyDown()) { // isSneaking -> isShiftKeyDown
+            if (!player.isCrouching()) { // isSneaking -> isShiftKeyDown
                 AstralSorcery.getProxy().openGui(player, GuiType.TOME);
             }
         } else {
-            if (player.isShiftKeyDown() && hand == InteractionHand.MAIN_HAND && player instanceof ServerPlayer serverPlayer) {
+            if (player.isCrouching() && hand == InteractionHand.MAIN_HAND && player instanceof ServerPlayer serverPlayer) {
                 // En 1.20.1 usamos serverPlayer.getInventory().selected para el slot actual
                 new ContainerTomeProvider(held, serverPlayer.getInventory().selected)
                         .openFor(serverPlayer);

@@ -22,18 +22,20 @@ import hellfirepvp.astralsorcery.common.event.PlayerAffectionFlags;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
 import hellfirepvp.astralsorcery.common.util.DamageSourceUtil;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.MobEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob; // MobEntity -> Mob
+import net.minecraft.world.entity.MobCategory; // EntityClassification -> MobCategory
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -62,9 +64,9 @@ public class CEffectDiscidia extends ConstellationEffectEntityCollect<LivingEnti
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         Vector3 playAt = new Vector3(pos).add(0.5, 0.5, 0.5);
-        if (pos.equals(pedestal.getPos())) {
+        if (pos.equals(pedestal.getBlockPos())) {
             playAt.add(
                     rand.nextFloat() * 0.1 * (rand.nextBoolean() ? 1 : -1),
                     rand.nextFloat() * 5,
@@ -82,23 +84,27 @@ public class CEffectDiscidia extends ConstellationEffectEntityCollect<LivingEnti
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
         boolean didEffect = false;
 
         float damage = CONFIG.damage.get().floatValue(); //Randomize?..
-        PlayerEntity owner = this.getOwningPlayerInWorld(world, pos);
-        DamageSource src = owner == null ? CommonProxy.DAMAGE_SOURCE_STELLAR :
-                DamageSourceUtil.withEntityDirect(CommonProxy.DAMAGE_SOURCE_STELLAR, owner);
+        Player owner = this.getOwningPlayerInWorld(world, pos);
+        DamageSource src = new DamageSource(
+                world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                        .getHolderOrThrow(ASDamageTypes.STELLAR),
+                owner, // El atacante directo (causante)
+                owner  // El atacante indirecto
+        );
         List<LivingEntity> entities = this.collectEntities(world, pos, properties);
         for (LivingEntity entity : entities) {
             if (rand.nextInt(6) != 0) {
                 continue;
             }
-            if (properties.isCorrupted() && entity instanceof MobEntity && entity.getClassification(false) == EntityClassification.MONSTER) {
+            if (properties.isCorrupted() && entity instanceof Mob && entity.getType().getCategory() == MobCategory.MONSTER) {
                 entity.heal(damage);
-                entity.addPotionEffect(new EffectInstance(Effects.RESISTANCE, 30, 1));
+                entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 30, 1));
             } else {
-                if (entity instanceof PlayerEntity) {
+                if (entity instanceof Player) {
                     continue;
                 }
                 if (entity.equals(owner)) {
@@ -106,8 +112,8 @@ public class CEffectDiscidia extends ConstellationEffectEntityCollect<LivingEnti
                 }
                 DamageUtil.shotgunAttack(entity, e -> DamageUtil.attackEntityFrom(entity, src, damage));
             }
-            if (entity instanceof PlayerEntity) {
-                markPlayerAffected((PlayerEntity) entity);
+            if (entity instanceof Player) {
+                markPlayerAffected((Player) entity);
             }
 
             didEffect = true;

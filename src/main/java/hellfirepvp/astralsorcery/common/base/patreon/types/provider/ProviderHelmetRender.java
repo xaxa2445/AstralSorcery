@@ -11,10 +11,11 @@ package hellfirepvp.astralsorcery.common.base.patreon.types.provider;
 import hellfirepvp.astralsorcery.common.base.patreon.FlareColor;
 import hellfirepvp.astralsorcery.common.base.patreon.PatreonEffectProvider;
 import hellfirepvp.astralsorcery.common.base.patreon.types.TypeHelmetRender;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.ResourceLocation;
+
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.List;
@@ -45,7 +46,7 @@ public class ProviderHelmetRender implements PatreonEffectProvider<TypeHelmetRen
         ItemStack stack = new ItemStack(item);
         if (itemInfo.length > 1) {
             int data = Integer.parseInt(itemInfo[1]);
-            stack.setDamage(data);
+            stack.setDamageValue(data);
         }
         FlareColor flColor = effectParameters.size() > 2 ?
                 FlareColor.valueOf(effectParameters.get(2)) : null;

@@ -98,7 +98,7 @@ public class ItemBlinkWand extends Item implements AlignmentChargeConsumer {
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             BlinkMode nextMode = getBlinkMode(held).next();
             setBlinkMode(held, nextMode);
             player.displayClientMessage(nextMode.getDisplay(), true);

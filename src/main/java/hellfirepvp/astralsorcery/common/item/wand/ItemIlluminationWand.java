@@ -77,7 +77,7 @@ public class ItemIlluminationWand extends Item implements ItemDynamicColor, Alig
 
     @Override
     public float getAlignmentChargeCost(Player player, ItemStack stack) {
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             return COST_PER_ILLUMINATION;
         } else {
             return COST_PER_FLARE;
@@ -98,7 +98,7 @@ public class ItemIlluminationWand extends Item implements ItemDynamicColor, Alig
 
         BlockState state = world.getBlockState(pos);
 
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             if (state.getBlock() instanceof BlockTranslucentBlock) {
                 TileTranslucentBlock tb = MiscUtils.getTileAt(world, pos, TileTranslucentBlock.class, true);
                 if (tb != null && (tb.getPlayerUUID() == null || tb.getPlayerUUID().equals(player.getUUID()))) {

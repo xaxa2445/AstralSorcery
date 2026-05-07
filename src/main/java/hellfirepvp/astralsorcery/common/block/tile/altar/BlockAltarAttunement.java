@@ -10,13 +10,14 @@ package hellfirepvp.astralsorcery.common.block.tile.altar;
 
 import hellfirepvp.astralsorcery.common.block.tile.BlockAltar;
 import hellfirepvp.astralsorcery.common.util.VoxelUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.IBooleanFunction;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.level.BlockGetter;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -35,15 +36,15 @@ public class BlockAltarAttunement extends BlockAltar {
     }
 
     protected VoxelShape createShape() {
-        VoxelShape base = Block.makeCuboidShape(0, 0, 0, 16, 2, 16);
-        VoxelShape pillar = Block.makeCuboidShape(4, 2, 4, 12, 10, 12);
-        VoxelShape head = Block.makeCuboidShape(0, 10, 0, 16, 16, 16);
+        VoxelShape base = Block.box(0, 0, 0, 16, 2, 16);
+        VoxelShape pillar = Block.box(4, 2, 4, 12, 10, 12);
+        VoxelShape head = Block.box(0, 10, 0, 16, 16, 16);
 
-        return VoxelUtils.combineAll(IBooleanFunction.OR, base, pillar, head);
+        return VoxelUtils.combineAll(BooleanOp.OR, base, pillar, head);
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
         return this.shape;
     }
 }

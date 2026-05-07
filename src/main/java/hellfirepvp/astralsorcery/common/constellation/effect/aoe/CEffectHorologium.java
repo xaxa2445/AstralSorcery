@@ -29,11 +29,12 @@ import hellfirepvp.astralsorcery.common.util.block.iterator.BlockRandomProximity
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopZone;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.ITickableTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.server.level.ServerLevel; // ServerWorld -> ServerLevel
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity; // TileEntity -> BlockEntity
+import net.minecraft.world.level.block.entity.TickingBlockEntity; // Nueva interfaz para tick
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -54,7 +55,7 @@ public class CEffectHorologium extends CEffectAbstractList<ListEntries.PosEntry>
     public static HorologiumConfig CONFIG = new HorologiumConfig();
 
     public CEffectHorologium(@Nonnull ILocatable origin) {
-        super(origin, ConstellationsAS.horologium, CONFIG.maxAmount.get(), (world, pos, state) -> TileAccelerationBlacklistRegistry.INSTANCE.canBeInfluenced(MiscUtils.getTileAt(world, pos, TileEntity.class, false)));
+        super(origin, ConstellationsAS.horologium, CONFIG.maxAmount.get(), (world, pos, state) -> TileAccelerationBlacklistRegistry.INSTANCE.canBeInfluenced(MiscUtils.getTileAt(world, pos, BlockEntity.class, false)));
     }
 
     @Nonnull
@@ -65,19 +66,19 @@ public class CEffectHorologium extends CEffectAbstractList<ListEntries.PosEntry>
 
     @Nullable
     @Override
-    public ListEntries.PosEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+    public ListEntries.PosEntry recreateElement(CompoundTag tag, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Nullable
     @Override
-    public ListEntries.PosEntry createElement(World world, BlockPos pos) {
+    public ListEntries.PosEntry createElement(Level world, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
 
         for (int i = 0; i < 2; i++) {
@@ -104,7 +105,7 @@ public class CEffectHorologium extends CEffectAbstractList<ListEntries.PosEntry>
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
         boolean changed = false;
 
         if (properties.isCorrupted()) {
@@ -119,19 +120,25 @@ public class CEffectHorologium extends CEffectAbstractList<ListEntries.PosEntry>
         ListEntries.PosEntry entry = this.getRandomElementChanced();
         if (entry != null) {
             if (MiscUtils.executeWithChunk(world, entry.getPos(), () -> {
-                TileEntity tile = MiscUtils.getTileAt(world, entry.getPos(), TileEntity.class, true);
+                BlockEntity tile = MiscUtils.getTileAt(world, entry.getPos(), BlockEntity.class, true);
                 if (tile != null && isValid(world, entry)) {
                     sendConstellationPing(world, new Vector3(entry.getPos()).add(Vector3.positiveRandom()));
                     sendConstellationPing(world, new Vector3(entry.getPos()).add(Vector3.positiveRandom()));
                     try {
-                        long startNs = System.nanoTime();
-                        int times = 4 + rand.nextInt(2);
-                        while (times > 0) {
-                            ((ITickableTileEntity) tile).tick();
-                            if ((System.nanoTime() - startNs) >= 80_000) {
-                                break;
+                        // LÓGICA DE ACELERACIÓN 1.20.1
+                        // Buscamos si el mundo tiene un ticker registrado para este BlockEntity
+                        if (world instanceof ServerLevel serverLevel) {
+                            int times = 4 + world.random.nextInt(2);
+                            long startNs = System.nanoTime();
+
+                            while (times > 0) {
+                                // En 1.20.1, si el Tile implementa una lógica de tick manual o
+                                // si usamos el sistema de TickingBlockEntity del mundo:
+                                MiscUtils.tickBlockEntity(serverLevel, tile);
+
+                                if ((System.nanoTime() - startNs) >= 80_000) break;
+                                times--;
                             }
-                            times--;
                         }
                     } catch (Exception exc) {
                         TileAccelerationBlacklistRegistry.INSTANCE.addErrored(tile);

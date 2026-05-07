@@ -110,7 +110,7 @@ public class BlockRefractionTable extends BaseEntityBlock implements CustomItemB
         if (!world.isClientSide()) {
             TileRefractionTable tft = MiscUtils.getTileAt(world, pos, TileRefractionTable.class, true);
             if (tft != null) {
-                if (player.isShiftKeyDown()) { // isSneaking -> isShiftKeyDown
+                if (player.isCrouching()) { // isSneaking -> isShiftKeyDown
                     if (!tft.getInputStack().isEmpty()) {
                         ItemUtils.dropItemToPlayer(player, tft.setInputStack(ItemStack.EMPTY));
                         return InteractionResult.SUCCESS;

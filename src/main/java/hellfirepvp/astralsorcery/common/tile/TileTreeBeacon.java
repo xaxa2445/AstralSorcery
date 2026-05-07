@@ -41,6 +41,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -73,13 +74,13 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     private UUID playerUUID = null;
     private float starlight = 0F;
 
-    public TileTreeBeacon() {
-        super(TileEntityTypesAS.TREE_BEACON);
+    public TileTreeBeacon(BlockPos pos, BlockState state) {
+        super(TileEntityTypesAS.TREE_BEACON, pos, state);
     }
 
     @Override
-    public void tick() {
-        super.tick();
+    public void onTick() {
+        super.onTick();
 
         if (level.isClientSide) {
             playEffects();
@@ -99,7 +100,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
                 continue;
             }
 
-            BlockPos pos = MiscUtils.getWeightedRandomEntry(this.treeComponents.keySet(), rand, this.treeComponents::get);
+            BlockPos pos = MiscUtils.getWeightedRandomEntry(this.treeComponents.keySet(), (RandomSource) rand, this.treeComponents::get);
             if (pos != null) {
                 TileTreeBeaconComponent component = MiscUtils.getTileAt(level, pos, TileTreeBeaconComponent.class, false);
                 if (component != null && harvestTree(component)) {
@@ -137,13 +138,13 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         if (!MiscUtils.canEntityTickAt(level, harvest.getBlockPos())) {
             return false;
         }
-        List<ItemStack> drops = BlockUtils.getDrops((ServerLevel) level, harvest.getBlockPos(), harvest.getFakedState(), 2, rand, ItemStack.EMPTY);
+        List<ItemStack> drops = BlockUtils.getDrops((ServerLevel) level, harvest.getBlockPos(), harvest.getFakedState(), 2, (RandomSource) rand, ItemStack.EMPTY);
         drops.forEach(drop -> {
             if (drop.isEmpty()) {
                 return;
             }
             Vector3 offset = new Vector3(0.5, 0.5, 0.5);
-            MiscUtils.applyRandomOffset(offset, rand, 2F);
+            MiscUtils.applyRandomOffset(offset, (RandomSource) rand, 2F);
             offset.setY(Math.abs(offset.getY()));
             Vector3 at = new Vector3(this.getBlockPos()).add(offset);
             ItemUtils.dropItemNaturally(level, at.getX(), at.getY(), at.getZ(), drop);
@@ -205,7 +206,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
         int amt = Mth.floor( radius * Math.PI / 8);
         for (int i = 0; i < amt; i++) {
             Vector3 at = MiscUtils.getRandomCirclePosition(thisPos, Vector3.RotAxis.Y_AXIS, radius);
-            MiscUtils.applyRandomOffset(at, rand, 0.35F);
+            MiscUtils.applyRandomOffset(at, (RandomSource) rand, 0.35F);
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(at)
                     .color(colorFn)
@@ -232,7 +233,7 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
             alphaDaytime *= 0.8F;
 
             Vector3 at = new Vector3(this).add(0.5, 0.05, 0.5);
-            MiscUtils.applyRandomOffset(at, rand, 0.05F);
+            MiscUtils.applyRandomOffset(at, (RandomSource) rand, 0.05F);
 
             EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                     .setOwner(this.playerUUID)
@@ -325,16 +326,16 @@ public class TileTreeBeacon extends TileReceiverBase<StarlightReceiverTreeBeacon
     }
 
     @Override
-    public void validate() {
-        super.isvalidate();
+    public void onLoad() {
+        super.onLoad();
 
         TreeWatcher.WATCHERS.computeIfAbsent(this.getDimension(), type -> new HashSet<>())
                 .add(this.getBlockPos());
     }
 
     @Override
-    public void remove() {
-        super.remove();
+    public void setRemoved() {
+        super.setRemoved();
 
         TreeWatcher.WATCHERS.computeIfAbsent(this.getDimension(), type -> new HashSet<>())
                 .remove(this.getBlockPos());

@@ -15,7 +15,9 @@ import hellfirepvp.astralsorcery.common.tile.*;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.tile.base.network.TileSourceBase;
 import hellfirepvp.astralsorcery.common.tile.base.network.TileTransmissionBase;
-import net.minecraft.tileentity.*;
+import net.minecraft.world.level.block.entity.BlockEntity; // TileEntity -> BlockEntity
+import net.minecraft.world.level.block.piston.PistonMovingBlockEntity; // PistonTileEntity -> PistonMovingBlockEntity
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity; // LockableLootTileEntity -> RandomizableContainerBlockEntity
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -36,8 +38,9 @@ public class TileAccelerationBlacklistRegistry extends ConfigDataAdapter<TileAcc
 
     private TileAccelerationBlacklistRegistry() {}
 
-    public boolean canBeInfluenced(TileEntity tile) {
-        if (!(tile instanceof ITickableTileEntity)) {
+    // Cambio fundamental: Ahora acepta BlockEntity y la lógica de tick es externa
+    public boolean canBeInfluenced(@Nullable BlockEntity tile) {
+        if (tile == null) {
             return false;
         }
 
@@ -59,7 +62,7 @@ public class TileAccelerationBlacklistRegistry extends ConfigDataAdapter<TileAcc
         return true;
     }
 
-    public void addErrored(TileEntity tile) {
+    public void addErrored(BlockEntity tile) {
         if (tile != null && !this.erroredTiles.contains(tile.getClass())) {
             this.erroredTiles.add(tile.getClass());
         }
@@ -68,8 +71,8 @@ public class TileAccelerationBlacklistRegistry extends ConfigDataAdapter<TileAcc
     @Override
     public List<TileAccelerationBlacklistEntry> getDefaultValues() {
         return Lists.newArrayList(
-                new TileAccelerationBlacklistEntry(PistonTileEntity.class.getName()),
-                new TileAccelerationBlacklistEntry(LockableLootTileEntity.class.getName()),
+                new TileAccelerationBlacklistEntry(PistonMovingBlockEntity.class.getName()),
+                new TileAccelerationBlacklistEntry(RandomizableContainerBlockEntity.class.getName()),
 
                 // Accelerating storage system components looks like a bad idea
                 new TileAccelerationBlacklistEntry("appeng"),

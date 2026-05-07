@@ -32,7 +32,7 @@ public class ItemBlockRockCollectorCrystal extends ItemBlockCollectorCrystal {
     }
 
     @Override
-    protected CrystalAttributes getCreativeTemplateAttributes() {
+    public CrystalAttributes getCreativeTemplateAttributes() {
         return CrystalPropertiesAS.CREATIVE_ROCK_COLLECTOR_ATTRIBUTES;
     }
 }

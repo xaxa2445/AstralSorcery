@@ -30,11 +30,12 @@ import hellfirepvp.astralsorcery.common.util.block.iterator.BlockPositionGenerat
 import hellfirepvp.astralsorcery.common.util.block.iterator.BlockRandomPositionGenerator;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.server.level.ServerLevel; // ServerWorld -> ServerLevel
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level; // World -> Level
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -55,6 +56,7 @@ public class CEffectFornax extends CEffectAbstractList<ListEntries.PosEntry> {
 
     public static PlayerAffectionFlags.AffectionFlag FLAG = makeAffectionFlag("fornax");
     public static FornaxConfig CONFIG = new FornaxConfig();
+    RandomSource rand = RandomSource.create();
 
     public CEffectFornax(@Nonnull ILocatable origin) {
         super(origin, ConstellationsAS.fornax, 1, (world, pos, state) -> true);
@@ -72,21 +74,21 @@ public class CEffectFornax extends CEffectAbstractList<ListEntries.PosEntry> {
 
     @Nullable
     @Override
-    public ListEntries.PosEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+    public ListEntries.PosEntry recreateElement(CompoundTag tag, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Nullable
     @Override
-    public ListEntries.PosEntry createElement(World world, BlockPos pos) {
+    public ListEntries.PosEntry createElement(Level world, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         Vector3 motion = Vector3.random().multiply(0.04);
-        if (pos.equals(pedestal.getPos())) {
+        if (pos.equals(pedestal.getBlockPos())) {
             motion.setY(0);
         } else {
             motion.setY(Math.abs(motion.getY()) * -1);
@@ -107,8 +109,8 @@ public class CEffectFornax extends CEffectAbstractList<ListEntries.PosEntry> {
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
-        if (!(world instanceof ServerWorld)) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        if (!(world instanceof ServerLevel)) {
             return false;
         }
 

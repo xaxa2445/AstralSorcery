@@ -13,27 +13,29 @@ import hellfirepvp.astralsorcery.common.block.base.CustomItemBlock;
 import hellfirepvp.astralsorcery.common.block.properties.PropertiesMisc;
 import hellfirepvp.astralsorcery.common.tile.TileTreeBeacon;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.SoundType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.shapes.VoxelShapes;
-import net.minecraft.world.IBlockReader;
-import net.minecraft.world.IWorld;
-import net.minecraft.world.IWorldReader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.ToolType;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -44,58 +46,59 @@ import javax.annotation.Nullable;
  */
 public class BlockTreeBeacon extends BlockStarlightNetwork implements CustomItemBlock {
 
-    private static final VoxelShape SHAPE = VoxelShapes.create(3D / 16D, 0D / 16D, 3D / 16D, 13D / 16D, 16D / 16D, 13D / 16D);
+    private static final VoxelShape SHAPE = Shapes.box(3D / 16D, 0D / 16D, 3D / 16D, 13D / 16D, 16D / 16D, 13D / 16D);
 
     public BlockTreeBeacon() {
-        super(PropertiesMisc.defaultPlant()
-                .hardnessAndResistance(1.5F, 6.0F)
-                .harvestLevel(1)
-                .harvestTool(ToolType.AXE)
-                .setLightLevel(state -> 6)
-                .sound(SoundType.PLANT));
+        super(BlockBehaviour.Properties.of()
+                .mapColor(net.minecraft.world.level.material.MapColor.PLANT)
+                .strength(1.5F, 6.0F)
+                .requiresCorrectToolForDrops() // Reemplaza harvestLevel/harvestTool vía tags
+                .lightLevel(state -> 6)
+                .sound(SoundType.GRASS)
+                .noOcclusion());
     }
 
     @Override
-    public void onBlockPlacedBy(World world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
-        super.onBlockPlacedBy(world, pos, state, placer, stack);
+    public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        super.setPlacedBy(world, pos, state, placer, stack);
 
         TileTreeBeacon ttb = MiscUtils.getTileAt(world, pos, TileTreeBeacon.class, true);
-        if (ttb != null && !world.isRemote() && placer instanceof ServerPlayerEntity && !MiscUtils.isPlayerFakeMP((ServerPlayerEntity) placer)) {
-            ttb.setPlayerUUID(placer.getUniqueID());
+        if (ttb != null && !world.isClientSide() && placer instanceof ServerPlayer && !MiscUtils.isPlayerFakeMP((ServerPlayer) placer)) {
+            ttb.setPlayerUUID(placer.getUUID());
         }
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader world, BlockPos pos, ISelectionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    public BlockState updatePostPlacement(BlockState state, Direction placedAgainst, BlockState facingState, IWorld world, BlockPos pos, BlockPos facingPos) {
-        if (!this.isValidPosition(state, world, pos)) {
-            return Blocks.AIR.getDefaultState();
+    public BlockState updateShape(BlockState state, Direction placedAgainst, BlockState facingState, LevelAccessor world, BlockPos pos, BlockPos facingPos) {
+        if (!this.canSurvive(state, world, pos)) {
+            return Blocks.AIR.defaultBlockState();
         }
         return state;
     }
 
     @Override
-    public boolean isValidPosition(BlockState state, IWorldReader world, BlockPos pos) {
-        return hasSolidSideOnTop(world, pos.down());
+    public boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
+        return canSupportCenter(world, pos.below(), Direction.UP);
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter world, BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader world) {
-        return new TileTreeBeacon();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new TileTreeBeacon(pos, state);
     }
 }

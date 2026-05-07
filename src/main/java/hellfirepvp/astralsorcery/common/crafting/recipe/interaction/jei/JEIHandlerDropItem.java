@@ -8,17 +8,15 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.interaction.jei;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInteraction;
 import hellfirepvp.astralsorcery.common.crafting.recipe.interaction.InteractionResult;
 import hellfirepvp.astralsorcery.common.crafting.recipe.interaction.ResultDropItem;
-import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.gui.IRecipeLayout;
-import mezz.jei.api.gui.ingredient.IGuiItemStackGroup;
-import mezz.jei.api.ingredients.IIngredients;
-import net.minecraft.item.ItemStack;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -32,31 +30,24 @@ import java.util.List;
  * Date: 31.10.2020 / 14:50
  */
 public class JEIHandlerDropItem extends JEIInteractionResultHandler {
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void addToRecipeLayout(IRecipeLayout recipeLayout, LiquidInteraction recipe, IIngredients ingredients) {
-        IGuiItemStackGroup itemStacks = recipeLayout.getItemStacks();
-
-        itemStacks.init(2, false, 47, 18);
-
-        itemStacks.set(ingredients);
-    }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addToRecipeIngredients(LiquidInteraction recipe, IIngredients ingredients) {
-        ImmutableList.Builder<List<ItemStack>> itemOutputs = ImmutableList.builder();
-
+    public void setRecipeLayout(IRecipeLayoutBuilder builder, LiquidInteraction recipe, IFocusGroup focuses) {
         InteractionResult result = recipe.getResult();
-        if (result instanceof ResultDropItem) {
-            itemOutputs.add(Lists.newArrayList(((ResultDropItem) result).getOutput()));
-        }
+        if (result instanceof ResultDropItem dropItemResult) { // Pattern Matching (Java 16+)
+            ItemStack output = dropItemResult.getOutput();
 
-        ingredients.setOutputLists(VanillaTypes.ITEM, itemOutputs.build());
+            // Inicializamos el slot de salida en la posición central (index 2 en la lógica vieja)
+            // Usamos x=48, y=19 (ajuste de +1 sobre el original 47, 18 para centrar)
+            builder.addSlot(RecipeIngredientRole.OUTPUT, 48, 19)
+                    .addItemStack(output);
+        }
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void drawRecipe(LiquidInteraction recipe, MatrixStack renderStack, double mouseX, double mouseY) {
+    public void drawRecipe(LiquidInteraction recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
+        // No requiere dibujo adicional
     }
 }

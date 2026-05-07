@@ -66,7 +66,7 @@ public class BlockFlareLight extends Block {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, Level world, BlockPos pos, Random rand) {
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource rand) {
         Color c = ColorUtils.flareColorFromDye(state.getValue(COLOR));
         for (int i = 0; i < 2; i++) {
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
@@ -120,7 +120,7 @@ public class BlockFlareLight extends Block {
     }
 
     @Override
-    public boolean isReplaceable(BlockState state, BlockPlaceContext context) {
+    public boolean canBeReplaced(BlockState state, BlockPlaceContext context) {
         return true;
     }
 

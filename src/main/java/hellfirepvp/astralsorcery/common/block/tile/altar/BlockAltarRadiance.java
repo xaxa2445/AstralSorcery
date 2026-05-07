@@ -11,15 +11,16 @@ package hellfirepvp.astralsorcery.common.block.tile.altar;
 import hellfirepvp.astralsorcery.common.block.base.LargeBlock;
 import hellfirepvp.astralsorcery.common.block.tile.BlockAltar;
 import hellfirepvp.astralsorcery.common.util.VoxelUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.IBooleanFunction;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.BooleanOp;
+import net.minecraft.world.level.BlockGetter;
 
 import javax.annotation.Nullable;
 
@@ -32,7 +33,7 @@ import javax.annotation.Nullable;
  */
 public class BlockAltarRadiance extends BlockAltar implements LargeBlock {
 
-    private static final AxisAlignedBB PLACEMENT_BOX = new AxisAlignedBB(-1, 0, -1, 1, 1, 1);
+    private static final AABB PLACEMENT_BOX = new AABB(-1, 0, -1, 1, 1, 1);
 
     private final VoxelShape shape;
 
@@ -42,26 +43,26 @@ public class BlockAltarRadiance extends BlockAltar implements LargeBlock {
     }
 
     @Override
-    public AxisAlignedBB getBlockSpace() {
+    public AABB getBlockSpace() {
         return PLACEMENT_BOX;
     }
 
     @Nullable
     @Override
-    public BlockState getStateForPlacement(BlockItemUseContext context) {
-        return this.canPlaceAt(context) ? this.getDefaultState() : null;
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return this.canPlaceAt(context) ? this.defaultBlockState() : null;
     }
 
     protected VoxelShape createShape() {
-        VoxelShape base = Block.makeCuboidShape(0, 0, 0, 16, 4, 16);
-        VoxelShape pillar = Block.makeCuboidShape(4, 4, 4, 12, 8, 12);
-        VoxelShape head = Block.makeCuboidShape(0, 8, 0, 16, 16, 16);
+        VoxelShape base = Block.box(0, 0, 0, 16, 4, 16);
+        VoxelShape pillar = Block.box(4, 4, 4, 12, 8, 12);
+        VoxelShape head = Block.box(0, 8, 0, 16, 16, 16);
 
-        return VoxelUtils.combineAll(IBooleanFunction.OR, base, pillar, head);
+        return VoxelUtils.combineAll(BooleanOp.OR, base, pillar, head);
     }
 
     @Override
-    public VoxelShape getShape(BlockState state, IBlockReader worldIn, BlockPos pos, ISelectionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter worldIn, BlockPos pos, CollisionContext context) {
         return this.shape;
     }
 }

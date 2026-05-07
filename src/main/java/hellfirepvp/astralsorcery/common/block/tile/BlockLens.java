@@ -84,18 +84,18 @@ public class BlockLens extends BlockStarlightNetwork implements CustomItemBlock 
 
     @Override
     public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
-        if (!world.isClientSide() && player.isShiftKeyDown()) {
+        if (!world.isClientSide() && player.isCrouching()) {
             TileLens lens = MiscUtils.getTileAt(world, pos, TileLens.class, true);
             if (lens != null && lens.getColorType() != null) {
                 ItemStack drop = lens.getColorType().getStack();
                 if (player.getItemInHand(hand).isEmpty()) {
                     player.setItemInHand(hand, drop);
                 } else {
-                    if (!player.inventory.addItemStackToInventory(drop)) {
+                    if (!player.getInventory().add(drop)) {
                         ItemUtils.dropItem(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop);
                     }
                 }
-                SoundHelper.playSoundAround(SoundsAS.BLOCK_COLOREDLENS_ATTACH, world, pos, 0.8F, 1.5F);
+                SoundHelper.playSoundAround(SoundsAS.BLOCK_COLOREDLENS_ATTACH.getSoundEvent(), world, pos, 0.8F, 1.5F);
                 lens.setColorType(null);
                 return InteractionResult.SUCCESS;
             }
@@ -104,7 +104,7 @@ public class BlockLens extends BlockStarlightNetwork implements CustomItemBlock 
     }
 
     @Override
-    protected void fillStateContainer(StateDefinition.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(PLACED_AGAINST);
     }
 
@@ -140,6 +140,6 @@ public class BlockLens extends BlockStarlightNetwork implements CustomItemBlock 
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new TileLens();
+        return new TileLens(pos, state);
     }
 }

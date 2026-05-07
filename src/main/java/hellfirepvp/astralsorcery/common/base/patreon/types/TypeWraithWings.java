@@ -8,16 +8,16 @@
 
 package hellfirepvp.astralsorcery.common.base.patreon.types;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import hellfirepvp.astralsorcery.client.lib.RenderTypesAS;
 import hellfirepvp.astralsorcery.client.render.ObjModelRender;
 import hellfirepvp.astralsorcery.client.util.RenderingVectorUtils;
 import hellfirepvp.astralsorcery.common.base.patreon.FlareColor;
 import hellfirepvp.astralsorcery.common.base.patreon.PatreonEffect;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.world.effect.MobEffects;   // ✅ ADD
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -50,42 +50,38 @@ public class TypeWraithWings extends PatreonEffect {
         bus.register(this);
     }
 
-    private boolean shouldDoEffect(PlayerEntity player) {
-        return player.getUniqueID().equals(playerUUID) &&
+    private boolean shouldDoEffect(Player player) {
+        return player.getUUID().equals(playerUUID) &&
                 !player.isPassenger() &&
-                !player.isElytraFlying() &&
-                !player.isPotionActive(Effects.INVISIBILITY);
+                !player.isFallFlying() &&
+                !player.hasEffect(MobEffects.INVISIBILITY);
     }
 
     @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
     void onRender(RenderPlayerEvent.Post event) {
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getEntity();
         if (!shouldDoEffect(player)) {
             return;
         }
-        MatrixStack renderStack = event.getMatrixStack();
+        PoseStack renderStack = event.getPoseStack();
 
-        float rot = RenderingVectorUtils.interpolateRotation(player.prevRenderYawOffset, player.renderYawOffset, event.getPartialRenderTick());
+        float rot = RenderingVectorUtils.interpolateRotation(player.yBodyRotO, player.yBodyRot, event.getPartialTick());
 
         float yOffset = 1.2F;
-        if (player.isSneaking() && !player.abilities.isFlying) {
+        if (player.isCrouching() && !player.getAbilities().flying) {
             yOffset = 1F;
         }
 
-        renderStack.push();
+        renderStack.pushPose();
 
-        float swimAngle = player.getSwimAnimation(event.getPartialRenderTick());
-        if (swimAngle > 0) {
-            float waterPitch = player.isInWater() ? -90.0F - player.rotationPitch : -90.0F;
-            float bodySwimAngle = MathHelper.lerp(swimAngle, 0.0F, waterPitch);
-            renderStack.rotate(Vector3f.YP.rotationDegrees(180 - rot));
-            renderStack.rotate(Vector3f.XP.rotationDegrees(bodySwimAngle));
-            if (player.isActualySwimming()) {
+        float swimAngle = player.isInWaterOrBubble() ? -90.0F - player.getXRot() : 0.0F;
+        renderStack.mulPose(Axis.YP.rotationDegrees(180 - rot));
+        if (swimAngle != 0) {
+            renderStack.mulPose(Axis.XP.rotationDegrees(swimAngle));
+            if (player.isSwimming()) {  // ✅ FIX 7: isActualySwimming → isSwimming()
                 renderStack.translate(0, -1, 0.3);
             }
-        } else {
-            renderStack.rotate(Vector3f.YP.rotationDegrees(180 - rot));
         }
 
         renderStack.translate(0, yOffset, 0);
@@ -93,21 +89,21 @@ public class TypeWraithWings extends PatreonEffect {
 
         RenderTypesAS.MODEL_WRAITH_WINGS.setupRenderState();
 
-        renderStack.push();
+        renderStack.pushPose();
         renderStack.translate(-2.3, 0, 0.8);
-        renderStack.rotate(Vector3f.YP.rotationDegrees(10));
+        renderStack.mulPose(Axis.YP.rotationDegrees(10));
         ObjModelRender.renderWraithWings(renderStack);
-        renderStack.pop();
+        renderStack.popPose();
 
-        renderStack.push();
-        renderStack.rotate(Vector3f.YP.rotationDegrees(180));
+        renderStack.pushPose();
+        renderStack.mulPose(Axis.YP.rotationDegrees(180));
         renderStack.translate(-2.3, 0, -0.8);
-        renderStack.rotate(Vector3f.YN.rotationDegrees(10));
+        renderStack.mulPose(Axis.YN.rotationDegrees(10));
         ObjModelRender.renderWraithWings(renderStack);
-        renderStack.pop();
+        renderStack.popPose();
 
         RenderTypesAS.MODEL_WRAITH_WINGS.clearRenderState();
 
-        renderStack.pop();
+        renderStack.popPose();
     }
 }

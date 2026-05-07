@@ -106,13 +106,13 @@ public class ItemWand extends Item implements OverrideInteractItem {
         BlockState state = world.getBlockState(pos);
         Block b = state.getBlock();
         if (b instanceof WandInteractable) {
-            if (((WandInteractable) b).onInteract(world, pos, player, face, player.isShiftKeyDown())) {
+            if (((WandInteractable) b).onInteract(world, pos, player, face, player.isCrouching())) {
                 return true;
             }
         }
         WandInteractable wandTe = MiscUtils.getTileAt(world, pos, WandInteractable.class, true);
         if (wandTe != null) {
-            if (wandTe.onInteract(world, pos, player, face, player.isShiftKeyDown())) {
+            if (wandTe.onInteract(world, pos, player, face, player.isCrouching())) {
                 return true;
             }
         }

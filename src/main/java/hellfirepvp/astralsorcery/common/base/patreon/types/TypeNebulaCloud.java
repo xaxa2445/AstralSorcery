@@ -18,10 +18,10 @@ import hellfirepvp.astralsorcery.common.base.patreon.PatreonEffect;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.Pose;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.effect.MobEffects;   // ✅ ADD
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.event.TickEvent;
@@ -57,7 +57,7 @@ public class TypeNebulaCloud extends PatreonEffect implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = (PlayerEntity) context[0];
+        Player player = (Player) context[0];
         LogicalSide side = (LogicalSide) context[1];
 
         if (side.isClient() && shouldDoEffect(player)) {
@@ -66,7 +66,7 @@ public class TypeNebulaCloud extends PatreonEffect implements ITickHandler {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void spawnCloudParticles(PlayerEntity player) {
+    private void spawnCloudParticles(Player player) {
         Vector3 playerPos = Vector3.atEntityCorner(player).addY(0.1F);
 
         for (int i = 0; i < 3; i++) {
@@ -78,9 +78,9 @@ public class TypeNebulaCloud extends PatreonEffect implements ITickHandler {
                     .spawn(playerPos.clone().add(offset))
                     .setAlphaMultiplier(0.8F)
                     .alpha(((VFXAlphaFunction<EntityVisualFX>) (fx, alphaIn, pTicks) -> {
-                        if (shouldDoEffect(player) && Minecraft.getInstance().gameSettings.getPointOfView().func_243192_a()) {
-                            if (player.rotationPitch > 40) {
-                                return MathHelper.clamp(1F - (player.rotationPitch - 40F) / 20F, 0, 1F) * alphaIn;
+                        if (shouldDoEffect(player) && Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
+                            if (player.getXRot() > 40) {
+                                return Mth.clamp(1F - (player.getXRot() - 40F) / 20F, 0, 1F) * alphaIn;
                             }
                         }
                         return alphaIn;
@@ -99,9 +99,9 @@ public class TypeNebulaCloud extends PatreonEffect implements ITickHandler {
                     .makeDefault(playerPos.clone().add(to))
                     .color(VFXColorFunction.WHITE)
                     .alpha((fx, alphaIn, pTicks) -> {
-                        if (shouldDoEffect(player) && Minecraft.getInstance().gameSettings.getPointOfView().func_243192_a()) {
-                            if (player.rotationPitch > 40) {
-                                return MathHelper.clamp(1F - (Math.abs(player.rotationPitch) - 40F) / 20F, 0, 1F) * alphaIn;
+                        if (shouldDoEffect(player) && Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
+                            if (player.getXRot() > 40) {
+                                return Mth.clamp(1F - (Math.abs(player.getXRot()) - 40F) / 20F, 0, 1F) * alphaIn;
                             }
                         }
                         return alphaIn;
@@ -109,10 +109,10 @@ public class TypeNebulaCloud extends PatreonEffect implements ITickHandler {
         }
     }
 
-    private boolean shouldDoEffect(PlayerEntity player) {
-        return player.getUniqueID().equals(playerUUID) &&
+    private boolean shouldDoEffect(Player player) {
+        return player.getUUID().equals(playerUUID) &&
                 (player.getPose() == Pose.STANDING || player.getPose() == Pose.CROUCHING) &&
-                !player.isPotionActive(Effects.INVISIBILITY);
+                !player.hasEffect(MobEffects.INVISIBILITY);
     }
 
     @Override

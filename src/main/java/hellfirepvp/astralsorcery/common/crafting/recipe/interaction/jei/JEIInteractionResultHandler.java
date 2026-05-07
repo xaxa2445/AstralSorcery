@@ -8,10 +8,11 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.interaction.jei;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInteraction;
-import mezz.jei.api.gui.IRecipeLayout;
-import mezz.jei.api.ingredients.IIngredients;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.recipe.IFocusGroup;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -24,13 +25,18 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  */
 public abstract class JEIInteractionResultHandler {
 
+    /**
+     * Define los slots de salida (ítem, fluido o bloque) en el builder.
+     * Reemplaza a addToRecipeLayout y addToRecipeIngredients.
+     */
     @OnlyIn(Dist.CLIENT)
-    public abstract void addToRecipeLayout(IRecipeLayout recipeLayout, LiquidInteraction recipe, IIngredients ingredients);
+    public abstract void setRecipeLayout(IRecipeLayoutBuilder builder, LiquidInteraction recipe, IFocusGroup focuses);
 
+    /**
+     * Renderizado adicional sobre la receta (como iconos de probabilidad o efectos visuales).
+     * Reemplaza el uso de MatrixStack por GuiGraphics.
+     */
     @OnlyIn(Dist.CLIENT)
-    public abstract void addToRecipeIngredients(LiquidInteraction recipe, IIngredients ingredients);
-
-    @OnlyIn(Dist.CLIENT)
-    public abstract void drawRecipe(LiquidInteraction recipe, MatrixStack renderStack, double mouseX, double mouseY);
+    public abstract void drawRecipe(LiquidInteraction recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY);
 
 }

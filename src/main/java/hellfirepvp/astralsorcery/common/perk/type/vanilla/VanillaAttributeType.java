@@ -13,10 +13,10 @@ import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.source.ModifierSource;
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
-import net.minecraft.entity.ai.attributes.Attribute;
-import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -54,7 +54,7 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
     public void onModeApply(Player player, ModifierType mode, LogicalSide side) {
         super.onModeApply(player, mode, side);
 
-        ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
+        AttributeInstance attr = player.getAttribute(getAttribute());
         if (attr == null) {
             return;
         }
@@ -74,13 +74,13 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
 
         switch (mode) {
             case ADDITION:
-                attr.applyNonPersistentModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Add", this, mode, player, side));
+                attr.addTransientModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Add", this, mode, player, side));
                 break;
             case ADDED_MULTIPLY:
-                attr.applyNonPersistentModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Multiply Add", this, mode, player, side));
+                attr.addTransientModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Multiply Add", this, mode, player, side));
                 break;
             case STACKING_MULTIPLY:
-                attr.applyNonPersistentModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Stack Add", this, mode, player, side));
+                attr.addTransientModifier(new DynamicAttributeModifier(getID(mode), getDescription() + " Stack Add", this, mode, player, side));
                 break;
             default:
                 break;
@@ -91,7 +91,7 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
     public void onModeRemove(Player player, ModifierType mode, LogicalSide side, boolean removedCompletely) {
         super.onModeRemove(player, mode, side, removedCompletely);
 
-        ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
+        AttributeInstance attr = player.getAttribute(getAttribute());
         if (attr == null) {
             return;
         }
@@ -99,8 +99,8 @@ public abstract class VanillaAttributeType extends PerkAttributeType implements 
         attr.removeModifier(getID(mode));
     }
 
-    public void refreshAttribute(PlayerEntity player) {
-        ModifiableAttributeInstance attr = player.getAttributeManager().createInstanceIfAbsent(getAttribute());
+    public void refreshAttribute(Player player) {
+        AttributeInstance attr = player.getAttribute(getAttribute());
         if (attr == null) {
             return;
         }

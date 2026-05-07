@@ -163,7 +163,7 @@ public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOve
             return InteractionResult.SUCCESS;
         }
 
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             ItemBlockStorage.storeBlockState(held, world, pos);
             return InteractionResult.SUCCESS;
         } else {
@@ -175,7 +175,7 @@ public class ItemArchitectWand extends Item implements ItemBlockStorage, ItemOve
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
         ItemStack held = player.getItemInHand(hand);
         PlaceMode mode = getPlaceMode(held);
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             PlaceMode nextMode = mode.next();
             setPlaceMode(held, nextMode);
             player.displayClientMessage(nextMode.getDisplay(), true);

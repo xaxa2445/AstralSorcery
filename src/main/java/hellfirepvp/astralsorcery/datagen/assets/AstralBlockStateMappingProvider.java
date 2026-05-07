@@ -17,16 +17,16 @@ import hellfirepvp.astralsorcery.common.block.tile.BlockLens;
 import hellfirepvp.astralsorcery.common.block.tile.BlockPrism;
 import hellfirepvp.astralsorcery.common.block.tile.BlockStructural;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
-import net.minecraft.block.Block;
-import net.minecraft.block.SlabBlock;
-import net.minecraft.block.StairsBlock;
-import net.minecraft.data.DataGenerator;
-import net.minecraft.state.Property;
-import net.minecraft.util.Direction;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.core.Direction;
+import net.minecraft.data.PackOutput;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraftforge.client.model.generators.*;
 import net.minecraftforge.common.data.ExistingFileHelper;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Collection;
@@ -43,8 +43,8 @@ import static hellfirepvp.astralsorcery.common.util.NameUtil.suffixPath;
  */
 public class AstralBlockStateMappingProvider extends BlockStateProvider {
 
-    public AstralBlockStateMappingProvider(DataGenerator gen, ExistingFileHelper exFileHelper) {
-        super(gen, AstralSorcery.MODID, exFileHelper);
+    public AstralBlockStateMappingProvider(PackOutput output, ExistingFileHelper exFileHelper) {
+        super(output, AstralSorcery.MODID, exFileHelper);
     }
 
     @Override
@@ -61,7 +61,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
                 BlockMarblePillar.PillarType.BOTTOM);
         this.simpleBlockState(BlocksAS.MARBLE_RAW);
         this.simpleBlockState(BlocksAS.MARBLE_RUNED);
-        this.simpleSlabs(BlocksAS.MARBLE_SLAB, model(BlocksAS.MARBLE_BRICKS));
+        this.simpleSlabs(BlocksAS.MARBLE_SLAB, model(key(BlocksAS.MARBLE_BRICKS)));
         this.simpleStairs(BlocksAS.MARBLE_STAIRS);
 
         this.simpleBlockState(BlocksAS.BLACK_MARBLE_ARCH);
@@ -74,7 +74,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
                 BlockBlackMarblePillar.PillarType.BOTTOM);
         this.simpleBlockState(BlocksAS.BLACK_MARBLE_RAW);
         this.simpleBlockState(BlocksAS.BLACK_MARBLE_RUNED);
-        this.simpleSlabs(BlocksAS.BLACK_MARBLE_SLAB, model(BlocksAS.BLACK_MARBLE_BRICKS));
+        this.simpleSlabs(BlocksAS.BLACK_MARBLE_SLAB, model(key(BlocksAS.BLACK_MARBLE_BRICKS)));
         this.simpleStairs(BlocksAS.BLACK_MARBLE_STAIRS);
 
         this.simpleBlockState(BlocksAS.INFUSED_WOOD);
@@ -87,7 +87,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
         this.simpleBlockState(BlocksAS.INFUSED_WOOD_ENRICHED);
         this.simpleBlockState(BlocksAS.INFUSED_WOOD_INFUSED);
         this.simpleBlockState(BlocksAS.INFUSED_WOOD_PLANKS);
-        this.simpleSlabs(BlocksAS.INFUSED_WOOD_SLAB, model(BlocksAS.INFUSED_WOOD_PLANKS));
+        this.simpleSlabs(BlocksAS.INFUSED_WOOD_SLAB, model(key(BlocksAS.INFUSED_WOOD_PLANKS)));
         this.simpleStairs(BlocksAS.INFUSED_WOOD_STAIRS);
 
         this.multiLayerBlockState(BlocksAS.AQUAMARINE_SAND_ORE);
@@ -120,7 +120,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
                 .partialState().with(BlockLens.PLACED_AGAINST, Direction.WEST)
                     .addModels(new ConfiguredModel(model(AstralSorcery.key("lens_base")), 90, 90, false));
 
-        ResourceLocation prism = BlocksAS.PRISM.getRegistryName();
+        ResourceLocation prism = key(BlocksAS.PRISM);
         ResourceLocation prismColored = suffixPath(prism, "_colored");
         this.getMultipartBuilder(BlocksAS.PRISM)
                 .part().modelFile(multiLayerModel(prism)).rotationX(180).addModel().condition(BlockPrism.PLACED_AGAINST, Direction.UP).end()
@@ -136,7 +136,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
                 .part().modelFile(multiLayerModel(prism)).rotationX(90).rotationY(90).addModel().condition(BlockPrism.PLACED_AGAINST, Direction.WEST).end()
                 .part().modelFile(multiLayerModel(prismColored)).rotationX(90).rotationY(90).addModel().condition(BlockPrism.PLACED_AGAINST, Direction.WEST).condition(BlockPrism.HAS_COLORED_LENS, true).end();
 
-        this.simpleBlockState(BlocksAS.REFRACTION_TABLE, this.modelAS("refraction_table_particle"));
+        this.simpleBlock(BlocksAS.REFRACTION_TABLE, this.modelAS("refraction_table_particle"));
         this.multiLayerBlockState(BlocksAS.RITUAL_LINK);
         this.multiLayerBlockState(BlocksAS.RITUAL_PEDESTAL);
         this.multiLayerBlockState(BlocksAS.ILLUMINATOR);
@@ -146,7 +146,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
         this.simpleBlockState(BlocksAS.OBSERVATORY);
         this.simpleBlockState(BlocksAS.WELL);
         this.simpleBlockState(BlocksAS.TREE_BEACON);
-        this.simpleBlockState(BlocksAS.TREE_BEACON_COMPONENT, this.modelNothing());
+        this.simpleBlock(BlocksAS.TREE_BEACON_COMPONENT, this.modelNothing());
         this.multiLayerBlockState(BlocksAS.GATEWAY);
         this.simpleBlockState(BlocksAS.FOUNTAIN);
         this.multiLayerBlockState(BlocksAS.FOUNTAIN_PRIME_LIQUID);
@@ -154,76 +154,79 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
         this.multiLayerBlockState(BlocksAS.FOUNTAIN_PRIME_ORE);
 
         this.getVariantBuilder(BlocksAS.FLARE_LIGHT).forAllStates(state -> ArrayUtils.toArray(new ConfiguredModel(this.modelNothing())));
-        this.simpleBlockState(BlocksAS.TRANSLUCENT_BLOCK, this.modelNothing());
-        this.simpleBlockState(BlocksAS.VANISHING, this.modelNothing());
+        this.simpleBlock(BlocksAS.TRANSLUCENT_BLOCK, this.modelNothing());
+        this.simpleBlock(BlocksAS.VANISHING, this.modelNothing());
         this.getVariantBuilder(BlocksAS.STRUCTURAL)
                 .partialState().with(BlockStructural.BLOCK_TYPE, BlockStructural.BlockType.TELESCOPE)
-                .addModels(new ConfiguredModel(model(BlocksAS.TELESCOPE)))
+                .addModels(new ConfiguredModel(model(key(BlocksAS.TELESCOPE))))
                 .partialState().with(BlockStructural.BLOCK_TYPE, BlockStructural.BlockType.DUMMY)
                 .addModels(new ConfiguredModel(modelNothing()));
     }
 
     private <T extends Comparable<T>> void pillarModel(Block b, Property<T> pillarType, T middle, T top, T bottom) {
-        ResourceLocation key = b.getRegistryName();
+        ResourceLocation key = key(b);
         this.getVariantBuilder(b)
-                .partialState().with(pillarType, middle)
-                .addModels(new ConfiguredModel(model(key)))
-                .partialState().with(pillarType, top)
-                .addModels(new ConfiguredModel(model(suffixPath(key, "_top"))))
-                .partialState().with(pillarType, bottom)
-                .addModels(new ConfiguredModel(model(suffixPath(key, "_bottom"))));
+                .partialState().with(pillarType, middle).addModels(new ConfiguredModel(model(key)))
+                .partialState().with(pillarType, top).addModels(new ConfiguredModel(model(suffixPath(key, "_top"))))
+                .partialState().with(pillarType, bottom).addModels(new ConfiguredModel(model(suffixPath(key, "_bottom"))));
     }
 
     private <T extends Comparable<T>> void allStateSuffixModel(Block b) {
-        Collection<Property<?>> properties = b.getStateContainer().getProperties();
+        Collection<Property<?>> properties = b.getStateDefinition().getProperties();
         if (properties.size() != 1) {
             throw new IllegalArgumentException("Can only make path-suffix enumeration for blockstates with exactly 1 property!");
         }
 
-        ResourceLocation key = b.getRegistryName();
+        ResourceLocation key = key(b);
         Property<T> property = (Property<T>) Iterables.getFirst(properties, null);
         VariantBlockStateBuilder builder = this.getVariantBuilder(b);
-        for (T value : property.getAllowedValues()) {
+        for (T value : property.getPossibleValues()) {
             builder.partialState().with(property, value)
                     .addModels(new ConfiguredModel(model(suffixPath(key, "_" + value.toString()))));
         }
     }
 
     private <T extends Comparable<T>> void allStateSuffixMultiLayerModel(Block b) {
-        Collection<Property<?>> properties = b.getStateContainer().getProperties();
+        Collection<Property<?>> properties = b.getStateDefinition().getProperties();
         if (properties.size() != 1) {
             throw new IllegalArgumentException("Can only make path-suffix enumeration for blockstates with exactly 1 property!");
         }
 
-        ResourceLocation key = b.getRegistryName();
+        ResourceLocation key = key(b);
         Property<T> property = (Property<T>) Iterables.getFirst(properties, null);
         VariantBlockStateBuilder builder = this.getVariantBuilder(b);
-        for (T value : property.getAllowedValues()) {
+        for (T value : property.getPossibleValues()) {
             builder.partialState().with(property, value)
                     .addModels(new ConfiguredModel(multiLayerModel(suffixPath(key, "_" + value.toString()))));
         }
     }
 
     private void simpleSlabs(SlabBlock b, ModelFile doubleSlabModel) {
-        ResourceLocation key = b.getRegistryName();
+        ResourceLocation key = key(b);
         this.slabBlock(b, model(key), model(suffixPath(key, "_top")), doubleSlabModel);
     }
 
-    private void simpleStairs(StairsBlock b) {
-        ResourceLocation key = b.getRegistryName();
+    private void simpleStairs(StairBlock b) {
+        ResourceLocation key = key(b);
         this.stairsBlock(b, model(key), model(suffixPath(key, "_inner")), model(suffixPath(key, "_outer")));
     }
 
+    @Override
+    public void simpleBlock(Block b, ModelFile targetModel) {
+        // 1.20.1: Usamos la implementación de Forge o la personalizamos
+        // La implementación base de Forge ya hace esto:
+        // getVariantBuilder(b).partialState().setModels(new ConfiguredModel(targetModel));
+        super.simpleBlock(b, targetModel);
+    }
+
     private void multiLayerBlockState(Block b) {
-        this.simpleBlockState(b, multiLayerModel(b.getRegistryName()));
+        // Ahora llamamos a nuestro método corregido
+        this.simpleBlock(b, multiLayerModel(key(b)));
     }
 
     private void simpleBlockState(Block b) {
-        this.simpleBlockState(b, model(b.getRegistryName()));
-    }
-
-    private void simpleBlockState(Block b, ModelFile targetModel) {
-        getVariantBuilder(b).partialState().addModels(new ConfiguredModel(targetModel));
+        // Si quieres usar tu lógica de prefijo 'block/', usa el método corregido
+        this.simpleBlock(b, model(key(b)));
     }
 
     private ModelFile modelNothing() {
@@ -234,8 +237,8 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
         return model(AstralSorcery.key(name));
     }
 
-    private ModelFile model(IForgeRegistryEntry<?> entry) {
-        return model(entry.getRegistryName());
+    private ResourceLocation key(Block b) {
+        return ForgeRegistries.BLOCKS.getKey(b);
     }
 
     private ModelFile model(ResourceLocation name) {

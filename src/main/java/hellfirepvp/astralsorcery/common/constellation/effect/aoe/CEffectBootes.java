@@ -22,16 +22,20 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -61,7 +65,7 @@ public class CEffectBootes extends ConstellationEffectEntityCollect<LivingEntity
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         if (rand.nextInt(3) == 0) {
             ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
 
@@ -89,7 +93,7 @@ public class CEffectBootes extends ConstellationEffectEntityCollect<LivingEntity
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
         boolean didEffect = false;
 
         List<LivingEntity> entities = this.collectEntities(world, pos, properties);
@@ -102,18 +106,24 @@ public class CEffectBootes extends ConstellationEffectEntityCollect<LivingEntity
             }
 
             if (properties.isCorrupted()) {
-                entity.hurtResistantTime = 0;
-                entity.addPotionEffect(new EffectInstance(EffectsAS.EFFECT_DROP_MODIFIER, 1000, 5));
-                if (DamageUtil.attackEntityFrom(entity, CommonProxy.DAMAGE_SOURCE_STELLAR, 5_000)) {
+                entity.invulnerableTime = 0;
+                entity.addEffect(new MobEffectInstance(EffectsAS.EFFECT_DROP_MODIFIER, 1000, 5));
+                DamageSource astralDamage = new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                        .getHolderOrThrow(ASDamageTypes.STELLAR));
+                if (DamageUtil.attackEntityFrom(entity, astralDamage, 5_000)) {
                     didEffect = true;
                 }
                 continue;
             }
 
-            if (rand.nextFloat() < CONFIG.herdingChance.get()) {
-                didEffect = MiscUtils.executeWithChunk(world, entity.getPosition(), didEffect, (didEffectFlag) -> {
+            if (world.random.nextFloat() < CONFIG.herdingChance.get()) {
+                // blockPosition() reemplaza a getPosition()
+                didEffect = MiscUtils.executeWithChunk(world, entity.blockPosition(), didEffect, (didEffectFlag) -> {
 
-                    List<ItemStack> rawDrops = EntityUtils.generateLoot(entity, rand, CommonProxy.DAMAGE_SOURCE_STELLAR, null);
+                    // generateLoot ahora requiere el Level/ServerLevel para las LootTables
+                    DamageSource astralDamage = new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                            .getHolderOrThrow(ASDamageTypes.STELLAR));
+                    List<ItemStack> rawDrops = EntityUtils.generateLoot(entity, world.random, astralDamage, null );
                     List<ItemStack> drops = new ArrayList<>();
                     rawDrops.forEach(drop -> {
                         for (int i = 0; i < drop.getCount(); i++) {
@@ -121,9 +131,9 @@ public class CEffectBootes extends ConstellationEffectEntityCollect<LivingEntity
                         }
                     });
                     for (ItemStack drop : drops) {
-                        if (rand.nextFloat() < CONFIG.herdingLootChance.get() &&
-                                ItemUtils.dropItemNaturally(world, entity.getPosX(), entity.getPosY(), entity.getPosZ(), drop) != null) {
-
+                        // getX(), getY(), getZ() se mantienen pero son métodos, no campos
+                        if (world.random.nextFloat() < CONFIG.herdingLootChance.get() &&
+                                ItemUtils.dropItemNaturally(world, entity.getX(), entity.getY(), entity.getZ(), drop) != null) {
                             didEffectFlag = true;
                         }
                     }

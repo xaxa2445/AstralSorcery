@@ -9,30 +9,31 @@
 package hellfirepvp.astralsorcery.common.integration;
 
 import hellfirepvp.astralsorcery.AstralSorcery;
-import hellfirepvp.astralsorcery.common.constellation.ConstellationBaseItem;
-import hellfirepvp.astralsorcery.common.constellation.ConstellationItem;
-import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarAttunement;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarConstellation;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarDiscovery;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarTrait;
+import hellfirepvp.astralsorcery.common.crafting.recipe.BlockTransmutation;
+import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInfusion;
+import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInteraction;
+import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipe;
+import hellfirepvp.astralsorcery.common.crafting.recipe.WellLiquefaction;
 import hellfirepvp.astralsorcery.common.integration.jei.*;
 import hellfirepvp.astralsorcery.common.item.ItemResonator;
-import hellfirepvp.astralsorcery.common.item.armor.ItemMantle;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.helpers.IStackHelper;
-import mezz.jei.api.ingredients.subtypes.ISubtypeInterpreter;
+import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandlerHelper;
 import mezz.jei.api.registration.*;
 import mezz.jei.api.runtime.IJeiRuntime;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.IRecipe;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,37 +48,47 @@ import java.util.stream.Collectors;
 @JeiPlugin
 public class IntegrationJEI implements IModPlugin {
 
+    public static final RecipeType<SimpleAltarRecipe> ALTAR_DISCOVERY_TYPE = RecipeType.create("astralsorcery", "altar_discovery", SimpleAltarRecipe.class);
+    public static final RecipeType<SimpleAltarRecipe> ALTAR_ATTUNEMENT_TYPE = RecipeType.create("astralsorcery", "altar_attunement", SimpleAltarRecipe.class);
+    public static final RecipeType<SimpleAltarRecipe> ALTAR_CONSTELLATION_TYPE = RecipeType.create("astralsorcery", "altar_constellation", SimpleAltarRecipe.class);
+    public static final RecipeType<SimpleAltarRecipe> ALTAR_TRAIT_TYPE = RecipeType.create("astralsorcery", "altar_trait", SimpleAltarRecipe.class);
+
+    public static final RecipeType<LiquidInfusion> INFUSER_TYPE = RecipeType.create("astralsorcery", "infuser", LiquidInfusion.class);
+    public static final RecipeType<LiquidInteraction> LIQUID_INTERACTION_TYPE = RecipeType.create("astralsorcery", "interaction", LiquidInteraction.class);
+    public static final RecipeType<BlockTransmutation> TRANSMUTATION_TYPE = RecipeType.create("astralsorcery", "transmutation", BlockTransmutation.class);
+    public static final RecipeType<WellLiquefaction> WELL_TYPE = RecipeType.create("astralsorcery", "well", WellLiquefaction.class);
+
     public static final List<JEICategory<?>> CATEGORIES = new ArrayList<>();
-
-    public static final ResourceLocation CATEGORY_ALTAR_ATTUNEMENT = AstralSorcery.key("altar_attunement");
-    public static final ResourceLocation CATEGORY_ALTAR_CONSTELLATION = AstralSorcery.key("altar_constellation");
-    public static final ResourceLocation CATEGORY_ALTAR_DISCOVERY = AstralSorcery.key("altar_discovery");
-    public static final ResourceLocation CATEGORY_ALTAR_TRAIT = AstralSorcery.key("altar_trait");
-    public static final ResourceLocation CATEGORY_INFUSER = AstralSorcery.key("infuser");
-    public static final ResourceLocation CATEGORY_LIQUID_INTERACTION = AstralSorcery.key("interaction");
-    public static final ResourceLocation CATEGORY_TRANSMUTATION = AstralSorcery.key("transmutation");
-    public static final ResourceLocation CATEGORY_WELL = AstralSorcery.key("well");
-
     public static IJeiRuntime runtime = null;
+
+    @Override
+    public ResourceLocation getPluginUid() {
+        return AstralSorcery.key("jei_integration");
+    }
 
     @Override
     public void registerItemSubtypes(ISubtypeRegistration registry) {
         registry.useNbtForSubtypes(
                 ItemsAS.ATTUNED_ROCK_CRYSTAL,
-                ItemsAS.ATTUNED_CELESTIAL_CRYSTAL,
-                Item.getItemFromBlock(BlocksAS.ROCK_COLLECTOR_CRYSTAL),
-                Item.getItemFromBlock(BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL),
-                Item.getItemFromBlock(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER),
-                Item.getItemFromBlock(BlocksAS.GEM_CRYSTAL_CLUSTER)
+                ItemsAS.ATTUNED_CELESTIAL_CRYSTAL
         );
 
-        registry.registerSubtypeInterpreter(ItemsAS.RESONATOR, stack -> ItemResonator.getUpgrades(stack)
-                .stream()
-                .map(ItemResonator.ResonatorUpgrade::getAppendix)
-                .collect(Collectors.joining(",")));
-        registry.registerSubtypeInterpreter(ItemsAS.MANTLE, stack -> Optional.ofNullable(ItemsAS.MANTLE.getConstellation(stack))
-                .map(IConstellation::getSimpleName)
-                .orElse("none"));
+        registry.useNbtForSubtypes(
+                BlocksAS.ROCK_COLLECTOR_CRYSTAL.asItem(),
+                BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL.asItem(),
+                BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.asItem(),
+                BlocksAS.GEM_CRYSTAL_CLUSTER.asItem()
+        );
+
+        registry.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ItemsAS.RESONATOR, (stack, context) ->
+                ItemResonator.getUpgrades(stack).stream()
+                        .map(upgrade -> upgrade.getAppendix())
+                        .collect(Collectors.joining(",")));
+
+        registry.registerSubtypeInterpreter(VanillaTypes.ITEM_STACK, ItemsAS.MANTLE, (stack, context) ->
+                Optional.ofNullable(ItemsAS.MANTLE.getConstellation(stack))
+                        .map(c -> c.getSimpleName())
+                        .orElse("none"));
     }
 
     @Override
@@ -85,10 +96,10 @@ public class IntegrationJEI implements IModPlugin {
         IGuiHelper guiHelper = registry.getJeiHelpers().getGuiHelper();
 
         if (CATEGORIES.isEmpty()) {
-            CATEGORIES.add(new CategoryAltar(CATEGORY_ALTAR_DISCOVERY, "altar_discovery", BlocksAS.ALTAR_DISCOVERY, guiHelper));
-            CATEGORIES.add(new CategoryAltar(CATEGORY_ALTAR_ATTUNEMENT, "altar_attunement", BlocksAS.ALTAR_ATTUNEMENT, guiHelper));
-            CATEGORIES.add(new CategoryAltar(CATEGORY_ALTAR_CONSTELLATION, "altar_constellation", BlocksAS.ALTAR_CONSTELLATION, guiHelper));
-            CATEGORIES.add(new CategoryAltar(CATEGORY_ALTAR_TRAIT, "altar_trait", BlocksAS.ALTAR_RADIANCE, guiHelper));
+            CATEGORIES.add(new CategoryAltar(ALTAR_DISCOVERY_TYPE, "altar_discovery", BlocksAS.ALTAR_DISCOVERY, guiHelper));
+            CATEGORIES.add(new CategoryAltar(ALTAR_ATTUNEMENT_TYPE, "altar_attunement", BlocksAS.ALTAR_ATTUNEMENT, guiHelper));
+            CATEGORIES.add(new CategoryAltar(ALTAR_CONSTELLATION_TYPE, "altar_constellation", BlocksAS.ALTAR_CONSTELLATION, guiHelper));
+            CATEGORIES.add(new CategoryAltar(ALTAR_TRAIT_TYPE, "altar_trait", BlocksAS.ALTAR_RADIANCE, guiHelper));
             CATEGORIES.add(new CategoryInfuser(guiHelper));
             CATEGORIES.add(new CategoryLiquidInteraction(guiHelper));
             CATEGORIES.add(new CategoryTransmutation(guiHelper));
@@ -100,23 +111,31 @@ public class IntegrationJEI implements IModPlugin {
 
     @Override
     public void registerRecipes(IRecipeRegistration registry) {
-        CATEGORIES.forEach(category -> {
-            List<? extends IRecipe<?>> recipes = category.getRecipes();
-            recipes.sort(Comparator.comparing(recipe -> recipe.getId().toString()));
-            registry.addRecipes(recipes, category.getUid());
-        });
+        // En lugar de usar forEach con una lambda compleja, delegamos a un método genérico
+        for (JEICategory<?> category : CATEGORIES) {
+            registerCategoryRecipes(registry, category);
+        }
+    }
+
+    // Este método "captura" el tipo genérico <T> y resuelve el conflicto del compilador
+    private <T extends net.minecraft.world.item.crafting.Recipe<?>> void registerCategoryRecipes(IRecipeRegistration registry, JEICategory<T> category) {
+        List<T> recipes = category.getRecipes();
+        // Opcional: Ordenar las recetas por ID antes de registrarlas
+        recipes.sort(Comparator.comparing(r -> r.getId().toString()));
+
+        registry.addRecipes(category.getRecipeType(), recipes);
     }
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registry) {
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_DISCOVERY), CATEGORY_ALTAR_DISCOVERY);
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_ATTUNEMENT), CATEGORY_ALTAR_ATTUNEMENT);
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_CONSTELLATION), CATEGORY_ALTAR_CONSTELLATION);
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_RADIANCE), CATEGORY_ALTAR_TRAIT);
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.INFUSER), CATEGORY_INFUSER);
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.CHALICE), CATEGORY_LIQUID_INTERACTION);
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.LENS), CATEGORY_TRANSMUTATION);
-        registry.addRecipeCatalyst(new ItemStack(BlocksAS.WELL), CATEGORY_WELL);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_DISCOVERY), ALTAR_DISCOVERY_TYPE);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_ATTUNEMENT), ALTAR_ATTUNEMENT_TYPE);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_CONSTELLATION), ALTAR_CONSTELLATION_TYPE);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.ALTAR_RADIANCE), ALTAR_TRAIT_TYPE);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.INFUSER), INFUSER_TYPE);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.CHALICE), LIQUID_INTERACTION_TYPE);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.LENS), TRANSMUTATION_TYPE);
+        registry.addRecipeCatalyst(new ItemStack(BlocksAS.WELL), WELL_TYPE);
     }
 
     @Override
@@ -126,40 +145,35 @@ public class IntegrationJEI implements IModPlugin {
 
         // T1 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarDiscovery.class,
-                stackHelper, transferHelper, 9), CATEGORY_ALTAR_DISCOVERY);
+                stackHelper, transferHelper, 9), ALTAR_DISCOVERY_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarAttunement.class,
-                stackHelper, transferHelper, 13), CATEGORY_ALTAR_DISCOVERY);
+                stackHelper, transferHelper, 13), ALTAR_DISCOVERY_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarConstellation.class,
-                stackHelper, transferHelper, 21), CATEGORY_ALTAR_DISCOVERY);
+                stackHelper, transferHelper, 21), ALTAR_DISCOVERY_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), CATEGORY_ALTAR_DISCOVERY);
+                stackHelper, transferHelper, 25), ALTAR_DISCOVERY_TYPE);
 
         // T2 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarAttunement.class,
-                stackHelper, transferHelper, 13), CATEGORY_ALTAR_ATTUNEMENT);
+                stackHelper, transferHelper, 13), ALTAR_ATTUNEMENT_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarConstellation.class,
-                stackHelper, transferHelper, 21), CATEGORY_ALTAR_ATTUNEMENT);
+                stackHelper, transferHelper, 21), ALTAR_ATTUNEMENT_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), CATEGORY_ALTAR_ATTUNEMENT);
+                stackHelper, transferHelper, 25), ALTAR_ATTUNEMENT_TYPE);
 
         // T3 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarConstellation.class,
-                stackHelper, transferHelper, 21), CATEGORY_ALTAR_CONSTELLATION);
+                stackHelper, transferHelper, 21), ALTAR_CONSTELLATION_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), CATEGORY_ALTAR_CONSTELLATION);
+                stackHelper, transferHelper, 25), ALTAR_CONSTELLATION_TYPE);
 
         // T4 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), CATEGORY_ALTAR_TRAIT);
+                stackHelper, transferHelper, 25), ALTAR_TRAIT_TYPE);
     }
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
         runtime = jeiRuntime;
-    }
-
-    @Override
-    public ResourceLocation getPluginUid() {
-        return AstralSorcery.key("jei_integration");
     }
 }

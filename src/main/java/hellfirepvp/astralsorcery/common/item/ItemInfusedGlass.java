@@ -42,8 +42,7 @@ public class ItemInfusedGlass extends Item {
     public ItemInfusedGlass() {
         super(new Properties()
                 .stacksTo(1) // maxStackSize -> stacksTo
-                .durability(5) // maxDamage -> durability
-                .tab(CommonProxy.ITEM_GROUP_AS)); // group -> tab
+                .durability(5)); // maxDamage -> durability
     }
 
     @Override

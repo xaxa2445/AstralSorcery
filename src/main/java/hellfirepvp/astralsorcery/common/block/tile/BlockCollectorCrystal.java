@@ -26,31 +26,29 @@ import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
 import hellfirepvp.astralsorcery.common.tile.TileCollectorCrystal;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.observerlib.api.block.BlockStructureObserver;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.SoundType;
-import net.minecraft.block.material.Material;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.resources.model.Material;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.pathfinding.PathType;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.EntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.common.ToolType;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -65,16 +63,16 @@ import java.util.UUID;
  */
 public abstract class BlockCollectorCrystal extends BlockStarlightNetwork implements BlockStructureObserver, CustomItemBlock {
 
-    private static final VoxelShape SHAPE = Block.makeCuboidShape(4.5, 0, 4.5, 11.5, 16, 11.5);
+    private static final VoxelShape SHAPE = Block.box(4.5, 0, 4.5, 11.5, 16, 11.5);
     private static final float PLAYER_HARVEST_HARDNESS = 4F;
 
     public BlockCollectorCrystal(CollectorCrystalType type) {
-        super(Properties.create(Material.GLASS, type.getMaterialColor())
-                .hardnessAndResistance(-1F, 3600000.0F)
-                .harvestTool(ToolType.PICKAXE)
-                .harvestLevel(1)
+        super(Properties.of() // En 1.20 no hay Material.GLASS
+                .mapColor(type.getMaterialColor())
+                .strength(-1F, 3600000.0F)
                 .sound(SoundType.GLASS)
-                .setLightLevel(state -> 11));
+                .lightLevel(state -> 11)
+                .requiresCorrectToolForDrops()); // Reemplaza harvestTool/Level
     }
 
     @Override
@@ -82,8 +80,8 @@ public abstract class BlockCollectorCrystal extends BlockStarlightNetwork implem
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addInformation(ItemStack stack, @Nullable IBlockReader world, List<ITextComponent> toolTip, ITooltipFlag flag) {
-        super.addInformation(stack, world, toolTip, flag);
+    public void appendHoverText(ItemStack stack, @Nullable BlockGetter world, List<Component> toolTip, TooltipFlag flag) {
+        super.appendHoverText(stack, world, toolTip, flag);
 
         CrystalAttributes attr = CrystalAttributes.getCrystalAttributes(stack);
         CrystalAttributes.TooltipResult result = null;
@@ -103,74 +101,74 @@ public abstract class BlockCollectorCrystal extends BlockStarlightNetwork implem
             IWeakConstellation c = ((ConstellationItem) stack.getItem()).getAttunedConstellation(stack);
             if (c != null) {
                 if (GatedKnowledge.COLLECTOR_TYPE.canSee(tier) && clientProgress.hasConstellationDiscovered(c)) {
-                    toolTip.add(new TranslationTextComponent("crystal.info.astralsorcery.collect.type",
-                            c.getConstellationName().mergeStyle(TextFormatting.BLUE))
-                            .mergeStyle(TextFormatting.GRAY));
+                    toolTip.add(Component.translatable("crystal.info.astralsorcery.collect.type",
+                            c.getConstellationName().withStyle(ChatFormatting.BLUE))
+                            .withStyle(ChatFormatting.GRAY));
 
                 } else if (!addedMissing) {
-                    toolTip.add(new TranslationTextComponent("astralsorcery.progress.missing.knowledge").mergeStyle(TextFormatting.GRAY));
+                    toolTip.add(Component.translatable("astralsorcery.progress.missing.knowledge").withStyle(ChatFormatting.GRAY));
                 }
             }
 
             IMinorConstellation tr = ((ConstellationItem) stack.getItem()).getTraitConstellation(stack);
             if (tr != null) {
                 if (GatedKnowledge.CRYSTAL_TRAIT.canSee(tier) && clientProgress.hasConstellationDiscovered(tr)) {
-                    toolTip.add(new TranslationTextComponent("crystal.info.astralsorcery.trait",
-                            tr.getConstellationName().mergeStyle(TextFormatting.BLUE))
-                            .mergeStyle(TextFormatting.GRAY));
+                    toolTip.add(Component.translatable("crystal.info.astralsorcery.trait",
+                            tr.getConstellationName().withStyle(ChatFormatting.BLUE))
+                            .withStyle(ChatFormatting.GRAY));
 
                 } else if (!addedMissing) {
-                    toolTip.add(new TranslationTextComponent("astralsorcery.progress.missing.knowledge").mergeStyle(TextFormatting.GRAY));
+                    toolTip.add(Component.translatable("astralsorcery.progress.missing.knowledge").withStyle(ChatFormatting.GRAY));
                 }
             }
         }
     }
 
     @Override
-    public VoxelShape getShape(BlockState p_220053_1_, IBlockReader p_220053_2_, BlockPos p_220053_3_, ISelectionContext p_220053_4_) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    public float getPlayerRelativeBlockHardness(BlockState state, PlayerEntity player, IBlockReader world, BlockPos pos) {
+    public float getDestroyProgress(BlockState state, Player player, BlockGetter world, BlockPos pos) {
         TileCollectorCrystal crystal = MiscUtils.getTileAt(world, pos, TileCollectorCrystal.class, false);
         if (crystal != null && crystal.isPlayerMade()) {
-            int i = ForgeHooks.canHarvestBlock(state, player, world, pos) ? 30 : 100;
+            int i = ForgeHooks.isCorrectToolForDrops(state, player) ? 30 : 100;
             return player.getDigSpeed(state, pos) / PLAYER_HARVEST_HARDNESS / i;
         }
-        return super.getPlayerRelativeBlockHardness(state, player, world, pos);
+        return super.getDestroyProgress(state, player, world, pos);
     }
 
     @Override
-    public void onBlockPlacedBy(World world, BlockPos pos, BlockState state, @Nullable LivingEntity entity, ItemStack stack) {
+    public void setPlacedBy(Level world, BlockPos pos, BlockState state, @Nullable LivingEntity entity, ItemStack stack) {
         TileCollectorCrystal tcc = MiscUtils.getTileAt(world, pos, TileCollectorCrystal.class, true);
         Item i = stack.getItem();
         if (tcc != null && i instanceof ItemBlockCollectorCrystal) {
             ItemBlockCollectorCrystal ibcc = (ItemBlockCollectorCrystal) i;
             UUID playerUUID = null;
-            if (entity instanceof PlayerEntity) {
-                playerUUID = entity.getUniqueID();
+            if (entity instanceof Player) {
+                playerUUID = entity.getUUID();
             }
 
             tcc.updateData(playerUUID, ibcc.getCollectorType());
         }
 
-        super.onBlockPlacedBy(world, pos, state, entity, stack);
+        super.setPlacedBy(world, pos, state, entity, stack);
     }
 
     @Override
-    public boolean allowsMovement(BlockState state, IBlockReader worldIn, BlockPos pos, PathType type) {
+    public boolean isPathfindable(BlockState state, BlockGetter world, BlockPos pos, PathComputationType type) {
         return false;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState p_149645_1_) {
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public TileEntity createNewTileEntity(IBlockReader worldIn) {
-        return new TileCollectorCrystal();
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new TileCollectorCrystal(pos, state); // Los BlockEntity ahora requieren pos y state en el constructor
     }
 }

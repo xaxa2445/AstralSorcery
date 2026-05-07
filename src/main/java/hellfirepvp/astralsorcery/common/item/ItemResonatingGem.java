@@ -21,7 +21,6 @@ import net.minecraft.world.item.Item;
 public class ItemResonatingGem extends Item {
 
     public ItemResonatingGem() {
-        super(new Properties()
-                .tab(CommonProxy.ITEM_GROUP_AS));
+        super(new Properties());
     }
 }

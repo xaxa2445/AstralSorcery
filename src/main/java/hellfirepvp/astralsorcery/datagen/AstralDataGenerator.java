@@ -57,7 +57,7 @@ public class AstralDataGenerator {
             AstralBlockTagsProvider blockTags = new AstralBlockTagsProvider(output, event.getLookupProvider(), fileHelper);
             event.getGenerator().addProvider(true, blockTags);
             event.getGenerator().addProvider(true,
-                    new AstralItemTagsProvider(output, event.getLookupProvider(), blockTags, fileHelper)
+                    new AstralItemTagsProvider(output, event.getLookupProvider(), blockTags.contentsGetter(), fileHelper)
             );
 
             // OTROS

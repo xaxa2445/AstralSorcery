@@ -35,7 +35,7 @@ public class ItemBlockCelestialCollectorCrystal extends ItemBlockCollectorCrysta
     }
 
     @Override
-    protected CrystalAttributes getCreativeTemplateAttributes() {
+    public CrystalAttributes getCreativeTemplateAttributes() {
         return CrystalPropertiesAS.CREATIVE_CELESTIAL_COLLECTOR_ATTRIBUTES;
     }
 }

@@ -8,22 +8,22 @@
 
 package hellfirepvp.astralsorcery.common.integration.jei;
 
-import com.google.common.collect.ImmutableList;
-import com.mojang.blaze3d.matrix.MatrixStack;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crafting.recipe.WellLiquefaction;
 import hellfirepvp.astralsorcery.common.integration.IntegrationJEI;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.RecipeTypesAS;
 import mezz.jei.api.constants.VanillaTypes;
-import mezz.jei.api.gui.IRecipeLayout;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder; // Nuevo Builder
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.ingredient.IGuiFluidStackGroup;
-import mezz.jei.api.gui.ingredient.IGuiItemStackGroup;
+import mezz.jei.api.gui.ingredient.IRecipeSlotView;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
-import mezz.jei.api.ingredients.IIngredients;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.fluids.FluidAttributes;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole; // Nuevo sistema de Roles
+import net.minecraft.client.gui.GuiGraphics; // MatrixStack -> GuiGraphics
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.fluids.FluidType; // FluidAttributes -> FluidType (1.20+)
 import net.minecraftforge.fluids.FluidStack;
 
 import java.util.Collection;
@@ -42,19 +42,19 @@ public class CategoryWell extends JEICategory<WellLiquefaction> {
     private final IDrawable background, icon;
 
     public CategoryWell(IGuiHelper guiHelper) {
-        super(IntegrationJEI.CATEGORY_WELL);
+        super(IntegrationJEI.WELL_TYPE);
         this.background = guiHelper.createDrawable(AstralSorcery.key("textures/gui/jei/lightwell.png"), 0, 0, 116, 54);
-        this.icon = guiHelper.createDrawableIngredient(new ItemStack(BlocksAS.WELL));
+        this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, new ItemStack(BlocksAS.WELL));
     }
 
     @Override
-    public Class<? extends WellLiquefaction> getRecipeClass() {
-        return WellLiquefaction.class;
+    public int getWidth() {
+        return 116; // El ancho de tu textura original
     }
 
     @Override
-    public IDrawable getBackground() {
-        return this.background;
+    public int getHeight() {
+        return 54; // El alto de tu textura original
     }
 
     @Override
@@ -63,8 +63,12 @@ public class CategoryWell extends JEICategory<WellLiquefaction> {
     }
 
     @Override
-    public void draw(WellLiquefaction recipe, MatrixStack renderStack, double mouseX, double mouseY) {
-        this.icon.draw(renderStack, 46, 20);
+    public void draw(WellLiquefaction recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
+        // Primero dibujamos el fondo en (0,0)
+        this.background.draw(guiGraphics, 0, 0);
+
+        // Luego el icono o cualquier otro adorno
+        this.icon.draw(guiGraphics, 46, 20);
     }
 
     @Override
@@ -73,26 +77,15 @@ public class CategoryWell extends JEICategory<WellLiquefaction> {
     }
 
     @Override
-    public void setIngredients(WellLiquefaction wellLiquefaction, IIngredients ingredients) {
-        ImmutableList.Builder<List<FluidStack>> fluidOutputs = ImmutableList.builder();
-        ImmutableList.Builder<List<ItemStack>> itemInputs = ImmutableList.builder();
+    public void setRecipe(IRecipeLayoutBuilder builder, WellLiquefaction recipe, IFocusGroup focuses) {
+        // Slot de entrada de Ítem (0)
+        builder.addSlot(RecipeIngredientRole.INPUT, 3, 19) // x+1, y+1 de la versión vieja
+                .addIngredients(recipe.getInput());
 
-        itemInputs.add(ingredientStacks(wellLiquefaction.getInput()));
-        fluidOutputs.add(Collections.singletonList(new FluidStack(wellLiquefaction.getFluidOutput(), FluidAttributes.BUCKET_VOLUME)));
-
-        ingredients.setInputLists(VanillaTypes.ITEM, itemInputs.build());
-        ingredients.setOutputLists(VanillaTypes.FLUID, fluidOutputs.build());
-    }
-
-    @Override
-    public void setRecipe(IRecipeLayout recipeLayout, WellLiquefaction wellLiquefaction, IIngredients ingredients) {
-        IGuiItemStackGroup itemStacks = recipeLayout.getItemStacks();
-        IGuiFluidStackGroup fluidStacks = recipeLayout.getFluidStacks();
-
-        itemStacks.init(0, true, 2, 18);
-        initFluidOutput(fluidStacks, 1, 94, 18);
-
-        itemStacks.set(ingredients);
-        fluidStacks.set(ingredients);
+        // Slot de salida de Fluido (1)
+        // En 1.20.1, el volumen estándar es 1000 (1 BUCKET)
+        builder.addSlot(RecipeIngredientRole.OUTPUT, 95, 19)
+                .addFluidStack(recipe.getFluidOutput(), FluidType.BUCKET_VOLUME)
+                .setFluidRenderer(FluidType.BUCKET_VOLUME, false, 16, 16);
     }
 }

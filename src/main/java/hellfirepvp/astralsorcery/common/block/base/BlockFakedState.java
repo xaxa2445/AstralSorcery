@@ -72,7 +72,7 @@ public abstract class BlockFakedState extends BaseEntityBlock {
     }
 
     @OnlyIn(Dist.CLIENT)
-    protected void playParticles(Level world, BlockPos pos, Random rand) {
+    protected void playParticles(Level world, BlockPos pos, RandomSource rand) {
         if (rand.nextInt(8) == 0) {
             VFXColorFunction<?> colorFn = VFXColorFunction.WHITE;
             TileFakedState fakedState = MiscUtils.getTileAt(world, pos, TileFakedState.class, false);

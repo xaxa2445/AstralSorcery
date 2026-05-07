@@ -46,7 +46,7 @@ public class BlockTranslucentBlock extends BlockFakedState {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void animateTick(BlockState state, Level world, BlockPos pos, Random rand) {
+    public void animateTick(BlockState state, Level world, BlockPos pos, RandomSource rand) {
         this.playParticles(world, pos, rand);
     }
 

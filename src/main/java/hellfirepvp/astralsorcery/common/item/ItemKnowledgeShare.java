@@ -82,7 +82,7 @@ public class ItemKnowledgeShare extends Item {
             return InteractionResultHolder.success(held);
         }
 
-        if (!isCreative(held) && (player.isShiftKeyDown() || getKnowledge(held) == null)) {
+        if (!isCreative(held) && (player.isCrouching() || getKnowledge(held) == null)) {
             tryInscribeKnowledge(held, player);
         } else {
             tryGiveKnowledge(held, player);
@@ -100,7 +100,7 @@ public class ItemKnowledgeShare extends Item {
             return InteractionResult.SUCCESS;
         }
 
-        if (!isCreative(stack) && (player.isShiftKeyDown() || getKnowledge(stack) == null)) {
+        if (!isCreative(stack) && (player.isCrouching() || getKnowledge(stack) == null)) {
             tryInscribeKnowledge(stack, player);
         } else {
             tryGiveKnowledge(stack, player);

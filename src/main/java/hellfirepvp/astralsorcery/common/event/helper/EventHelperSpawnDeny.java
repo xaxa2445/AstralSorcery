@@ -14,10 +14,10 @@ import hellfirepvp.astralsorcery.common.util.block.WorldBlockPos;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.tick.TickTokenMap;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.entity.EntityClassification;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory; // EntityClassification -> MobCategory
 import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.entity.living.LivingSpawnEvent;
+import net.minecraftforge.event.entity.living.MobSpawnEvent; // LivingSpawnEvent -> MobSpawnEvent (1.20+)
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.IEventBus;
 
@@ -47,22 +47,22 @@ public class EventHelperSpawnDeny {
         eventBus.addListener(EventHelperSpawnDeny::onSpawn);
     }
 
-    private static void onSpawn(LivingSpawnEvent.CheckSpawn event) {
+    private static void onSpawn(MobSpawnEvent.FinalizeSpawn event) {
         if (event.getResult() == Event.Result.DENY ||
-                event.getWorld().isRemote() ||
+                event.getLevel().isClientSide() ||
                 event.getSpawner() != null) {
             return;
         }
 
-        LivingEntity entity = event.getEntityLiving();
+        LivingEntity entity = event.getEntity();
         if (entity.getTags().contains(ConstellationEffectRegistry.ENTITY_TAG_LUCERNA_SKIP_ENTITY)) {
             return;
         }
 
-        if (GeneralConfig.CONFIG.mobSpawningDenyAllTypes.get() || entity.getClassification(false) == EntityClassification.MONSTER) {
+        if (GeneralConfig.CONFIG.mobSpawningDenyAllTypes.get() || entity.getType().getCategory() == MobCategory.MONSTER) {
             Vector3 entityPos = Vector3.atEntityCorner(entity);
             for (Map.Entry<WorldBlockPos, TickTokenMap.SimpleTickToken<Double>> entry : spawnDenyRegions.entrySet()) {
-                if (!entry.getKey().getWorldKey().equals(entity.getEntityWorld().getDimensionKey())) {
+                if (!entry.getKey().getWorldKey().equals(entity.level().dimension())) {
                     continue;
                 }
 

@@ -48,7 +48,7 @@ public abstract class TileTransmissionBase<T extends IPrismTransmissionNode> ext
 
     @Override
     public boolean onSelect(Player player) {
-        if (player.isShiftKeyDown()) {
+        if (player.isCrouching()) {
             for (BlockPos linkTo : Lists.newArrayList(getLinkedPositions())) {
                 tryUnlink(player, linkTo);
             }

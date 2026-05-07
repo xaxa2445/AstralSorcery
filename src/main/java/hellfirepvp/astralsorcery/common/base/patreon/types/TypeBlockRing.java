@@ -8,8 +8,10 @@
 
 package hellfirepvp.astralsorcery.common.base.patreon.types;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.resource.BlockAtlasTexture;
 import hellfirepvp.astralsorcery.client.util.Blending;
@@ -19,20 +21,18 @@ import hellfirepvp.astralsorcery.client.util.RenderingUtils;
 import hellfirepvp.astralsorcery.common.base.patreon.FlareColor;
 import hellfirepvp.astralsorcery.common.base.patreon.PatreonEffect;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.RenderPlayerEvent;
-import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL11C;
+import org.joml.Matrix4f; // 1.20 usa JOML para matemáticas
 
 import java.util.Map;
 import java.util.UUID;
@@ -87,42 +87,38 @@ public class TypeBlockRing extends PatreonEffect {
 
     @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
-    public void onRenderLast(RenderWorldLastEvent event) {
-        PlayerEntity pl = Minecraft.getInstance().player;
-        if (Minecraft.getInstance().gameSettings.getPointOfView().func_243192_a() && //First person
-                pl != null && pl.getUniqueID().equals(playerUUID)) {
-            MatrixStack renderStack = event.getMatrixStack();
+    public void onRenderLast(RenderLevelStageEvent event) {
+        Player pl = Minecraft.getInstance().player;
+        if (Minecraft.getInstance().options.getCameraType().isFirstPerson() && //First person
+                pl != null && pl.getUUID().equals(playerUUID)) {
+            PoseStack renderStack = event.getPoseStack();
 
             int alpha = 88;
-            if (pl.rotationPitch >= 35F) {
-                alpha *= Math.max(0, (55F - pl.rotationPitch) / 20F);
+            if (pl.getXRot() >= 35F) {
+                alpha *= Math.max(0, (55F - pl.getXRot()) / 20F);
             }
 
-            if (Minecraft.isFabulousGraphicsEnabled()) {
-                RenderSystem.clear(GL11C.GL_DEPTH_BUFFER_BIT, Minecraft.IS_RUNNING_ON_MAC);
-            }
-
-            renderStack.push();
+            renderStack.pushPose();
             renderStack.translate(0, -0.5, 0);
             renderStack.scale(0.5F, 0.5F, 0.5F);
-            renderRingAt(renderStack, pl, alpha, event.getPartialTicks());
-            renderStack.pop();
+            renderRingAt(renderStack, pl, alpha, event.getPartialTick());
+            renderStack.popPose();
         }
     }
 
     @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
     public void onRenderPost(RenderPlayerEvent.Post ev) {
-        PlayerEntity player = ev.getPlayer();
-        if (!player.getUniqueID().equals(playerUUID)) {
+        Player player = ev.getEntity();
+        if (!player.getUUID().equals(playerUUID)) {
             return;
         }
 
-        renderRingAt(ev.getMatrixStack(), player, 88, ev.getPartialRenderTick());
+        renderRingAt(ev.getPoseStack(), player, 88, ev.getPartialTick());
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void renderRingAt(MatrixStack renderStack, PlayerEntity player, int alphaMultiplier, float pTicks) {
+    private void renderRingAt(PoseStack renderStack, Player player, int alphaMultiplier, float pTicks) {
         float addedRotationAngle = 0;
 
         if (rotationSpeed > 1) {
@@ -130,10 +126,7 @@ public class TypeBlockRing extends PatreonEffect {
             addedRotationAngle = (rot / ((float) (rotationSpeed))) * 360F + this.rotationPart * pTicks;
         }
 
-        RenderSystem.enableTexture();
         BlockAtlasTexture.getInstance().bindTexture();
-
-        RenderSystem.disableAlphaTest();
         RenderSystem.disableCull();
         RenderSystem.enableBlend();
         Blending.ADDITIVE_ALPHA.apply();
@@ -153,25 +146,22 @@ public class TypeBlockRing extends PatreonEffect {
                 dir.rotate(Math.toRadians(angle), Vector3.RotAxis.Y_AXIS);
                 dir.multiply(new Vector3(0.2F, 0.1F, 0.2F));
 
-                renderStack.push();
+                renderStack.pushPose();
                 renderStack.translate(dir.getX(), dir.getY(), dir.getZ());
                 renderStack.scale(0.09F, 0.09F, 0.09F);
 
-                RenderingUtils.draw(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR_TEX_LIGHTMAP, buf -> {
+                RenderingUtils.draw(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, buf -> {
                     RenderingDrawUtils.renderTexturedCubeCentralColorLighted(buf, renderStack,
-                            tas.getMinU(), tas.getMinV(),
-                            tas.getMaxU() - tas.getMinU(), tas.getMaxV() - tas.getMinV(),
-                            255, 255, 255, alphaMultiplier, LightmapUtil.getPackedLightCoords(player.getEntityWorld(), player.getPosition()));
+                            tas.getU0(), tas.getV0(),
+                            tas.getU1() - tas.getU0(), tas.getV1() - tas.getV0(),
+                            255, 255, 255, alphaMultiplier, LightmapUtil.getPackedLightCoords(player.level(), player.blockPosition()));
                 });
-                renderStack.pop();
+                renderStack.popPose();
             }
         }
 
         Blending.DEFAULT.apply();
         RenderSystem.disableBlend();
         RenderSystem.enableCull();
-        RenderSystem.enableAlphaTest();
-
-        RenderSystem.disableTexture();
     }
 }

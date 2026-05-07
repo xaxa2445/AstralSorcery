@@ -28,17 +28,16 @@ import hellfirepvp.astralsorcery.common.util.block.iterator.BlockPositionGenerat
 import hellfirepvp.astralsorcery.common.util.block.iterator.BlockSpherePositionGenerator;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.server.level.ServerLevel; // ServerWorld -> ServerLevel
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level; // World -> Level
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -71,21 +70,21 @@ public class CEffectEvorsio extends CEffectAbstractList<ListEntries.PosEntry> {
 
     @Nullable
     @Override
-    public ListEntries.PosEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+    public ListEntries.PosEntry recreateElement(CompoundTag tag, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Nullable
     @Override
-    public ListEntries.PosEntry createElement(World world, BlockPos pos) {
+    public ListEntries.PosEntry createElement(Level world, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         float addY = 1F;
-        if (!pedestal.getPos().equals(pos)) {
+        if (!pedestal.getBlockPos().equals(pos)) {
             addY = 0F;
         }
         Vector3 motion = Vector3.random().multiply(0.1);
@@ -99,8 +98,8 @@ public class CEffectEvorsio extends CEffectAbstractList<ListEntries.PosEntry> {
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
-        if (!(world instanceof ServerWorld)) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        if (!(world instanceof ServerLevel)) {
             return false;
         }
 
@@ -108,18 +107,18 @@ public class CEffectEvorsio extends CEffectAbstractList<ListEntries.PosEntry> {
             BlockPos at = newEntry.getPos();
 
             if (properties.isCorrupted()) {
-                if (at.getY() < pos.getY() && world.isAirBlock(at)) {
-                    double distance = pos.distanceSq(at) / (properties.getSize() * properties.getSize());
-                    BlockState state = Blocks.COBBLESTONE.getDefaultState();
+                if (at.getY() < pos.getY() && world.isEmptyBlock(at)) {
+                    double distance = pos.distSqr(at) / (properties.getSize() * properties.getSize());
+                    BlockState state = Blocks.COBBLESTONE.defaultBlockState();
                     if (distance >= 0.85F && rand.nextInt(4) == 0) {
-                        state = Blocks.DIRT.getDefaultState();
+                        state = Blocks.DIRT.defaultBlockState();
                     }
                     if (distance <= 0.25F) {
-                        state = Blocks.STONE.getDefaultState();
+                        state = Blocks.STONE.defaultBlockState();
                     } else if (distance <= 0.1F && rand.nextInt(5) == 0) {
-                        state = Blocks.OBSIDIAN.getDefaultState();
+                        state = Blocks.OBSIDIAN.defaultBlockState();
                     }
-                    world.setBlockState(at, state, Constants.BlockFlags.DEFAULT_AND_RERENDER);
+                    world.setBlock(at, state, 3);
                 }
                 return false;
             }
@@ -130,7 +129,7 @@ public class CEffectEvorsio extends CEffectAbstractList<ListEntries.PosEntry> {
                 if (this.canBreakBlock(world, at, state, buildFilter(pedestal))) {
                     BlockDropCaptureAssist.startCapturing();
                     try {
-                        BlockUtils.breakBlockWithoutPlayer((ServerWorld) world, at, state,
+                        BlockUtils.breakBlockWithoutPlayer((ServerLevel) world, at, state,
                                 ItemStack.EMPTY, true, true);
                     } finally {
                         NonNullList<ItemStack> captured = BlockDropCaptureAssist.getCapturedStacksAndStop();
@@ -147,15 +146,15 @@ public class CEffectEvorsio extends CEffectAbstractList<ListEntries.PosEntry> {
         }).left().orElse(false);
     }
 
-    private boolean canBreakBlock(World world, BlockPos pos, BlockState state, Predicate<BlockState> blacklist) {
+    private boolean canBreakBlock(Level world, BlockPos pos, BlockState state, Predicate<BlockState> blacklist) {
         if (blacklist.test(state)) {
             return false;
         }
-        float hardness = state.getBlockHardness(world, pos);
+        float hardness = state.getDestroySpeed(world, pos);
         if (hardness < 0 || hardness >= 75) {
             return false;
         }
-        return !state.isAir(world, pos);
+        return !state.isAir();
     }
 
     private Predicate<BlockState> buildFilter(TileRitualPedestal pedestal) {

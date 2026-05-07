@@ -52,7 +52,7 @@ public class ItemInfusedCrystalSword extends ItemCrystalSword implements Equipme
             if (!MiscUtils.isPlayerFakeMP(serverPlayer) &&
                     !sword.isEmpty() &&
                     sword.getItem() instanceof ItemInfusedCrystalSword &&
-                    !serverPlayer.isShiftKeyDown() &&
+                    !serverPlayer.isCrouching() &&
                     !serverPlayer.getCooldowns().isOnCooldown(sword.getItem())) {
                 PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
                 if (prog.doPerkAbilities()) {

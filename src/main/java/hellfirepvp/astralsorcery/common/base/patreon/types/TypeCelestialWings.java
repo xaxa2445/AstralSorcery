@@ -8,7 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.base.patreon.types;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.math.Axis;
 import hellfirepvp.astralsorcery.client.ClientScheduler;
 import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
@@ -24,8 +25,7 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.world.effect.MobEffects;   // ✅ ADD
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -72,23 +72,27 @@ public class TypeCelestialWings extends PatreonEffect implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = (PlayerEntity) context[0];
+        Player player = (Player) context[0];
         LogicalSide side = (LogicalSide) context[1];
 
         if (side.isClient() &&
                 shouldDoEffect(player) &&
                 (Minecraft.getInstance().player != null &&
-                        Minecraft.getInstance().player.getUniqueID().equals(playerUUID) &&
-                        !Minecraft.getInstance().gameSettings.getPointOfView().func_243192_a())) { //Not-in-first-person
+                        Minecraft.getInstance().player.getUUID().equals(playerUUID) &&
+                        !Minecraft.getInstance().options.getCameraType().isFirstPerson())) { //Not-in-first-person
             playEffects(player);
         }
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void playEffects(PlayerEntity player) {
-        float rot = RenderingVectorUtils.interpolateRotation(player.prevRenderYawOffset, player.renderYawOffset, 0);
+    private void playEffects(Player player) {
+        float rot = RenderingVectorUtils.interpolateRotation(
+                player.yBodyRotO,    // ✅ FIX: prevRenderYawOffset → yBodyRotO
+                player.yBodyRot,     // ✅ FIX: renderYawOffset → yBodyRot
+                0
+        );
         float yOffset = 1.3F;
-        if (player.isSneaking()) {
+        if (player.isCrouching()) {
             yOffset = 1F;
         }
         float f = Math.abs((ClientScheduler.getSystemClientTick() % 240) - 120F) / 120F;
@@ -96,7 +100,7 @@ public class TypeCelestialWings extends PatreonEffect implements ITickHandler {
 
         Vector3 look = new Vector3(1, 0, 0).rotate(Math.toRadians(360F - rot), Vector3.RotAxis.Y_AXIS).normalize();
         Vector3 pos = Vector3.atEntityCorner(player);
-        pos.setY(player.getPosY() + yOffset + offset);
+        pos.setY(player.getY() + yOffset + offset);
 
         for (int i = 0; i < 4; i++) {
             double height = -0.1 + Math.min(rand.nextFloat() * 1.3, rand.nextFloat() * 1.3);
@@ -127,46 +131,50 @@ public class TypeCelestialWings extends PatreonEffect implements ITickHandler {
         }
     }
 
-    private boolean shouldDoEffect(PlayerEntity player) {
-        return player.getUniqueID().equals(playerUUID) &&
+    private boolean shouldDoEffect(Player player) {
+        return player.getUUID().equals(playerUUID) &&
                 !player.isPassenger() &&
-                !player.isElytraFlying() &&
-                !player.isPotionActive(Effects.INVISIBILITY);
+                !player.isFallFlying() &&
+                !player.hasEffect(MobEffects.INVISIBILITY);
     }
 
     @SubscribeEvent
     @OnlyIn(Dist.CLIENT)
     void onRender(RenderPlayerEvent.Post event) {
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getEntity();
         if (!shouldDoEffect(player)) {
             return;
         }
-        this.renderWings(player, event.getMatrixStack(), event.getPartialRenderTick());
+        this.renderWings(player, event.getPoseStack(), event.getPartialTick());
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void renderWings(PlayerEntity player, MatrixStack renderStack, float pTicks) {
-        float rot = RenderingVectorUtils.interpolateRotation(player.prevRenderYawOffset, player.renderYawOffset, pTicks);
+    private void renderWings(Player player, PoseStack renderStack, float pTicks) {
+        float rot = RenderingVectorUtils.interpolateRotation(
+                player.yBodyRotO,    // ✅ FIX
+                player.yBodyRot,     // ✅ FIX
+                pTicks
+        );
         float yOffset = 1.3F;
-        if (player.isSneaking() && !player.abilities.isFlying) {
+        if (player.isCrouching() && !player.getAbilities().flying) {
             yOffset = 1F;
         }
         float f = Math.abs((ClientScheduler.getSystemClientTick() % 240) - 120F) / 120F;
         double offset = Math.cos(f * 2 * Math.PI) * 0.03;
 
-        renderStack.push();
+        renderStack.pushPose();
         renderStack.translate(0, yOffset + offset, 0);
-        renderStack.rotate(Vector3f.YP.rotationDegrees(180F - rot));
+        renderStack.mulPose(Axis.YP.rotationDegrees(180F - rot));
         renderStack.scale(0.02F, 0.02F, 0.02F);
 
         RenderTypesAS.MODEL_CELESTIAL_WINGS.setupRenderState();
 
         renderStack.translate(-25, 0, 0);
         ObjModelRender.renderCelestialWings(renderStack);
-        renderStack.rotate(Vector3f.YP.rotationDegrees(180F));
+        renderStack.mulPose(Axis.YP.rotationDegrees(180F));
         renderStack.translate(-50, 0, 0);
         ObjModelRender.renderCelestialWings(renderStack);
-        renderStack.pop();
+        renderStack.popPose();
 
         RenderTypesAS.MODEL_CELESTIAL_WINGS.clearRenderState();
     }

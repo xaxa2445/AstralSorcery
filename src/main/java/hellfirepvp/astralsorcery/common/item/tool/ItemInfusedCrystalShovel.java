@@ -39,7 +39,7 @@ public class ItemInfusedCrystalShovel extends ItemCrystalShovel {
         Level level = player.level();
 
         if (!level.isClientSide
-                && !player.isShiftKeyDown()
+                && !player.isCrouching()
                 && !player.getCooldowns().isOnCooldown(stack.getItem())
                 && player instanceof ServerPlayer serverPlayer) {
 

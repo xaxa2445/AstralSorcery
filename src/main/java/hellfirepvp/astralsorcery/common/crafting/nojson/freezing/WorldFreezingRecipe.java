@@ -10,11 +10,12 @@ package hellfirepvp.astralsorcery.common.crafting.nojson.freezing;
 
 import hellfirepvp.astralsorcery.common.crafting.nojson.CustomRecipe;
 import hellfirepvp.astralsorcery.common.util.block.BlockPredicate;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.function.Consumer;
 
@@ -34,9 +35,9 @@ public abstract class WorldFreezingRecipe extends CustomRecipe {
         this.matcher = matcher;
     }
 
-    public boolean canFreeze(World world, BlockPos pos) {
+    public boolean canFreeze(Level world, BlockPos pos) {
         return this.matcher.test(world, pos, world.getBlockState(pos));
     }
 
-    public abstract void doOutput(World world, BlockPos pos, BlockState state, Consumer<ItemStack> itemOutput);
+    public abstract void doOutput(Level world, BlockPos pos, BlockState state, Consumer<ItemStack> itemOutput);
 }

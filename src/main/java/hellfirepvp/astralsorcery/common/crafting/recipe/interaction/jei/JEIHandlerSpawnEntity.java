@@ -8,19 +8,21 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.interaction.jei;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.math.Axis; // Vector3f rotation -> Axis
 import hellfirepvp.astralsorcery.client.util.LightmapUtil;
 import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInteraction;
 import hellfirepvp.astralsorcery.common.crafting.recipe.interaction.InteractionResult;
 import hellfirepvp.astralsorcery.common.crafting.recipe.interaction.ResultSpawnEntity;
-import mezz.jei.api.gui.IRecipeLayout;
-import mezz.jei.api.ingredients.IIngredients;
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
+import mezz.jei.api.recipe.IFocusGroup;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.math.vector.Vector3f;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -34,37 +36,48 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 public class JEIHandlerSpawnEntity extends JEIInteractionResultHandler {
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addToRecipeLayout(IRecipeLayout recipeLayout, LiquidInteraction recipe, IIngredients ingredients) {
-
+    public void setRecipeLayout(IRecipeLayoutBuilder builder, LiquidInteraction recipe, IFocusGroup focuses) {
+        // No hay slots físicos (items/fluidos) que registrar aquí, el resultado es puramente visual
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void addToRecipeIngredients(LiquidInteraction recipe, IIngredients ingredients) {
-
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawRecipe(LiquidInteraction recipe, MatrixStack renderStack, double mouseX, double mouseY) {
+    public void drawRecipe(LiquidInteraction recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         InteractionResult result = recipe.getResult();
-        if (!(result instanceof ResultSpawnEntity)) {
-            return;
-        }
-        Entity le = ((ResultSpawnEntity) result).getEntityType().create(Minecraft.getInstance().world);
-        if (!(le instanceof LivingEntity)) {
+        if (!(result instanceof ResultSpawnEntity spawnEntity)) {
             return;
         }
 
-        renderStack.push();
-        renderStack.translate(55, 35, 500);
-        renderStack.scale(15, 15, 15);
-        renderStack.rotate(Vector3f.XP.rotationDegrees(180));
-        renderStack.rotate(Vector3f.YP.rotationDegrees(145));
-        IRenderTypeBuffer.Impl buffer = IRenderTypeBuffer.getImpl(Tessellator.getInstance().getBuffer());
-        Minecraft.getInstance().getRenderManager()
-                .renderEntityStatic(le, 0, 0, 0, 0, 0, renderStack, buffer, LightmapUtil.getPackedFullbrightCoords());
-        buffer.finish();
-        renderStack.pop();
+        // En 1.20.1 usamos level en lugar de world
+        Entity entity = spawnEntity.getEntityType().create(Minecraft.getInstance().level);
+        if (!(entity instanceof LivingEntity livingEntity)) {
+            return;
+        }
+
+        // Configuramos el renderizado de la entidad
+        renderEntity(guiGraphics, livingEntity);
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    private void renderEntity(GuiGraphics guiGraphics, LivingEntity entity) {
+        guiGraphics.pose().pushPose();
+
+        // Posicionamiento: 55, 35 era el centro del área de resultado
+        guiGraphics.pose().translate(55, 35, 500);
+        guiGraphics.pose().scale(15, 15, 15);
+
+        // Rotaciones: Vector3f.XP/YP -> Axis.XP/YP
+        guiGraphics.pose().mulPose(Axis.XP.rotationDegrees(180));
+        guiGraphics.pose().mulPose(Axis.YP.rotationDegrees(145));
+
+        // Obtenemos el despachador de renderizado de entidades moderno
+        EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+        MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(Tesselator.getInstance().getBuilder());
+
+        // Renderizado estático de la entidad
+        dispatcher.render(entity, 0, 0, 0, 0, 1.0F, guiGraphics.pose(), buffer, LightmapUtil.getPackedFullbrightCoords());
+
+        buffer.endBatch();
+        guiGraphics.pose().popPose();
     }
 }

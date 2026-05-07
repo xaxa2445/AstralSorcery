@@ -11,18 +11,20 @@ package hellfirepvp.astralsorcery.common.perk.data.builder;
 import com.google.gson.*;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
-import net.minecraft.data.DataGenerator;
-import net.minecraft.data.DirectoryCache;
-import net.minecraft.data.IDataProvider;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.data.CachedOutput;
+import net.minecraft.data.DataProvider;
+import net.minecraft.data.PackOutput;
+import net.minecraft.resources.ResourceLocation;
 
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -32,62 +34,51 @@ import java.util.function.Consumer;
  * Created by HellFirePvP
  * Date: 14.08.2020 / 19:09
  */
-public abstract class PerkDataProvider implements IDataProvider {
+public abstract class PerkDataProvider implements DataProvider {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    protected final DataGenerator generator;
+    protected final PackOutput output; // 1.20.1: Reemplaza DataGenerator
 
-    public PerkDataProvider(DataGenerator generator) {
-        this.generator = generator;
+    public PerkDataProvider(PackOutput output) {
+        this.output = output;
     }
 
     public abstract void registerPerks(Consumer<FinishedPerk> registrar);
 
     @Override
-    public void act(DirectoryCache cache) throws IOException {
-        Path path = this.generator.getOutputFolder();
+    public CompletableFuture<?> run(CachedOutput cache) {
+        // Obtenemos la ruta base para datos
+        Path path = this.output.getOutputFolder(PackOutput.Target.DATA_PACK);
 
         List<FinishedPerk> builtPerks = new ArrayList<>();
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+
         this.registerPerks(finishedPerk -> {
             ResourceLocation perkName = finishedPerk.perk.getRegistryName();
-            Point.Float offset = finishedPerk.perk.getOffset();
+            Point2D.Float offset = finishedPerk.perk.getOffset();
+
             if (builtPerks.stream().anyMatch(knownPerk -> knownPerk.perk.getOffset().equals(offset))) {
-                throw new IllegalArgumentException("Duplicate perk registration at " + offset + " for " + perkName);
+                throw new IllegalArgumentException("Registro de perk duplicado en " + offset + " para " + perkName);
             }
             if (builtPerks.contains(finishedPerk)) {
-                throw new IllegalArgumentException("Duplicate perk registry name: " + perkName);
+                throw new IllegalArgumentException("Nombre de registro de perk duplicado: " + perkName);
             }
             builtPerks.add(finishedPerk);
-            this.savePerkFile(cache, finishedPerk.serialize(), path.resolve(String.format("data/%s/perks/%s.json", perkName.getNamespace(), perkName.getPath())));
+
+            // Resolvemos la ruta del archivo individual
+            Path filePath = path.resolve(perkName.getNamespace() + "/perks/" + perkName.getPath() + ".json");
+            futures.add(DataProvider.saveStable(cache, finishedPerk.serialize(), filePath));
         });
 
+        // Generación del archivo del árbol completo
         JsonObject allPerks = new JsonObject();
         builtPerks.sort(Comparator.naturalOrder());
         builtPerks.forEach(perk -> allPerks.add(perk.perk.getRegistryName().toString(), perk.serialize()));
-        this.savePerkFile(cache, allPerks, path.resolve("data/astralsorcery/perks/_full_tree.json"));
-    }
 
-    private void savePerkFile(DirectoryCache cache, JsonElement perk, Path filePath) {
-        try {
-            String perkJson = GSON.toJson(perk);
-            String perkHash = HASH_FUNCTION.hashUnencodedChars(perkJson).toString();
-            if (!Objects.equals(cache.getPreviousHash(filePath), perkHash) || !Files.exists(filePath)) {
-                Files.createDirectories(filePath.getParent());
+        Path fullTreePath = path.resolve("astralsorcery/perks/_full_tree.json");
+        futures.add(DataProvider.saveStable(cache, allPerks, fullTreePath));
 
-                try (BufferedWriter bufferedwriter = Files.newBufferedWriter(filePath)) {
-                    bufferedwriter.write(perkJson);
-                }
-            }
-
-            cache.recordHash(filePath, perkHash);
-        } catch (IOException exc) {
-            AstralSorcery.log.error("Couldn't save perk {}", filePath, exc);
-        }
-    }
-
-    @Override
-    public String getName() {
-        return "Perks";
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
 
     public static class FinishedPerk implements Comparable<FinishedPerk> {

@@ -11,9 +11,10 @@ package hellfirepvp.astralsorcery.common.crafting.nojson;
 import hellfirepvp.astralsorcery.common.crafting.nojson.freezing.BlockFreezingRecipe;
 import hellfirepvp.astralsorcery.common.crafting.nojson.freezing.FluidFreezingRecipe;
 import hellfirepvp.astralsorcery.common.crafting.nojson.freezing.WorldFreezingRecipe;
-import net.minecraft.block.Blocks;
-import net.minecraft.util.math.BlockPos;
+
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 
 import javax.annotation.Nullable;
 
@@ -30,15 +31,15 @@ public class WorldFreezingRegistry extends CustomRecipeRegistry<WorldFreezingRec
 
     @Override
     public void init() {
-        this.register(BlockFreezingRecipe.of(Blocks.FIRE, Blocks.AIR.getDefaultState()));
-        this.register(BlockFreezingRecipe.of(Blocks.AIR.getDefaultState(), Blocks.ICE.getDefaultState()));
-        this.register(BlockFreezingRecipe.of(Blocks.CAVE_AIR.getDefaultState(), Blocks.PACKED_ICE.getDefaultState()));
+        this.register(BlockFreezingRecipe.of(Blocks.FIRE, Blocks.AIR.defaultBlockState()));
+        this.register(BlockFreezingRecipe.of(Blocks.AIR.defaultBlockState(), Blocks.ICE.defaultBlockState()));
+        this.register(BlockFreezingRecipe.of(Blocks.CAVE_AIR.defaultBlockState(), Blocks.PACKED_ICE.defaultBlockState()));
 
         this.register(new FluidFreezingRecipe());
     }
 
     @Nullable
-    public WorldFreezingRecipe getRecipeFor(World world, BlockPos pos) {
+    public WorldFreezingRecipe getRecipeFor(Level world, BlockPos pos) {
         return this.getRecipes()
                 .stream()
                 .filter(recipe -> recipe.canFreeze(world, pos))

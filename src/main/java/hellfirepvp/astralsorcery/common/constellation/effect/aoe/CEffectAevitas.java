@@ -29,16 +29,17 @@ import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.NonNullList;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.server.level.ServerLevel; // ServerWorld -> ServerLevel
+import net.minecraft.world.effect.MobEffectInstance; // EffectInstance -> MobEffectInstance
+import net.minecraft.world.effect.MobEffects; // Effects -> MobEffects
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level; // World -> Level
+import net.minecraft.world.phys.AABB; // Para getEntitiesWithinAABB
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -66,7 +67,7 @@ public class CEffectAevitas extends CEffectAbstractList<CropHelper.GrowablePlant
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         if (rand.nextBoolean()) {
             ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
 
@@ -83,19 +84,19 @@ public class CEffectAevitas extends CEffectAbstractList<CropHelper.GrowablePlant
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
         boolean changed = false;
         CropHelper.GrowablePlant plant = getRandomElementChanced();
         if (plant != null) {
             changed = MiscUtils.executeWithChunk(world, plant.getPos(), changed, (changedFlag) -> {
                 if (properties.isCorrupted()) {
-                    if (world instanceof ServerWorld) {
+                    if (world instanceof ServerLevel) {
                         CropHelper.HarvestablePlant harvestablePlant = CropHelper.wrapHarvestablePlant(world, plant.getPos());
                         if (harvestablePlant != null) {
-                            NonNullList<ItemStack> drops = harvestablePlant.harvestDropsAndReplant((ServerWorld) world, rand, 1);
+                            NonNullList<ItemStack> drops = harvestablePlant.harvestDropsAndReplant((ServerLevel) world, rand, 1);
                             drops.forEach(drop -> ItemUtils.dropItem(world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, drop));
                             changedFlag = !drops.isEmpty();
-                        } else if (BlockUtils.breakBlockWithoutPlayer(((ServerWorld) world), plant.getPos())) {
+                        } else if (BlockUtils.breakBlockWithoutPlayer(((ServerLevel) world), plant.getPos())) {
                             changedFlag = true;
                         }
                     } else {
@@ -128,19 +129,20 @@ public class CEffectAevitas extends CEffectAbstractList<CropHelper.GrowablePlant
                 .left().isPresent()) changed = true;
 
         int amplifier = CONFIG.potionAmplifier.get();
-        List<LivingEntity> entities = world.getEntitiesWithinAABB(LivingEntity.class, BOX.offset(pos).grow(properties.getSize()));
+        AABB searchBox = new AABB(pos).inflate(properties.getSize());
+        List<LivingEntity> entities = world.getEntitiesOfClass(LivingEntity.class, searchBox);
         for (LivingEntity entity : entities) {
             if (entity.isAlive()) {
                 if (properties.isCorrupted()) {
-                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(EffectsAS.EFFECT_BLEED, 120, amplifier * 2));
-                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.WEAKNESS, 120, amplifier * 3));
-                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.HUNGER, 120, amplifier * 4));
-                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.MINING_FATIGUE, 120, amplifier * 2));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new MobEffectInstance(EffectsAS.EFFECT_BLEED, 120, amplifier * 2));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new MobEffectInstance(MobEffects.WEAKNESS, 120, amplifier * 3));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new MobEffectInstance(MobEffects.HUNGER, 120, amplifier * 4));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 120, amplifier * 2));
                 } else {
-                    EntityUtils.applyPotionEffectAtHalf(entity, new EffectInstance(Effects.REGENERATION, 120, amplifier));
+                    EntityUtils.applyPotionEffectAtHalf(entity, new MobEffectInstance(MobEffects.REGENERATION, 120, amplifier));
                 }
-                if (entity instanceof PlayerEntity) {
-                    markPlayerAffected((PlayerEntity) entity);
+                if (entity instanceof Player) {
+                    markPlayerAffected((Player) entity);
                 }
             }
         }
@@ -150,13 +152,13 @@ public class CEffectAevitas extends CEffectAbstractList<CropHelper.GrowablePlant
 
     @Nullable
     @Override
-    public CropHelper.GrowablePlant recreateElement(CompoundNBT tag, BlockPos pos) {
+    public CropHelper.GrowablePlant recreateElement(CompoundTag tag, BlockPos pos) {
         return CropHelper.fromNBT(tag, pos);
     }
 
     @Nullable
     @Override
-    public CropHelper.GrowablePlant createElement(World world, BlockPos pos) {
+    public CropHelper.GrowablePlant createElement(Level world, BlockPos pos) {
         return CropHelper.wrapPlant(world, pos);
     }
 

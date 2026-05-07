@@ -11,9 +11,9 @@ package hellfirepvp.astralsorcery.common.base.patreon.types;
 import hellfirepvp.astralsorcery.common.base.patreon.FlareColor;
 import hellfirepvp.astralsorcery.common.base.patreon.PatreonEffect;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.RenderPlayerEvent;
@@ -53,9 +53,10 @@ public class TypeHelmetRender extends PatreonEffect {
     @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
     public void renderPre(RenderPlayerEvent.Pre event) {
-        PlayerEntity player = event.getPlayer();
-        if (player.getUniqueID().equals(playerUUID) && player.getItemStackFromSlot(EquipmentSlotType.HEAD).isEmpty()) {
-            player.inventory.armorInventory.set(EquipmentSlotType.HEAD.getIndex(), ItemUtils.copyStackWithSize(helmetStack, 1));
+        Player player = event.getEntity();
+        if (player.getUUID().equals(playerUUID) &&
+                player.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {  // ✅ FIX
+            player.getInventory().setItem(EquipmentSlot.HEAD.getIndex(), ItemUtils.copyStackWithSize(helmetStack, 1));  // ✅ FIX FINAL
             addedHelmet = true;
         }
     }
@@ -63,9 +64,9 @@ public class TypeHelmetRender extends PatreonEffect {
     @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
     public void renderPost(RenderPlayerEvent.Post event) {
-        PlayerEntity player = event.getPlayer();
-        if (player.getUniqueID().equals(playerUUID) && addedHelmet) {
-            player.inventory.armorInventory.set(EquipmentSlotType.HEAD.getIndex(), ItemStack.EMPTY);
+        Player player = event.getEntity();
+        if (player.getUUID().equals(playerUUID) && addedHelmet) {
+            player.getInventory().setItem(EquipmentSlot.HEAD.getIndex(), ItemStack.EMPTY);  // ✅ FIX FINAL
             addedHelmet = false;
         }
     }
