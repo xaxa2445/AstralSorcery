@@ -12,10 +12,10 @@ import com.google.gson.JsonObject;
 import hellfirepvp.astralsorcery.common.crafting.helper.CustomRecipeSerializer;
 import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInteraction;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -27,11 +27,16 @@ import javax.annotation.Nullable;
 public class LiquidInteractionSerializer extends CustomRecipeSerializer<LiquidInteraction> {
 
     public LiquidInteractionSerializer() {
+        // Ahora funcionará porque añadimos el constructor a la clase base
         super(RecipeSerializersAS.LIQUID_INTERACTION);
     }
 
+    // Nota: En 1.20.1, el método 'fromNetwork' suele llamarse 'fromNetwork' y 'toNetwork'
+    // dependiendo de cómo extienda de Forge 'RecipeSerializer'.
+
     @Override
-    public LiquidInteraction read(ResourceLocation recipeId, JsonObject json) {
+    public LiquidInteraction fromJson(ResourceLocation recipeId, JsonObject json) {
+        // read -> fromJson
         return LiquidInteraction.read(recipeId, json);
     }
 
@@ -42,12 +47,15 @@ public class LiquidInteractionSerializer extends CustomRecipeSerializer<LiquidIn
 
     @Nullable
     @Override
-    public LiquidInteraction read(ResourceLocation recipeId, PacketBuffer buffer) {
+    public LiquidInteraction fromNetwork(ResourceLocation recipeId, FriendlyByteBuf buffer) {
+        // PacketBuffer -> FriendlyByteBuf
+        // read -> fromNetwork
         return LiquidInteraction.read(recipeId, buffer);
     }
 
     @Override
-    public void write(PacketBuffer buffer, LiquidInteraction recipe) {
+    public void toNetwork(FriendlyByteBuf buffer, LiquidInteraction recipe) {
+        // write -> toNetwork
         recipe.write(buffer);
     }
 }

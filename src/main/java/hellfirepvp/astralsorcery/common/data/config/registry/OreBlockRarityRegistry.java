@@ -12,7 +12,8 @@ import com.google.common.collect.Lists;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataAdapter;
 import hellfirepvp.astralsorcery.common.data.config.registry.sets.OreBlockRarityEntry;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.Block;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.common.Tags;
 
 import javax.annotation.Nullable;
@@ -42,7 +43,7 @@ public class OreBlockRarityRegistry extends ConfigDataAdapter<OreBlockRarityEntr
     }
 
     @Nullable
-    public Block getRandomBlock(Random rand) {
+    public Block getRandomBlock(RandomSource rand) {
         List<OreBlockRarityEntry> entries = this.getConfiguredValues();
         Set<OreBlockRarityEntry> visitedEntires = new HashSet<>();
 

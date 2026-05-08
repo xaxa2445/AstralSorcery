@@ -14,8 +14,10 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.EffectsAS;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -37,6 +39,8 @@ import java.util.List;
  * Date: 26.08.2019 / 20:08
  */
 public class EffectDropModifier extends EffectCustomTexture {
+
+    RandomSource random = RandomSource.create();
 
     public EffectDropModifier() {
         super(MobEffectCategory.BENEFICIAL, ColorsAS.EFFECT_DROP_MODIFIER);
@@ -64,11 +68,13 @@ public class EffectDropModifier extends EffectCustomTexture {
             return;
         }
 
-        if (le.hasEffect(EffectsAS.EFFECT_DROP_MODIFIER)) {
+        MobEffectInstance effect = le.getEffect(EffectsAS.EFFECT_DROP_MODIFIER);
+        if (effect != null) {
             DamageSource src = event.getSource();
+            int amplifier = effect.getAmplifier();
 
-            int amplifier = le.removeEffect(EffectsAS.EFFECT_DROP_MODIFIER).getAmplifier();
-
+            // Eliminamos el efecto manualmente ya que estamos procesando los drops ahora
+            le.removeEffect(EffectsAS.EFFECT_DROP_MODIFIER);
             if (amplifier == 0) {
                 event.getDrops().clear();
             } else {
@@ -76,7 +82,7 @@ public class EffectDropModifier extends EffectCustomTexture {
 
                     List<ItemStack> loot = EntityUtils.generateLoot(
                             le,
-                            rand,
+                            random,
                             src,
                             event.isRecentlyHit() ? le.getLastHurtByMob() : null
                     );

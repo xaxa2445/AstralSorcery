@@ -14,13 +14,15 @@ import hellfirepvp.astralsorcery.common.constellation.mantle.MantleEffect;
 import hellfirepvp.astralsorcery.common.event.EventFlags;
 import hellfirepvp.astralsorcery.common.item.armor.ItemMantle;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.util.DamageSource;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -61,7 +63,7 @@ public class MantleEffectDiscidia extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
         float effChance = 0.1F;
@@ -72,19 +74,19 @@ public class MantleEffectDiscidia extends MantleEffect {
     }
 
     private void onAttack(LivingAttackEvent event) {
-        LivingEntity attacked = event.getEntityLiving();
-        World world = attacked.getEntityWorld();
+        LivingEntity attacked = event.getEntity();
+        Level world = attacked.level();
         DamageSource source = event.getSource();
-        Entity attacker = source.getTrueSource();
+        Entity attacker = source.getEntity();
 
-        if (world.isRemote()) {
+        if (world.isClientSide()) {
             return;
         }
-        if (attacker instanceof PlayerEntity) {
-            if (attacked instanceof ServerPlayerEntity && MiscUtils.isPlayerFakeMP((ServerPlayerEntity) attacked)) {
+        if (attacker instanceof Player) {
+            if (attacked instanceof ServerPlayer && MiscUtils.isPlayerFakeMP((ServerPlayer) attacked)) {
                 return;
             }
-            PlayerEntity player = (PlayerEntity) attacker;
+            Player player = (Player) attacker;
 
             MantleEffectDiscidia eff = ItemMantle.getEffect(player, ConstellationsAS.discidia);
             if (eff != null) {
@@ -92,8 +94,11 @@ public class MantleEffectDiscidia extends MantleEffect {
                     float added = this.getLastAttackDamage(player);
 
                     if (added > 0.1F && AlignmentChargeHandler.INSTANCE.hasCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerAttack.get())) {
-                        DamageUtil.shotgunAttack(attacked, entity -> DamageUtil.attackEntityFrom(entity, CommonProxy.DAMAGE_SOURCE_STELLAR, added / 2F));
-                        DamageUtil.shotgunAttack(attacked, entity -> DamageUtil.attackEntityFrom(entity, DamageSource.causePlayerDamage(player), added / 2F, player));
+                        DamageSource astralDamage = new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                                .getHolderOrThrow(ASDamageTypes.STELLAR));
+                        DamageUtil.shotgunAttack(attacked, entity -> DamageUtil.attackEntityFrom(entity, astralDamage, added / 2F));
+                        DamageSource playerDmg = world.damageSources().playerAttack(player);
+                        DamageUtil.shotgunAttack(attacked, entity -> DamageUtil.attackEntityFrom(entity, playerDmg, added / 2F, player));
 
                         AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerAttack.get(), false);
                     }
@@ -103,10 +108,10 @@ public class MantleEffectDiscidia extends MantleEffect {
     }
 
     private void onHurt(LivingHurtEvent event) {
-        World world = event.getEntity().getEntityWorld();
-        LivingEntity hurt = event.getEntityLiving();
+        Level world = event.getEntity().level();
+        LivingEntity hurt = event.getEntity();
 
-        if (world.isRemote()) {
+        if (world.isClientSide) {
             return;
         }
         MantleEffectDiscidia armara = ItemMantle.getEffect(hurt, ConstellationsAS.discidia);

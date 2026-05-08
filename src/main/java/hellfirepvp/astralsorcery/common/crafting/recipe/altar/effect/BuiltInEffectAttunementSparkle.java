@@ -8,7 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
 import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
@@ -16,7 +17,8 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.altar.ActiveSimpleAltarR
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -28,6 +30,11 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  * Date: 24.09.2019 / 06:34
  */
 public class  BuiltInEffectAttunementSparkle extends AltarRecipeEffect {
+
+    public BuiltInEffectAttunementSparkle() {
+        // Registro del efecto usando el ID interno 'attunement_sparkle'
+        super(new ResourceLocation(AstralSorcery.MODID, "attunement_sparkle"));
+    }
 
     @Override
     @OnlyIn(Dist.CLIENT)
@@ -45,8 +52,9 @@ public class  BuiltInEffectAttunementSparkle extends AltarRecipeEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, MatrixStack renderStack, IRenderTypeBuffer buffer, float pTicks, int combinedLight) {}
-
+    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, PoseStack poseStack, MultiBufferSource buffer, float pTicks, int combinedLight) {
+        // PoseStack y MultiBufferSource para cumplir con los mappings de la 1.20.1
+    }
     @Override
     @OnlyIn(Dist.CLIENT)
     public void onCraftingFinish(TileAltar altar, boolean isChaining) {}

@@ -8,7 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.client.effect.function.VFXAlphaFunction;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
@@ -16,7 +17,8 @@ import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.ActiveSimpleAltarRecipe;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -29,28 +31,46 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  */
 public class EffectAltarDefaultSparkle extends AltarRecipeEffect {
 
+    public EffectAltarDefaultSparkle() {
+        super(AstralSorcery.key("default_sparkle"));
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public void onTick(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state) {
+        // En 1.20.1, siempre es mejor sacar el RandomSource del nivel (world)
+        RandomSource random = altar.getLevel().getRandom();
+
         Vector3 altarPos = new Vector3(altar);
         double scale = getRandomPillarOffset(altar.getAltarType()).getX();
         double edgeScale = (scale * 2 + 1);
 
+        // Genera una partícula de brillo sutil en un área plana sobre el altar
         for (int i = 0; i < 1; i++) {
-            Vector3 at = altarPos.clone().add(-scale + rand.nextFloat() * edgeScale, 0.02, -scale + rand.nextFloat() * edgeScale);
+            Vector3 at = altarPos.clone().add(
+                    -scale + random.nextFloat() * edgeScale,
+                    0.02,
+                    -scale + random.nextFloat() * edgeScale
+            );
+
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(at)
                     .alpha(VFXAlphaFunction.FADE_OUT)
                     .color(VFXColorFunction.WHITE)
-                    .setScaleMultiplier(0.1F + rand.nextFloat() * 0.2F);
+                    .setScaleMultiplier(0.1F + random.nextFloat() * 0.2F)
+                    .setMaxAge(10 + random.nextInt(10)); // Tiempo de vida corto para un brillo rápido
         }
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, MatrixStack renderStack, IRenderTypeBuffer buffer, float pTicks, int combinedLight) {}
+    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, PoseStack renderStack, MultiBufferSource buffer, float pTicks, int combinedLight) {
+        // Sin implementación de renderizado directo
+    }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onCraftingFinish(TileAltar altar, boolean isChaining) {}
+    public void onCraftingFinish(TileAltar altar, boolean isChaining) {
+        // Sin lógica al finalizar
+    }
 }

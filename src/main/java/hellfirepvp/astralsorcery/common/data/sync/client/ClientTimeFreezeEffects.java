@@ -12,12 +12,13 @@ import hellfirepvp.astralsorcery.common.data.sync.base.ClientData;
 import hellfirepvp.astralsorcery.common.data.sync.base.ClientDataReader;
 import hellfirepvp.astralsorcery.common.data.sync.server.DataTimeFreezeEffects;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopEffectHelper;
-import net.minecraft.nbt.*;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.registry.Registry;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.Constants;
 
 import javax.annotation.Nonnull;
 import java.util.*;
@@ -79,14 +80,17 @@ public class ClientTimeFreezeEffects extends ClientData<ClientTimeFreezeEffects>
         public void readFromIncomingFullSync(ClientTimeFreezeEffects data, CompoundTag compound) {
             data.clientActiveFreezeZones.clear();
 
+            if (!compound.contains("dimTypes")) return;
+
             CompoundTag dimTag = compound.getCompound("dimTypes");
-            for (String dimKey : dimTag.keySet()) {
-                ResourceKey<Level> dim = ResourceKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(dimKey));
+            for (String dimKey : dimTag.getAllKeys()) {
+                // 1.20.1: Registries.DIMENSION o Registries.LEVEL para ResourceKey
+                ResourceKey<Level> dim = ResourceKey.create(Registries.DIMENSION, new ResourceLocation(dimKey));
 
                 List<TimeStopEffectHelper> effects = new LinkedList<>();
                 ListTag listEffects = dimTag.getList(dimKey, Tag.TAG_COMPOUND);
-                for (Tag iNBT : listEffects) {
-                    effects.add(TimeStopEffectHelper.deserializeNBT((CompoundTag) iNBT));
+                for (int i = 0; i < listEffects.size(); i++) {
+                    effects.add(TimeStopEffectHelper.deserializeNBT(listEffects.getCompound(i)));
                 }
                 data.clientActiveFreezeZones.put(dim, effects);
             }
@@ -96,7 +100,7 @@ public class ClientTimeFreezeEffects extends ClientData<ClientTimeFreezeEffects>
         public void readFromIncomingDiff(ClientTimeFreezeEffects data, CompoundTag compound) {
             ListTag changes = compound.getList("changes", Tag.TAG_COMPOUND);
             for (Tag iNBT : changes) {
-                DataTimeFreezeEffects.ServerSyncAction action = DataTimeFreezeEffects.ServerSyncAction.deserializeNBT((CompoundNBT) iNBT);
+                DataTimeFreezeEffects.ServerSyncAction action = DataTimeFreezeEffects.ServerSyncAction.deserializeNBT((CompoundTag) iNBT);
                 data.applyChange(action);
             }
         }

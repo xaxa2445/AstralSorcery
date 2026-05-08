@@ -13,14 +13,14 @@ import hellfirepvp.astralsorcery.common.util.block.BlockPredicate;
 import hellfirepvp.astralsorcery.common.util.block.BlockPredicates;
 import hellfirepvp.astralsorcery.common.util.block.WorldBlockPos;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.Tag;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -46,17 +46,22 @@ public class ItemMeltableRecipe extends WorldMeltableRecipe {
     }
 
     public static ItemMeltableRecipe of(BlockState stateIn, ItemStack itemOut) {
-        return new ItemMeltableRecipe(AstralSorcery.key(stateIn.getBlock().getRegistryName().getPath()),
+        // En 1.20.1 usamos ForgeRegistries para obtener la llave del bloque
+        ResourceLocation blockKey = ForgeRegistries.BLOCKS.getKey(stateIn.getBlock());
+        String path = blockKey != null ? blockKey.getPath() : "unknown";
+
+        return new ItemMeltableRecipe(AstralSorcery.key(path),
                 BlockPredicates.isState(stateIn), itemOut);
     }
 
-    public static ItemMeltableRecipe of(ITag.INamedTag<Block> blockTagIn, ItemStack itemOut) {
-        return new ItemMeltableRecipe(AstralSorcery.key(String.format("tag_%s", blockTagIn.getName().getPath())),
+    public static ItemMeltableRecipe of(TagKey<Block> blockTagIn, ItemStack itemOut) {
+        // ITag.INamedTag -> TagKey
+        return new ItemMeltableRecipe(AstralSorcery.key(String.format("tag_%s", blockTagIn.location().getPath())),
                 BlockPredicates.isInTag(blockTagIn), itemOut);
     }
 
     @Override
-    public void doOutput(World world, BlockPos pos, BlockState state, Consumer<ItemStack> itemOutput) {
+    public void doOutput(Level world, BlockPos pos, BlockState state, Consumer<ItemStack> itemOutput) {
         if (world.removeBlock(pos, false)) {
             ItemStack generated = this.outputGenerator.apply(WorldBlockPos.wrapServer(world, pos), state);
             if (!generated.isEmpty()) {

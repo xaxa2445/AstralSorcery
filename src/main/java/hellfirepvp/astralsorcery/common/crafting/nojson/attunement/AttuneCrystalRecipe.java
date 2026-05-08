@@ -19,11 +19,11 @@ import hellfirepvp.astralsorcery.common.item.crystal.ItemCrystalBase;
 import hellfirepvp.astralsorcery.common.tile.TileAttunementAltar;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class AttuneCrystalRecipe extends AttunementRecipe<ActiveCrystalAttunementRecipe> {
 
-    private static final AxisAlignedBB BOX = new AxisAlignedBB(0, 0, 0, 1, 1, 1);
+    private static final AABB BOX = new AABB(0, 0, 0, 1, 1, 1);
 
     public AttuneCrystalRecipe() {
         super(AstralSorcery.key("attune_crystal"));
@@ -46,7 +46,7 @@ public class AttuneCrystalRecipe extends AttunementRecipe<ActiveCrystalAttunemen
 
     @Override
     public boolean canStartCrafting(TileAttunementAltar altar) {
-        World world = altar.getWorld();
+        Level world = altar.getLevel();
         if (DayTimeHelper.isNight(world)) {
             return findApplicableCrystal(altar) != null;
         }
@@ -57,12 +57,12 @@ public class AttuneCrystalRecipe extends AttunementRecipe<ActiveCrystalAttunemen
     @Override
     public ActiveCrystalAttunementRecipe createRecipe(TileAttunementAltar altar) {
         ItemEntity crystal = findApplicableCrystal(altar);
-        return new ActiveCrystalAttunementRecipe(this, altar.getActiveConstellation(), crystal.getEntityId());
+        return new ActiveCrystalAttunementRecipe(this, altar.getActiveConstellation(), crystal.getId());
     }
 
     @Nonnull
     @Override
-    public ActiveCrystalAttunementRecipe deserialize(TileAttunementAltar altar, CompoundNBT nbt, @Nullable ActiveCrystalAttunementRecipe previousInstance) {
+    public ActiveCrystalAttunementRecipe deserialize(TileAttunementAltar altar, CompoundTag nbt, @Nullable ActiveCrystalAttunementRecipe previousInstance) {
         return new ActiveCrystalAttunementRecipe(this, nbt);
     }
 
@@ -73,12 +73,13 @@ public class AttuneCrystalRecipe extends AttunementRecipe<ActiveCrystalAttunemen
             return null;
         }
 
-        AxisAlignedBB boxAt = BOX.offset(altar.getPos().up()).grow(1);
+        AABB boxAt = BOX.move(altar.getBlockPos().above()).inflate(1);
 
         Vector3 thisVec = new Vector3(altar).add(0.5, 1.5, 0.5);
-        List<ItemEntity> items = altar.getWorld().getEntitiesWithinAABB(ItemEntity.class, boxAt);
+        List<ItemEntity> items = altar.getLevel().getEntitiesOfClass(ItemEntity.class, boxAt);
         if (!items.isEmpty()) {
-            ItemEntity item = EntityUtils.selectClosest(items, (iEntity) -> thisVec.distanceSquared(iEntity.getPositionVec()));
+            // getPositionVec() -> position()
+            ItemEntity item = EntityUtils.selectClosest(items, (iEntity) -> thisVec.distanceSquared(iEntity.position()));
             if (isApplicableCrystal(item, cst)) {
                 return item;
             }

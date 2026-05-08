@@ -24,6 +24,13 @@ import javax.annotation.Nullable;
  */
 public abstract class CustomRecipeSerializer<T extends CustomMatcherRecipe> implements RecipeSerializer<T> {
 
+    private final ResourceLocation registryName;
+
+    // Cambiamos Supplier por ResourceLocation
+    protected CustomRecipeSerializer(ResourceLocation registryName) {
+        this.registryName = registryName;
+    }
+
     /**
      * Lectura desde JSON (datapack)
      */

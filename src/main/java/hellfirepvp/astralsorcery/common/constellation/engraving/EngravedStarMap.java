@@ -19,6 +19,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -154,7 +155,7 @@ public class EngravedStarMap {
         for (Tuple<EngravingEffect.ApplicableEffect, Float> tpl : engravings) {
             EngravingEffect.ApplicableEffect effect = tpl.getA();
             float distribution = tpl.getB();
-            stack = effect.apply(stack, distribution, rand);
+            stack = effect.apply(stack, distribution, (RandomSource) rand);
         }
         return stack;
     }

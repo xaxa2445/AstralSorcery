@@ -14,10 +14,8 @@ import hellfirepvp.astralsorcery.common.crafting.helper.CustomRecipeSerializer;
 import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInteraction;
 import hellfirepvp.astralsorcery.common.crafting.recipe.interaction.InteractionResult;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.registries.ForgeRegistryEntry;
 
 import javax.annotation.Nonnull;
 
@@ -41,12 +39,13 @@ public class LiquidInteractionBuilder extends CustomRecipeBuilder<LiquidInteract
         this.id = id;
     }
 
-    public static LiquidInteractionBuilder builder(ForgeRegistryEntry<?> nameProvider) {
-        return new LiquidInteractionBuilder(AstralSorcery.key(nameProvider.getRegistryName().getPath()));
-    }
-
     public static LiquidInteractionBuilder builder(ResourceLocation id) {
         return new LiquidInteractionBuilder(id);
+    }
+
+    // Método de utilidad para mantener compatibilidad con lógica basada en paths de AS
+    public static LiquidInteractionBuilder builder(String path) {
+        return new LiquidInteractionBuilder(AstralSorcery.key(path));
     }
 
     public LiquidInteractionBuilder setReactant1(FluidStack reactant1) {

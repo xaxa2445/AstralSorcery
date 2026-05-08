@@ -18,6 +18,7 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.core.Vec3i;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -37,7 +38,7 @@ import java.util.Random;
  */
 public abstract class FountainEffect<E extends FountainEffect.EffectContext> {
 
-    protected static final Random rand = new Random();
+    protected static final RandomSource rand = RandomSource.create();
 
     private final ResourceLocation id;
 

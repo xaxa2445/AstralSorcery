@@ -21,11 +21,11 @@ import hellfirepvp.astralsorcery.common.util.block.BlockMatchInformation;
 import hellfirepvp.astralsorcery.common.util.block.BlockStateHelper;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.JsonHelper;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -45,7 +45,7 @@ public class BlockTransmutationSerializer extends CustomRecipeSerializer<BlockTr
     }
 
     @Override
-    public BlockTransmutation read(ResourceLocation recipeId, JsonObject json) {
+    public BlockTransmutation fromJson(ResourceLocation recipeId, JsonObject json) {
         List<BlockMatchInformation> matchInformation = new ArrayList<>();
         JsonHelper.parseMultipleJsonObjects(json, "input", object -> matchInformation.add(BlockMatchInformation.read(object)));
         if (matchInformation.isEmpty()) {
@@ -57,16 +57,16 @@ public class BlockTransmutationSerializer extends CustomRecipeSerializer<BlockTr
             }
         }
 
-        BlockState output = BlockStateHelper.deserializeObject(JSONUtils.getJsonObject(json, "output"));
+        BlockState output = BlockStateHelper.deserializeObject(GsonHelper.getAsJsonObject(json, "output"));
         ItemStack outputDisplay = new ItemStack(output.getBlock());
-        if (JSONUtils.hasField(json, "display")) {
+        if (json.has("display")) {
             outputDisplay = JsonHelper.getItemStack(json, "display");
         }
-        float starlight = JSONUtils.getFloat(json, "starlight");
+        float starlight = GsonHelper.getAsFloat(json, "starlight");
 
         IWeakConstellation matchConstellation = null;
         if (json.has("constellation")) {
-            ResourceLocation cstKey = new ResourceLocation(JSONUtils.getString(json, "constellation"));
+            ResourceLocation cstKey = new ResourceLocation(GsonHelper.getAsString(json, "constellation"));
             IConstellation cst = RegistriesAS.REGISTRY_CONSTELLATIONS.getValue(cstKey);
             if (cst == null) {
                 throw new JsonSyntaxException(String.format("Unknown constellation %s!", cstKey.toString()));
@@ -84,7 +84,7 @@ public class BlockTransmutationSerializer extends CustomRecipeSerializer<BlockTr
 
     @Nullable
     @Override
-    public BlockTransmutation read(ResourceLocation recipeId, PacketBuffer buffer) {
+    public BlockTransmutation fromNetwork(ResourceLocation recipeId, FriendlyByteBuf buffer) {
         List<BlockMatchInformation> matchInformation = ByteBufUtils.readList(buffer, BlockMatchInformation::read);
         BlockState output = ByteBufUtils.readBlockState(buffer);
         ItemStack display = ByteBufUtils.readItemStack(buffer);
@@ -114,7 +114,7 @@ public class BlockTransmutationSerializer extends CustomRecipeSerializer<BlockTr
     }
 
     @Override
-    public void write(PacketBuffer buffer, BlockTransmutation recipe) {
+    public void toNetwork(FriendlyByteBuf buffer, BlockTransmutation recipe) {
         ByteBufUtils.writeCollection(buffer, recipe.getInputOptions(), (buf, match) -> match.serialize(buf));
         ByteBufUtils.writeBlockState(buffer, recipe.getOutput());
         ByteBufUtils.writeItemStack(buffer, recipe.getOutputDisplay());

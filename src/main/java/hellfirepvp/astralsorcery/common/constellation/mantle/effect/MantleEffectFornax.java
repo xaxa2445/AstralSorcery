@@ -12,10 +12,11 @@ import hellfirepvp.astralsorcery.common.constellation.mantle.MantleEffect;
 import hellfirepvp.astralsorcery.common.item.armor.ItemMantle;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -45,24 +46,25 @@ public class MantleEffectFornax extends MantleEffect {
     }
 
     private void onHurt(LivingHurtEvent event) {
-        World world = event.getEntityLiving().getEntityWorld();
-        if (world.isRemote()) {
+        LivingEntity attacked = event.getEntity();
+        Level world = attacked.level();
+
+        if (world.isClientSide()) {
             return;
         }
 
-        LivingEntity attacked = event.getEntityLiving();
-        Entity attacker = event.getSource().getTrueSource();
+        Entity attacker = event.getSource().getEntity();
         if (attacker instanceof LivingEntity) {
-            if (attacked instanceof ServerPlayerEntity && MiscUtils.isPlayerFakeMP((ServerPlayerEntity) attacked)) {
+            if (attacked instanceof ServerPlayer && MiscUtils.isPlayerFakeMP((ServerPlayer) attacked)) {
                 return;
             }
 
-            if (attacker.isBurning() && ItemMantle.getEffect((LivingEntity) attacker, ConstellationsAS.fornax) != null) {
+            if (attacker.isOnFire() && ItemMantle.getEffect((LivingEntity) attacker, ConstellationsAS.fornax) != null) {
                 event.setAmount((float) (event.getAmount() * CONFIG.damageIncreaseInFire.get()));
             }
         }
 
-        if (event.getSource().isFireDamage() && ItemMantle.getEffect(attacked, ConstellationsAS.fornax) != null) {
+        if (event.getSource().is(DamageTypeTags.IS_FIRE) && ItemMantle.getEffect(attacked, ConstellationsAS.fornax) != null) {
             if (CONFIG.healPercentFromFireDamage.get() > 0) {
                 attacked.heal((float) (event.getAmount() * CONFIG.healPercentFromFireDamage.get()));
             }
@@ -73,10 +75,10 @@ public class MantleEffectFornax extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
-        if (player.isBurning()) {
+        if (player.isOnFire()) {
             this.playCapeSparkles(player, 0.75F);
         } else {
             this.playCapeSparkles(player, 0.25F);

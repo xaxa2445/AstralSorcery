@@ -29,12 +29,13 @@ import hellfirepvp.astralsorcery.common.util.block.iterator.BlockLayerPositionGe
 import hellfirepvp.astralsorcery.common.util.block.iterator.BlockPositionGenerator;
 import hellfirepvp.astralsorcery.common.util.block.iterator.BlockRandomPositionGenerator;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -78,19 +79,19 @@ public class CEffectMineralis extends CEffectAbstractList<ListEntries.PosEntry> 
 
     @Nullable
     @Override
-    public ListEntries.PosEntry recreateElement(CompoundNBT tag, BlockPos pos) {
+    public ListEntries.PosEntry recreateElement(CompoundTag tag, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Nullable
     @Override
-    public ListEntries.PosEntry createElement(World world, BlockPos pos) {
+    public ListEntries.PosEntry createElement(Level world, BlockPos pos) {
         return new ListEntries.PosEntry(pos);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         ConstellationEffectProperties prop = this.createProperties(pedestal.getMirrorCount());
 
         if (rand.nextFloat() < 0.6F) {
@@ -109,39 +110,51 @@ public class CEffectMineralis extends CEffectAbstractList<ListEntries.PosEntry> 
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+        // 1.20.1: Usamos RandomSource del mundo en lugar de java.util.Random
+        RandomSource rand = world.getRandom();
+
         return this.peekNewPosition(world, pos, properties).mapLeft(entry -> {
             BlockPos at = entry.getPos();
             BlockState atState = world.getBlockState(at);
+
+            // Caso: Ritual Corrupto (Genera piedra mayormente, ore raramente)
             if (properties.isCorrupted()) {
                 boolean generateOre = rand.nextInt(25) == 0;
-                if (atState.isAir(world, at) || (generateOre && atState.getBlock() == Blocks.STONE)) {
+
+                // Verificamos si es aire o piedra para generar
+                if (atState.isAir() || (generateOre && atState.is(Blocks.STONE))) {
                     if (generateOre) {
                         Block ore = OreBlockRarityRegistry.MINERALIS_RITUAL.getRandomBlock(rand);
-                        if (ore != null) {
-                            return world.setBlockState(at, ore.getDefaultState());
-                        } else {
-                            return world.setBlockState(at, Blocks.STONE.getDefaultState());
-                        }
+                        BlockState toSet = (ore != null) ? ore.defaultBlockState() : Blocks.STONE.defaultBlockState();
+                        return world.setBlock(at, toSet, 3); // 3 = Update block + Notify clients
                     } else {
-                        return world.setBlockState(at, Blocks.STONE.getDefaultState());
+                        return world.setBlock(at, Blocks.STONE.defaultBlockState(), 3);
                     }
                 }
-            } else {
+            }
+            // Caso: Ritual Normal (Transmutación de Piedra -> Ore)
+            else {
+                // CONFIG.replaceableStates suele ser un Predicate<BlockState> que incluye STONE, DEEPSLATE, etc.
                 if (CONFIG.replaceableStates.test(atState)) {
                     Block ore = OreBlockRarityRegistry.MINERALIS_RITUAL.getRandomBlock(rand);
                     if (ore != null) {
-                        return world.setBlockState(at, ore.getDefaultState());
+                        // Transmutación exitosa
+                        return world.setBlock(at, ore.defaultBlockState(), 3);
                     } else {
+                        // Si no hay ores configurados, enviamos un ping visual de fallo
                         sendConstellationPing(world, new Vector3(at).add(0.5, 0.5, 0.5));
                     }
                 } else {
+                    // El bloque no es reemplazable, ping de "búsqueda"
                     sendConstellationPing(world, new Vector3(at).add(0.5, 0.5, 0.5));
                 }
             }
             return false;
-        }).ifRight(attemptedBreak -> {
+        }).mapRight(attemptedBreak -> {
+            // Si el ritual intentó romper algo pero no pudo (Right side del Either)
             sendConstellationPing(world, new Vector3(attemptedBreak).add(0.5, 0.5, 0.5));
+            return false;
         }).left().orElse(false);
     }
 

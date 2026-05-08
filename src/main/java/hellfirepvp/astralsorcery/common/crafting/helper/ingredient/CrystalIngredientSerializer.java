@@ -9,8 +9,8 @@
 package hellfirepvp.astralsorcery.common.crafting.helper.ingredient;
 
 import com.google.gson.JsonObject;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.JSONUtils;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.util.GsonHelper;
 import net.minecraftforge.common.crafting.IIngredientSerializer;
 
 /**
@@ -24,20 +24,20 @@ public class CrystalIngredientSerializer implements IIngredientSerializer<Crysta
 
     @Override
     public CrystalIngredient parse(JsonObject json) {
-        boolean hasToBeAttuned = JSONUtils.getBoolean(json, "hasToBeAttuned", false);
-        boolean hasToBeCelestial = JSONUtils.getBoolean(json, "hasToBeCelestial", false);
-        boolean canBeAttuned = JSONUtils.getBoolean(json, "canBeAttuned", true);
-        boolean canBeCelestialCrystal = JSONUtils.getBoolean(json, "canBeCelestialCrystal", true);
+        boolean hasToBeAttuned = GsonHelper.getAsBoolean(json, "hasToBeAttuned", false);
+        boolean hasToBeCelestial = GsonHelper.getAsBoolean(json, "hasToBeCelestial", false);
+        boolean canBeAttuned = GsonHelper.getAsBoolean(json, "canBeAttuned", true);
+        boolean canBeCelestialCrystal = GsonHelper.getAsBoolean(json, "canBeCelestialCrystal", true);
         return new CrystalIngredient(hasToBeAttuned, hasToBeCelestial, canBeAttuned, canBeCelestialCrystal);
     }
 
     @Override
-    public CrystalIngredient parse(PacketBuffer buffer) {
+    public CrystalIngredient parse(FriendlyByteBuf buffer) {
         return new CrystalIngredient(buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean(), buffer.readBoolean());
     }
 
     @Override
-    public void write(PacketBuffer buffer, CrystalIngredient ingredient) {
+    public void write(FriendlyByteBuf buffer, CrystalIngredient ingredient) {
         buffer.writeBoolean(ingredient.hasToBeAttuned());
         buffer.writeBoolean(ingredient.hasToBeCelestial());
         buffer.writeBoolean(ingredient.canBeAttuned());

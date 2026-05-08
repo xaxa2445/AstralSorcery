@@ -19,11 +19,13 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -62,7 +64,7 @@ public class MantleEffectArmara extends MantleEffect {
     }
 
     @Override
-    protected void tickServer(PlayerEntity player) {
+    protected void tickServer(Player player) {
         super.tickServer(player);
 
         if (getCurrentImmunityStacks(player) >= CONFIG.immunityStacks.get()) {
@@ -84,19 +86,20 @@ public class MantleEffectArmara extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
         this.playCapeSparkles(player, 0.15F);
 
         Vector3 at = Vector3.atEntityCorner(player);
-        at.addY(player.getHeight() / 3F * 2F);
+        at.addY(player.getBbHeight() / 3F * 2F);
 
-        Vector3 lookVec = new Vector3(player.getLookVec()).normalize();
+        Vec3 lookVecRaw = player.getLookAngle(); // getLookVec -> getLookAngle
+        Vector3 lookVec = new Vector3(lookVecRaw).normalize();
 
         int stacks = getCurrentImmunityStacks(player);
         if (stacks > 0) {
-            Random sRand = new Random(player.getUniqueID().hashCode());
+            Random sRand = new Random(player.getUUID().hashCode());
             for (int i = 0; i < stacks; i++) {
                 Vector3 axis = Vector3.random(sRand);
                 axis.setX(axis.getX() * 0.35F);
@@ -105,7 +108,7 @@ public class MantleEffectArmara extends MantleEffect {
 
                 float scale = rand.nextFloat() * 0.2F + 0.2F;
                 int ticksPerCircle = 80 + sRand.nextInt(50);
-                int tick = (player.ticksExisted) % ticksPerCircle;
+                int tick = (player.tickCount) % ticksPerCircle;
 
                 Vector3 anglePlayer = perpEffect.normalize()
                         .rotate(Math.toRadians(360 * ((float) (tick) / (float) (ticksPerCircle))), axis)
@@ -113,11 +116,11 @@ public class MantleEffectArmara extends MantleEffect {
                 Vector3 pos = anglePlayer.clone().multiply(sRand.nextFloat() * 0.4F + 0.9F).add(at);
 
                 float alpha = 0.8F;
-                if (Minecraft.getInstance().gameSettings.getPointOfView().func_243192_a()) {
+                if (Minecraft.getInstance().options.getCameraType().isFirstPerson()) {
                     float deg = (float) Math.toDegrees(lookVec.angle(anglePlayer));
                     if (deg < 70F) {
                         float tansparentDegree = 40F;
-                        alpha *= MathHelper.clamp((deg - tansparentDegree) / (80F - tansparentDegree), 0F, 1F);
+                        alpha *= Mth.clamp((deg - tansparentDegree) / (80F - tansparentDegree), 0F, 1F);
                     }
                 }
 
@@ -141,10 +144,10 @@ public class MantleEffectArmara extends MantleEffect {
     }
 
     private void onHurt(LivingHurtEvent event) {
-        World world = event.getEntity().getEntityWorld();
-        LivingEntity hurt = event.getEntityLiving();
+        Level world = event.getEntity().level();
+        LivingEntity hurt = event.getEntity();
 
-        if (world.isRemote()) {
+        if (world.isClientSide()) {
             return;
         }
         MantleEffectArmara armara = ItemMantle.getEffect(hurt, ConstellationsAS.armara);
@@ -154,7 +157,7 @@ public class MantleEffectArmara extends MantleEffect {
     }
 
     private boolean shouldPreventDamage(LivingEntity hurt, DamageSource source, boolean simulate) {
-        if (source.canHarmInCreative()) {
+        if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return false;
         }
         int stacks = getCurrentImmunityStacks(hurt);

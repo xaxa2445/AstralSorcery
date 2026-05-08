@@ -13,15 +13,13 @@ import hellfirepvp.astralsorcery.common.crafting.helper.CustomRecipeBuilder;
 import hellfirepvp.astralsorcery.common.crafting.helper.CustomRecipeSerializer;
 import hellfirepvp.astralsorcery.common.crafting.recipe.LiquidInfusion;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.tags.ITag;
-import net.minecraft.tags.Tag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.material.Fluid;
 
 import javax.annotation.Nonnull;
 
@@ -50,12 +48,12 @@ public class LiquidInfusionBuilder extends CustomRecipeBuilder<LiquidInfusion> {
         this.id = id;
     }
 
-    public static LiquidInfusionBuilder builder(ForgeRegistryEntry<?> nameProvider) {
-        return new LiquidInfusionBuilder(AstralSorcery.key(nameProvider.getRegistryName().getPath()));
-    }
-
     public static LiquidInfusionBuilder builder(ResourceLocation id) {
         return new LiquidInfusionBuilder(id);
+    }
+
+    public static LiquidInfusionBuilder builder(String path) {
+        return new LiquidInfusionBuilder(AstralSorcery.key(path));
     }
 
     public LiquidInfusionBuilder setLiquidInput(Fluid liquidInput) {
@@ -63,13 +61,15 @@ public class LiquidInfusionBuilder extends CustomRecipeBuilder<LiquidInfusion> {
         return this;
     }
 
-    public LiquidInfusionBuilder setItemInput(IItemProvider item) {
-        this.itemInput = Ingredient.fromItems(item);
+    // IItemProvider -> ItemLike
+    public LiquidInfusionBuilder setItemInput(ItemLike item) {
+        this.itemInput = Ingredient.of(item); // fromItems -> of
         return this;
     }
 
-    public LiquidInfusionBuilder setItemInput(ITag.INamedTag<Item> tag) {
-        this.itemInput = Ingredient.fromTag(tag);
+    // ITag.INamedTag -> TagKey
+    public LiquidInfusionBuilder setItemInput(TagKey<Item> tag) {
+        this.itemInput = Ingredient.of(tag); // fromTag -> of
         return this;
     }
 
@@ -78,7 +78,7 @@ public class LiquidInfusionBuilder extends CustomRecipeBuilder<LiquidInfusion> {
         return this;
     }
 
-    public LiquidInfusionBuilder setOutput(IItemProvider output) {
+    public LiquidInfusionBuilder setOutput(ItemLike output) {
         return this.setOutput(new ItemStack(output));
     }
 
@@ -123,7 +123,7 @@ public class LiquidInfusionBuilder extends CustomRecipeBuilder<LiquidInfusion> {
         if (this.liquidInput == null) {
             throw new IllegalArgumentException("No fluid input defined!");
         }
-        if (this.itemInput.hasNoMatchingItems()) {
+        if (this.itemInput.isEmpty()) {
             throw new IllegalArgumentException("No valid item for input found!");
         }
         if (this.output.isEmpty()) {

@@ -8,14 +8,17 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
 import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.ActiveSimpleAltarRecipe;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -28,13 +31,18 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  */
 public class BuiltInEffectDiscoveryCentralBeam extends AltarRecipeEffect {
 
+    public BuiltInEffectDiscoveryCentralBeam() {
+        // Usamos el ID correspondiente para el registro del efecto
+        super(new ResourceLocation(AstralSorcery.MODID, "discovery_central_beam"));
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public void onTick(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state) {
         if (state == ActiveSimpleAltarRecipe.CraftingState.ACTIVE &&
                 rand.nextInt(10) == 0) {
             Vector3 from = new Vector3(altar).add(0.5, 0.3, 0.5);
-            MiscUtils.applyRandomOffset(from, rand, 0.26F);
+            MiscUtils.applyRandomOffset(from, (RandomSource) rand, 0.26F);
             EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                     .spawn(from)
                     .setup(from.clone().addY(4 * rand.nextFloat() * 2), 1F, 1F)
@@ -44,7 +52,7 @@ public class BuiltInEffectDiscoveryCentralBeam extends AltarRecipeEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, MatrixStack renderStack, IRenderTypeBuffer buffer, float pTicks, int combinedLight) {}
+    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, PoseStack renderStack, MultiBufferSource buffer, float pTicks, int combinedLight) {}
 
     @Override
     @OnlyIn(Dist.CLIENT)

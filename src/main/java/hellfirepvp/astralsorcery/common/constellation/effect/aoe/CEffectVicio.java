@@ -22,11 +22,11 @@ import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.tile.TileRitualPedestal;
 import hellfirepvp.astralsorcery.common.util.block.ILocatable;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -53,7 +53,7 @@ public class CEffectVicio extends ConstellationEffect implements ConstellationEf
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void playClientEffect(World world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
+    public void playClientEffect(Level world, BlockPos pos, TileRitualPedestal pedestal, float alphaMultiplier, boolean extended) {
         if (rand.nextInt(3) == 0) {
             Vector3 r = new Vector3(
                     pos.getX() + rand.nextFloat() * 4 * (rand.nextBoolean() ? 1 : -1) + 0.5,
@@ -78,42 +78,42 @@ public class CEffectVicio extends ConstellationEffect implements ConstellationEf
     }
 
     @Override
-    public boolean playEffect(World world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
+    public boolean playEffect(Level world, BlockPos pos, ConstellationEffectProperties properties, @Nullable IMinorConstellation trait) {
         return false;
     }
 
     @Override
-    public boolean runStatusEffect(World world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
+    public boolean runStatusEffect(Level world, BlockPos pos, int mirrorAmount, ConstellationEffectProperties modified, @Nullable IMinorConstellation possibleTraitEffect) {
         boolean foundPlayer = false;
         double range = modified.getSize();
         if (modified.isCorrupted()) {
-            List<LivingEntity> entities = world.getEntitiesWithinAABB(LivingEntity.class, BOX.offset(pos).grow(range));
+            List<ServerPlayer> entities = world.getEntitiesOfClass(ServerPlayer.class, BOX.move(pos).inflate(range));
             for (LivingEntity entity : entities) {
-                if (entity instanceof ServerPlayerEntity) {
-                    ServerPlayerEntity pl = (ServerPlayerEntity) entity;
-                    if (pl.interactionManager.getGameType().isSurvivalOrAdventure()) {
-                        boolean prev = pl.abilities.allowFlying;
-                        pl.abilities.allowFlying = false;
-                        pl.abilities.isFlying = false;
+                if (entity instanceof ServerPlayer) {
+                    ServerPlayer pl = (ServerPlayer) entity;
+                    if (!pl.getAbilities().instabuild && !pl.isSpectator()) {
+                        boolean prev = pl.getAbilities().mayfly;
+                        pl.getAbilities().mayfly = false;
+                        pl.getAbilities().flying = false;
                         if (prev) {
-                            pl.sendPlayerAbilities();
+                            pl.onUpdateAbilities();
                         }
                     }
                     markPlayerAffected(pl);
                 }
                 foundPlayer = true;
-                entity.addPotionEffect(new EffectInstance(Effects.SLOWNESS, 200, 9));
-                entity.addPotionEffect(new EffectInstance(Effects.MINING_FATIGUE, 200, 9));
+                entity.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 200, 9));
+                entity.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 200, 9));
             }
         } else {
-            List<ServerPlayerEntity> entities = world.getEntitiesWithinAABB(ServerPlayerEntity.class, BOX.offset(pos).grow(range));
-            for (ServerPlayerEntity pl : entities) {
+            List<ServerPlayer> entities = world.getEntitiesOfClass(ServerPlayer.class, BOX.move(pos).inflate(range));
+            for (ServerPlayer pl : entities) {
                 if (EventHelperTemporaryFlight.allowFlight(pl)) {
-                    boolean prev = pl.abilities.allowFlying;
-                    pl.abilities.allowFlying = true;
+                    boolean prev = pl.getAbilities().mayfly;
+                    pl.getAbilities().mayfly = true;
                     foundPlayer = true;
                     if (!prev) {
-                        pl.sendPlayerAbilities();
+                        pl.onUpdateAbilities();
                     }
                 }
                 markPlayerAffected(pl);

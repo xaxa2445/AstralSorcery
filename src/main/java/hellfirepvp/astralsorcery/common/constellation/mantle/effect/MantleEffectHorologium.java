@@ -15,6 +15,7 @@ import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopZone;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -51,10 +52,10 @@ public class MantleEffectHorologium extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
-        if (!player.getCooldownTracker().hasCooldown(ItemsAS.MANTLE)) {
+        if (!player.getCooldowns().isOnCooldown(ItemsAS.MANTLE)) {
             this.playCapeSparkles(player, 0.4F);
         } else {
             this.playCapeSparkles(player, 0.2F);
@@ -62,22 +63,23 @@ public class MantleEffectHorologium extends MantleEffect {
     }
 
     private void onHurt(LivingHurtEvent event) {
-        if (ItemMantle.getEffect(event.getEntityLiving(), ConstellationsAS.horologium) != null &&
-                event.getEntityLiving() instanceof PlayerEntity &&
-                !event.getEntityLiving().getEntityWorld().isRemote() &&
-                !event.getSource().isFireDamage()) {
-            PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        if (event.getEntity() instanceof Player player &&
+                ItemMantle.getEffect(player, ConstellationsAS.horologium) != null) {
+            if (!player.level().isClientSide() &&
+                    !event.getSource().is(DamageTypeTags.IS_FIRE)) {
+                if (!player.getCooldowns().isOnCooldown(ItemsAS.MANTLE) &&
+                        AlignmentChargeHandler.INSTANCE.hasCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerFreeze.get())) {
+                    TimeStopController.freezeWorldAt(
+                            TimeStopZone.EntityTargetController.allExcept(player),
+                            player.level(),
+                            player.blockPosition(),
+                            CONFIG.effectRange.get().floatValue(),
+                            CONFIG.effectDuration.get());
 
-            if (!player.getCooldownTracker().hasCooldown(ItemsAS.MANTLE) &&
-                    AlignmentChargeHandler.INSTANCE.hasCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerFreeze.get())) {
-                TimeStopController.freezeWorldAt(
-                        TimeStopZone.EntityTargetController.allExcept(player),
-                        player.getEntityWorld(),
-                        player.getPosition(),
-                        CONFIG.effectRange.get().floatValue(),
-                        CONFIG.effectDuration.get());
-                player.getCooldownTracker().setCooldown(ItemsAS.MANTLE, CONFIG.cooldown.get());
-                AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCostPerFreeze.get(), false);
+                    player.getCooldowns().addCooldown(ItemsAS.MANTLE, CONFIG.cooldown.get());
+                    AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER,
+                            CONFIG.chargeCostPerFreeze.get(), false);
+                }
             }
         }
     }

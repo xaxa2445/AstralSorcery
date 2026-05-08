@@ -17,16 +17,18 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
 import hellfirepvp.astralsorcery.common.util.block.BlockDiscoverer;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.tileentity.MobSpawnerTileEntity;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
 
 import java.awt.*;
 import java.util.List;
@@ -50,7 +52,7 @@ public class MantleEffectLucerna extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
         this.playCapeSparkles(player, 0.15F);
@@ -59,17 +61,18 @@ public class MantleEffectLucerna extends MantleEffect {
             this.playEntityHighlight(player);
         }
         if (CONFIG.findSpawners.get() && rand.nextInt(10) == 0) {
-            this.playBlockHighlight(player, ColorsAS.MANTLE_LUCERNA_SPAWNER, (tileEntity) -> tileEntity instanceof MobSpawnerTileEntity);
+            this.playBlockHighlight(player, ColorsAS.MANTLE_LUCERNA_SPAWNER, (be) -> be instanceof SpawnerBlockEntity);
         }
         if (CONFIG.findChests.get() && rand.nextInt(10) == 0) {
-            this.playBlockHighlight(player, ColorsAS.MANTLE_LUCERNA_INVENTORY, (tileEntity) -> tileEntity.getCapability(CapabilityItemHandler.ITEM_HANDLER_CAPABILITY).isPresent());
+            this.playBlockHighlight(player, ColorsAS.MANTLE_LUCERNA_INVENTORY, (be) ->
+                    be.getCapability(ForgeCapabilities.ITEM_HANDLER).isPresent());
         }
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void playBlockHighlight(PlayerEntity player, Color highlightColor, Predicate<TileEntity> test) {
+    private void playBlockHighlight(Player player, Color highlightColor, Predicate<BlockEntity> test) {
         float chance = 0.9F;
-        Set<BlockPos> positions = BlockDiscoverer.searchForTileEntitiesAround(player.getEntityWorld(), player.getPosition(), CONFIG.range.get(), test);
+        Set<BlockPos> positions = BlockDiscoverer.searchForTileEntitiesAround(player.level(), player.blockPosition(), CONFIG.range.get(), test);
         for (BlockPos pos : positions) {
             if (rand.nextFloat() > chance) {
                 continue;
@@ -80,7 +83,7 @@ public class MantleEffectLucerna extends MantleEffect {
             }
 
             EffectHelper.of(EffectTemplatesAS.GENERIC_DEPTH_PARTICLE)
-                    .setOwner(player.getUniqueID())
+                    .setOwner(player.getUUID())
                     .spawn(at)
                     .color(VFXColorFunction.constant(highlightColor))
                     .alpha(VFXAlphaFunction.FADE_OUT)
@@ -89,7 +92,7 @@ public class MantleEffectLucerna extends MantleEffect {
 
             if (rand.nextFloat() > 0.35F) {
                 EffectHelper.of(EffectTemplatesAS.GENERIC_DEPTH_PARTICLE)
-                        .setOwner(player.getUniqueID())
+                        .setOwner(player.getUUID())
                         .spawn(at)
                         .color(VFXColorFunction.WHITE)
                         .alpha(VFXAlphaFunction.FADE_OUT)
@@ -102,11 +105,13 @@ public class MantleEffectLucerna extends MantleEffect {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void playEntityHighlight(PlayerEntity player) {
-        AxisAlignedBB box = new AxisAlignedBB(0, 0, 0, 0, 0, 0)
-                .grow(CONFIG.range.get())
-                .offset(player.getPosition());
-        List<LivingEntity> entities = player.getEntityWorld().getEntitiesWithinAABB(LivingEntity.class, box);
+    private void playEntityHighlight(Player player) {
+        Level world = player.level();
+        RandomSource random = world.getRandom();
+
+        // AxisAlignedBB -> AABB. grow() y offset() ahora funcionan con BlockPos o dobles directamente
+        AABB box = new AABB(player.blockPosition()).inflate(CONFIG.range.get());
+        List<LivingEntity> entities = player.level().getEntitiesOfClass(LivingEntity.class, box);
         for (LivingEntity entity : entities) {
             if (!entity.isAlive() || entity.equals(player) || rand.nextInt(8) != 0) {
                 continue;
@@ -116,10 +121,10 @@ public class MantleEffectLucerna extends MantleEffect {
             if (atEntity.distance(player) < 2) {
                 continue;
             }
-            atEntity.add(rand.nextFloat() * entity.getWidth(), rand.nextFloat() * entity.getHeight(), rand.nextFloat() * entity.getWidth());
+            atEntity.add(rand.nextFloat() * entity.getBbWidth(), rand.nextFloat() * entity.getBbHeight(), rand.nextFloat() * entity.getBbWidth());
 
             EffectHelper.of(EffectTemplatesAS.GENERIC_DEPTH_PARTICLE)
-                    .setOwner(player.getUniqueID())
+                    .setOwner(player.getUUID())
                     .spawn(atEntity)
                     .color(VFXColorFunction.constant(this.getAssociatedConstellation().getConstellationColor()))
                     .alpha(VFXAlphaFunction.FADE_OUT)
@@ -128,7 +133,7 @@ public class MantleEffectLucerna extends MantleEffect {
 
             if (rand.nextFloat() > 0.35F) {
                 EffectHelper.of(EffectTemplatesAS.GENERIC_DEPTH_PARTICLE)
-                        .setOwner(player.getUniqueID())
+                        .setOwner(player.getUUID())
                         .spawn(atEntity)
                         .color(VFXColorFunction.WHITE)
                         .alpha(VFXAlphaFunction.FADE_OUT)

@@ -15,14 +15,13 @@ import hellfirepvp.astralsorcery.common.network.base.ASPacket;
 import hellfirepvp.astralsorcery.common.tile.TileAttunementAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
-import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.DimensionType;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 import javax.annotation.Nonnull;
 
@@ -36,12 +35,12 @@ import javax.annotation.Nonnull;
 public class PktAttunePlayerConstellation extends ASPacket<PktAttunePlayerConstellation> {
 
     private IMajorConstellation attunement = null;
-    private RegistryKey<World> world = null;
+    private ResourceKey<Level> world = null;
     private BlockPos at = BlockPos.ZERO;
 
     public PktAttunePlayerConstellation() {}
 
-    public PktAttunePlayerConstellation(IMajorConstellation attunement, RegistryKey<World> world, BlockPos at) {
+    public PktAttunePlayerConstellation(IMajorConstellation attunement, ResourceKey<Level> world, BlockPos at) {
         this.attunement = attunement;
         this.world = world;
         this.at = at;
@@ -78,12 +77,12 @@ public class PktAttunePlayerConstellation extends ASPacket<PktAttunePlayerConste
             context.enqueueWork(() -> {
                 IMajorConstellation cst = packet.attunement;
                 if (cst != null) {
-                    MinecraftServer srv = LogicalSidedProvider.INSTANCE.get(LogicalSide.SERVER);
+                    MinecraftServer srv = ServerLifecycleHooks.getCurrentServer();
                     if (srv.forgeGetWorldMap().containsKey(packet.world)) {
-                        World world = srv.getWorld(packet.world);
+                        Level world = srv.getLevel(packet.world);
                         TileAttunementAltar ta = MiscUtils.getTileAt(world, packet.at, TileAttunementAltar.class, false);
                         if (ta != null && ta.getActiveRecipe() instanceof ActivePlayerAttunementRecipe) {
-                            if (context.getSender().getUniqueID().equals(((ActivePlayerAttunementRecipe) ta.getActiveRecipe()).getPlayerUUID()) &&
+                            if (context.getSender().getUUID().equals(((ActivePlayerAttunementRecipe) ta.getActiveRecipe()).getPlayerUUID()) &&
                                     AttunePlayerRecipe.isEligablePlayer(context.getSender(), ta.getActiveConstellation())) {
 
                                 ta.finishActiveRecipe();

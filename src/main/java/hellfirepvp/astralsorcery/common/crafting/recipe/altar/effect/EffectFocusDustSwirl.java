@@ -8,7 +8,8 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.client.effect.function.VFXColorFunction;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
 import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
@@ -16,8 +17,9 @@ import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.ActiveSimpleAltarRecipe;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.util.Mth; // Reemplaza a MathHelper
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -31,6 +33,10 @@ import java.awt.*;
  * Date: 27.09.2019 / 20:41
  */
 public class EffectFocusDustSwirl extends AltarRecipeEffect implements IFocusEffect {
+
+    public EffectFocusDustSwirl() {
+        super(AstralSorcery.key("focus_dust_swirl"));
+    }
 
     @Override
     @OnlyIn(Dist.CLIENT)
@@ -53,7 +59,7 @@ public class EffectFocusDustSwirl extends AltarRecipeEffect implements IFocusEff
             for (int i = 0; i < parts; i++) {
                 Vector3 v = Vector3.RotAxis.X_AXIS.clone();
                 float originalAngle = (((float) i) / ((float) parts)) * 360F;
-                double angle = originalAngle + (MathHelper.sin(percCycle) * angleSwirl);
+                double angle = originalAngle + (Mth.sin(percCycle) * angleSwirl);
                 v.rotate(-Math.toRadians(angle), Vector3.RotAxis.Y_AXIS).normalize().multiply(dst);
                 Vector3 pos = center.clone().add(v);
                 Vector3 mot = center.clone().subtract(pos).normalize().multiply(0.07);
@@ -71,7 +77,7 @@ public class EffectFocusDustSwirl extends AltarRecipeEffect implements IFocusEff
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, MatrixStack renderStack, IRenderTypeBuffer buffer, float pTicks, int combinedLight) {}
+    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, PoseStack renderStack, MultiBufferSource buffer, float pTicks, int combinedLight) {}
 
     @Override
     @OnlyIn(Dist.CLIENT)

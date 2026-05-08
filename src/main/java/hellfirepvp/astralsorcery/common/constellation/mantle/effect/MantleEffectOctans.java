@@ -13,14 +13,14 @@ import hellfirepvp.astralsorcery.common.constellation.mantle.MantleEffect;
 import hellfirepvp.astralsorcery.common.event.EventFlags;
 import hellfirepvp.astralsorcery.common.item.armor.ItemMantle;
 import hellfirepvp.astralsorcery.common.lib.ConstellationsAS;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
@@ -53,12 +53,12 @@ public class MantleEffectOctans extends MantleEffect {
     }
 
     @Override
-    protected void tickServer(PlayerEntity player) {
+    protected void tickServer(Player player) { // PlayerEntity -> Player
         super.tickServer(player);
 
-        if (player.areEyesInFluid(FluidTags.WATER)) {
-            if (player.getAir() < (player.getMaxAir() - 20)) {
-                player.setAir(player.getMaxAir());
+        if (player.isEyeInFluid(FluidTags.WATER)) { // areEyesInFluid -> isEyeInFluid
+            if (player.getAirSupply() < (player.getMaxAirSupply() - 20)) { // getAir/getMaxAir -> getAirSupply/getMaxAirSupply
+                player.setAirSupply(player.getMaxAirSupply());
             }
 
             player.heal(CONFIG.healPerTick.get().floatValue());
@@ -67,45 +67,45 @@ public class MantleEffectOctans extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
         float chance = 0.1F;
-        if (player.areEyesInFluid(FluidTags.WATER)) {
+        if (player.isEyeInFluid(FluidTags.WATER)) {
             chance = 0.3F;
         }
         this.playCapeSparkles(player, chance);
     }
 
     private void handleUnderwaterBreakSpeed(PlayerEvent.BreakSpeed event) {
-        PlayerEntity player = event.getPlayer();
-        if (player.areEyesInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)) {
-            LogicalSide side = player.getEntityWorld().isRemote() ? LogicalSide.CLIENT : LogicalSide.SERVER;
+        Player player = event.getEntity();
+        if (player.isEyeInFluid(FluidTags.WATER) && !EnchantmentHelper.hasAquaAffinity(player)) {
+            LogicalSide side = player.level().isClientSide() ? LogicalSide.CLIENT : LogicalSide.SERVER;
             MantleEffectOctans octans = ItemMantle.getEffect(player, ConstellationsAS.octans);
             if (octans != null && AlignmentChargeHandler.INSTANCE.hasCharge(player, side, CONFIG.chargeCostPerBreakSpeed.get())) {
                 //Grab helmet
-                ItemStack existing = player.getItemStackFromSlot(EquipmentSlotType.HEAD);
+                ItemStack existing = player.getItemBySlot(EquipmentSlot.HEAD);
 
                 //Set aqua affinity
                 ItemStack st = new ItemStack(Items.LEATHER_HELMET);
-                st.addEnchantment(Enchantments.AQUA_AFFINITY, 1);
-                player.inventory.armorInventory.set(EquipmentSlotType.HEAD.getIndex(), st);
+                st.enchant(Enchantments.AQUA_AFFINITY, 1);
+                player.getInventory().armor.set(EquipmentSlot.HEAD.getIndex(), st);
 
                 //Recalc breakspeed
                 EventFlags.CHECK_UNDERWATER_BREAK_SPEED.executeWithFlag(() -> {
-                    event.setNewSpeed(player.getDigSpeed(event.getState(), event.getPos()));
+                    event.setNewSpeed(player.getDigSpeed(event.getState(), event.getPosition().orElse(null)));
                     AlignmentChargeHandler.INSTANCE.drainCharge(player, side, CONFIG.chargeCostPerBreakSpeed.get(), false);
                 });
 
                 //Reset helmet
-                player.inventory.armorInventory.set(EquipmentSlotType.HEAD.getIndex(), existing);
+                player.getInventory().armor.set(EquipmentSlot.HEAD.getIndex(), existing);
             }
         }
     }
 
     private void handleUnderwaterUnwavering(LivingKnockBackEvent event) {
-        if (event.getEntityLiving().areEyesInFluid(FluidTags.WATER)) {
-            MantleEffectOctans octans = ItemMantle.getEffect(event.getEntityLiving(), ConstellationsAS.octans);
+        if (event.getEntity().isEyeInFluid(FluidTags.WATER)) {
+            MantleEffectOctans octans = ItemMantle.getEffect(event.getEntity(), ConstellationsAS.octans);
             if (octans != null) {
                 event.setCanceled(true);
             }

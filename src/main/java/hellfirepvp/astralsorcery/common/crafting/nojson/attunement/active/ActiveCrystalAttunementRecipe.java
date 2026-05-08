@@ -34,16 +34,18 @@ import hellfirepvp.astralsorcery.common.tile.TileAttunementAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -78,7 +80,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
         this.entityId = crystalEntityId;
     }
 
-    public ActiveCrystalAttunementRecipe(AttuneCrystalRecipe recipe, CompoundNBT nbt) {
+    public ActiveCrystalAttunementRecipe(AttuneCrystalRecipe recipe, CompoundTag nbt) {
         super(recipe);
         this.readFromNBT(nbt);
     }
@@ -89,7 +91,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
             return false;
         }
         Entity entity;
-        return (entity = altar.getWorld().getEntityByID(this.entityId)) != null &&
+        return (entity = altar.getLevel().getEntity(this.entityId)) != null &&
                 entity.isAlive() &&
                 entity instanceof ItemEntity &&
                 this.constellation.equals(altar.getActiveConstellation()) &&
@@ -108,11 +110,11 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
 
     @Override
     public void finishRecipe(TileAttunementAltar altar) {
-        ItemEntity crystal = this.getEntity(altar.getWorld());
+        ItemEntity crystal = this.getEntity(altar.getLevel());
         if (crystal != null) {
             ItemStack stack = crystal.getItem();
             if (!(stack.getItem() instanceof ConstellationItem) && stack.getItem() instanceof ItemCrystalBase) {
-                CompoundNBT tag = stack.getTag();
+                CompoundTag tag = stack.getTag();
                 stack = new ItemStack(((ItemCrystalBase) stack.getItem()).getTunedItemVariant(), stack.getCount());
                 stack.setTag(tag);
             }
@@ -130,11 +132,30 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
                 }
                 crystal.setItem(stack);
 
-                UUID throwerUUID = crystal.getThrowerId();
-                if (throwerUUID != null) {
-                    PlayerEntity thrower = altar.getWorld().getPlayerByUuid(throwerUUID);
-                    if (thrower instanceof ServerPlayerEntity) {
-                        AdvancementsAS.ATTUNE_CRYSTAL.trigger((ServerPlayerEntity) thrower, altar.getActiveConstellation());
+                Entity owner = crystal.getOwner();
+                if (owner instanceof ServerPlayer serverPlayer) {
+                    AdvancementsAS.ATTUNE_CRYSTAL.trigger(serverPlayer, altar.getActiveConstellation());
+                } else {
+                    // 2. Si getOwner() es null o no es un jugador, extraemos el UUID del lanzador
+                    // En 1.20.1, ItemEntity usa el campo "thrower" (o "Thrower") en su NBT
+                    UUID throwerUUID = null;
+
+                    // Usamos saveWithoutId para obtener los datos actuales de la entidad
+                    CompoundTag nbt = new CompoundTag();
+                    crystal.saveWithoutId(nbt);
+
+                    if (nbt.hasUUID("Thrower")) {
+                        throwerUUID = nbt.getUUID("Thrower");
+                    } else if (nbt.hasUUID("Owner")) {
+                        // Algunas versiones de Forge/NeoForge prefieren "Owner"
+                        throwerUUID = nbt.getUUID("Owner");
+                    }
+
+                    if (throwerUUID != null) {
+                        Player player = altar.getLevel().getPlayerByUUID(throwerUUID);
+                        if (player instanceof ServerPlayer serverPlayer) {
+                            AdvancementsAS.ATTUNE_CRYSTAL.trigger(serverPlayer, altar.getActiveConstellation());
+                        }
                     }
                 }
             }
@@ -143,17 +164,17 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
 
     @Override
     public void doTick(LogicalSide side, TileAttunementAltar altar) {
-        ItemEntity crystal = this.getEntity(altar.getWorld());
+        ItemEntity crystal = this.getEntity(altar.getLevel());
         if (crystal == null) {
             return;
         }
 
         Vector3 crystalHoverPos = new Vector3(altar).add(0.5, 1.4, 0.5);
-        crystal.setPosition(crystalHoverPos.getX(), crystalHoverPos.getY(), crystalHoverPos.getZ());
-        crystal.prevPosX = crystalHoverPos.getX();
-        crystal.prevPosY = crystalHoverPos.getY();
-        crystal.prevPosZ = crystalHoverPos.getZ();
-        crystal.setMotion(0, 0, 0);
+        crystal.setPos(crystalHoverPos.getX(), crystalHoverPos.getY(), crystalHoverPos.getZ());
+        crystal.xo = crystalHoverPos.getX();
+        crystal.yo = crystalHoverPos.getY();
+        crystal.zo = crystalHoverPos.getZ();
+        crystal.setDeltaMovement(Vec3.ZERO);
 
         if (side.isClient()) {
             doClientTick(altar);
@@ -167,14 +188,14 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
                         altar.getActiveRecipe() != this;
 
         if (this.itemAttuneSound == null || ((FadeLoopSound) this.itemAttuneSound).hasStoppedPlaying()) {
-            this.itemAttuneSound = SoundHelper.playSoundLoopFadeInClient(SoundsAS.ATTUNEMENT_ATLAR_ITEM_LOOP,
+            this.itemAttuneSound = SoundHelper.playSoundLoopFadeInClient(SoundsAS.ATTUNEMENT_ATLAR_ITEM_LOOP.getSoundEvent(),
                     new Vector3(altar).add(0.5, 1, 0.5), 1F, 1F, false, activeTest)
                     .setFadeInTicks(20)
                     .setFadeOutTicks(20);
         }
 
         if (this.getTick() == 0) {
-            SoundHelper.playSoundClientWorld(SoundsAS.ATTUNEMENT_ATLAR_ITEM_START, altar.getPos(), 1F, 1F);
+            SoundHelper.playSoundClientWorld(SoundsAS.ATTUNEMENT_ATLAR_ITEM_START, altar.getBlockPos(), 1F, 1F);
         }
 
         if (this.getTick() >= 80) {
@@ -204,7 +225,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
         if (getTick() >= 80 && getTick() % 40 == 0) {
             for (BlockPos pos : altar.getConstellationPositions(this.constellation)) {
                 Vector3 from = new Vector3(pos).add(0.5, 0, 0.5);
-                MiscUtils.applyRandomOffset(from, rand, 0.1F);
+                MiscUtils.applyRandomOffset(from, (RandomSource) rand, 0.1F);
                 EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                         .spawn(from)
                         .setup(from.clone().addY(6), 1.2, 1.2)
@@ -224,7 +245,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
         for (int i = 0; i < parts; i++) {
             Vector3 v = Vector3.RotAxis.X_AXIS.clone();
             float originalAngle = (((float) i) / ((float) parts)) * 360F;
-            double angle = originalAngle + (MathHelper.sin(percCycle) * angleSwirl);
+            double angle = originalAngle + (Mth.sin(percCycle) * angleSwirl);
             v.rotate(-Math.toRadians(angle), Vector3.RotAxis.Y_AXIS).normalize().multiply(dst);
             Vector3 pos = center.clone();
             Vector3 mot = center.clone().subtract(pos.clone().add(v)).normalize().multiply(0.14);
@@ -297,7 +318,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
         if (getTick() >= 460) {
             if (getTick() % 5 == 0) {
                 Vector3 from = new Vector3(altar).add(0.5, 0, 0.5);
-                MiscUtils.applyRandomOffset(from, rand, 0.25F);
+                MiscUtils.applyRandomOffset(from, (RandomSource) rand, 0.25F);
                 EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                         .spawn(from)
                         .setup(from.clone().addY(8), 2.4, 2)
@@ -337,7 +358,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
     @OnlyIn(Dist.CLIENT)
     public void stopEffects(TileAttunementAltar altar) {
         if (isFinished(altar)) {
-            SoundHelper.playSoundClientWorld(SoundsAS.ATTUNEMENT_ATLAR_ITEM_FINISH, altar.getPos().up(), 1F, 1F);
+            SoundHelper.playSoundClientWorld(SoundsAS.ATTUNEMENT_ATLAR_ITEM_FINISH, altar.getBlockPos().above(), 1F, 1F);
         }
         if (innerOrbital1 != null) {
             ((EntityComplexFX) innerOrbital1).requestRemoval();
@@ -348,8 +369,8 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
     }
 
     @Nullable
-    private ItemEntity getEntity(World world) {
-        Entity entity = world.getEntityByID(this.entityId);
+    private ItemEntity getEntity(Level world) {
+        Entity entity = world.getEntity(this.entityId);
         if (entity != null && entity.isAlive() && entity instanceof ItemEntity) {
             return (ItemEntity) entity;
         }
@@ -357,7 +378,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
     }
 
     @Override
-    public void writeToNBT(CompoundNBT nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
 
         nbt.putString("constellation", this.constellation.getRegistryName().toString());
@@ -365,7 +386,7 @@ public class ActiveCrystalAttunementRecipe extends AttunementRecipe.Active<Attun
     }
 
     @Override
-    protected void readFromNBT(CompoundNBT nbt) {
+    protected void readFromNBT(CompoundTag nbt) {
         super.readFromNBT(nbt);
 
         this.constellation = RegistriesAS.REGISTRY_CONSTELLATIONS.getValue(new ResourceLocation(nbt.getString("constellation")));

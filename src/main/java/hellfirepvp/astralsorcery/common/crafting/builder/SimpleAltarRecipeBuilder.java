@@ -18,15 +18,14 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.altar.AltarRecipeGrid;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.AltarRecipeTypeHandler;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect.AltarRecipeEffect;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.registries.ForgeRegistryEntry;
-
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
+import net.minecraftforge.registries.IForgeRegistry;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
@@ -64,12 +63,12 @@ public class SimpleAltarRecipeBuilder<T extends SimpleAltarRecipe> extends Custo
         return this;
     }
 
-    public SimpleAltarRecipeBuilder<T> addRelayInput(ITag.INamedTag<Item> tag) {
-        return this.addRelayInput(Ingredient.fromTag(tag));
+    public SimpleAltarRecipeBuilder<T> addRelayInput(TagKey<Item> tag) {
+        return this.addRelayInput(Ingredient.of(tag));
     }
 
-    public SimpleAltarRecipeBuilder<T> addRelayInput(IItemProvider item) {
-        return this.addRelayInput(Ingredient.fromItems(item));
+    public SimpleAltarRecipeBuilder<T> addRelayInput(ItemLike item) {
+        return this.addRelayInput(Ingredient.of(item)); // fromItems -> of
     }
 
     public SimpleAltarRecipeBuilder<T> addRelayInput(Ingredient ingredient) {
@@ -83,7 +82,7 @@ public class SimpleAltarRecipeBuilder<T extends SimpleAltarRecipe> extends Custo
     }
 
     public SimpleAltarRecipeBuilder<T> setStarlightRequirement(float percentOfAltarBar) {
-        this.recipe.setStarlightRequirement((int) (this.recipe.getAltarType().getStarlightCapacity() * MathHelper.clamp(percentOfAltarBar, 0F, 1F)));
+        this.recipe.setStarlightRequirement((int) (this.recipe.getAltarType().getStarlightCapacity() * Mth.clamp(percentOfAltarBar, 0F, 1F)));
         return this;
     }
 
@@ -102,7 +101,7 @@ public class SimpleAltarRecipeBuilder<T extends SimpleAltarRecipe> extends Custo
         return this;
     }
 
-    public SimpleAltarRecipeBuilder<T> addOutput(IItemProvider output) {
+    public SimpleAltarRecipeBuilder<T> addOutput(ItemLike output) {
         this.addOutput(new ItemStack(output));
         return this;
     }
@@ -153,10 +152,6 @@ public class SimpleAltarRecipeBuilder<T extends SimpleAltarRecipe> extends Custo
 
         private TypedRecipeBuilder(@Nullable AltarRecipeTypeHandler.Type<T> type) {
             this.type = type;
-        }
-
-        public SimpleAltarRecipeBuilder<T> createRecipe(ForgeRegistryEntry<?> nameProvider, AltarType altarType) {
-            return this.createRecipe(AstralSorcery.key(nameProvider.getRegistryName().getPath()), altarType);
         }
 
         public SimpleAltarRecipeBuilder<T> createRecipe(ResourceLocation recipeId, AltarType altarType) {

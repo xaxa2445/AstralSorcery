@@ -26,14 +26,14 @@ import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.tile.TileFountain;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
-import net.minecraft.world.GameRules;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -80,80 +80,75 @@ public class FountainEffectVortex extends FountainEffect<VortexContext> {
         Vector3 at = new Vector3(fountain).add(0.5, 0.5, 0.5);
         Vector3 vortexAt = at.clone().addY(-4);
 
-        AxisAlignedBB captureBox = new AxisAlignedBB(0, 0, 0, 1, 1, 1)
-                .offset(fountain.getPos().down(4))
-                .grow(2);
-        AxisAlignedBB pullBox = captureBox.grow(14);
+        AABB captureBox = new AABB(0, 0, 0, 1, 1, 1)
+                .move(fountain.getBlockPos().below(4))
+                .inflate(2);
+        AABB pullBox = captureBox.inflate(14);
 
         float boxCapacity = 5 * 5 * 5;
         float density = 0;
-        List<LivingEntity> captured = fountain.getWorld().getEntitiesWithinAABB(LivingEntity.class, captureBox);
+        List<LivingEntity> captured = fountain.getLevel().getEntitiesOfClass(LivingEntity.class, captureBox);
         for (LivingEntity le : captured) {
-            if (le == null || !le.isAlive() || le instanceof PlayerEntity || !TechnicalEntityRegistry.INSTANCE.canAffect(le)) {
+            if (le == null || !le.isAlive() || le instanceof Player || !TechnicalEntityRegistry.INSTANCE.canAffect(le)) {
                 continue;
             }
-            float entitySize = le.getHeight() * le.getWidth() * le.getWidth();
+            float entitySize = le.getBbHeight() * le.getBbWidth() * le.getBbWidth();
             density += entitySize;
 
             if (entitySize > boxCapacity) {
                 Vector3 heldPos = vortexAt.clone().addY(-1);
                 if (heldPos.distanceSquared(le) >= 0.4F) {
-                    le.setPositionAndRotation(heldPos.getX(), heldPos.getY(), heldPos.getZ(), le.rotationYaw, le.rotationPitch);
+                    le.moveTo(heldPos.getX(), heldPos.getY(), heldPos.getZ(), le.getYRot(), le.getXRot());
                 }
 
-                if (le instanceof EnderDragonEntity) {
-                    GameRules rules = fountain.getWorld().getGameRules();
-                    boolean prev = rules.getBoolean(GameRules.MOB_GRIEFING);
-                    rules.get(GameRules.MOB_GRIEFING).set(false, null);
-                    le.livingTick();
-                    rules.get(GameRules.MOB_GRIEFING).set(prev, null);
+                if (le instanceof EnderDragon dragon) {
+                    GameRules rules = fountain.getLevel().getGameRules();
+                    boolean prev = rules.getBoolean(GameRules.RULE_MOBGRIEFING);
+                    fountain.getLevel().getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(false, fountain.getLevel().getServer());
+                    dragon.aiStep(); // livingTick -> aiStep
+                    fountain.getLevel().getGameRules().getRule(GameRules.RULE_MOBGRIEFING).set(prev, fountain.getLevel().getServer());
                 }
             } else {
-                le.setMotion(Vector3d.ZERO);
+                le.setDeltaMovement(Vec3.ZERO);
             }
 
             EventHelperEntityFreeze.freeze(le);
         }
 
         float upkeep = Math.max(0, density / boxCapacity);
-        fountain.consumeLiquidStarlight(MathHelper.ceil(upkeep / 3F));
+        fountain.consumeLiquidStarlight(Mth.ceil(upkeep / 3F));
 
 
-        List<LivingEntity> pulling = fountain.getWorld().getEntitiesWithinAABB(LivingEntity.class, pullBox);
+        List<LivingEntity> pulling = fountain.getLevel().getEntitiesOfClass(LivingEntity.class, pullBox);
         pulling.removeAll(captured);
         for (LivingEntity le : pulling) {
-            if (le == null || !le.isAlive() || le instanceof PlayerEntity || !TechnicalEntityRegistry.INSTANCE.canAffect(le)) {
+            if (le == null || !le.isAlive() || le instanceof Player || !TechnicalEntityRegistry.INSTANCE.canAffect(le)) {
                 continue;
             }
             EventHelperEntityFreeze.freeze(le);
 
             EntityUtils.applyVortexMotion(() -> Vector3.atEntityCorner(le), (v) -> {
-                if (le instanceof EnderDragonEntity) {
+                if (le instanceof EnderDragon) {
                     Vector3 nextPos = Vector3.atEntityCorner(le).add(v);
-                    if (le.isServerWorld()) {
-                        le.setPositionAndUpdate(nextPos.getX(), nextPos.getY(), nextPos.getZ());
-                    } else {
-                        le.setPositionAndRotation(nextPos.getX(), nextPos.getY(), nextPos.getZ(), le.rotationYaw, le.rotationPitch);
-                    }
-                    le.setMotion(Vector3d.ZERO);
+                    le.moveTo(nextPos.getX(), nextPos.getY(), nextPos.getZ(), le.getYRot(), le.getXRot());
+                    le.setDeltaMovement(Vec3.ZERO);
                 } else {
-                    le.setMotion(le.getMotion().add(v.getX(), v.getY() * 2.5, v.getZ()));
-                    le.velocityChanged = true;
+                    le.setDeltaMovement(le.getDeltaMovement().add(v.getX(), v.getY() * 2.5, v.getZ()));
+                    le.hasImpulse = true; // velocityChanged -> hasImpulse
                 }
             }, vortexAt, 48, 3);
-
             if (vortexAt.distanceSquared(le) <= 16) {
                 Vector3 randomRanges = new Vector3(
-                        Math.max(0, (captureBox.getXSize() - le.getWidth()) / 2),
-                        Math.max(0, (captureBox.getYSize() - le.getHeight()) / 2),
-                        Math.max(0, (captureBox.getZSize() - le.getWidth()) / 2)
+                        Math.max(0, (captureBox.getXsize() - le.getBbWidth()) / 2),
+                        Math.max(0, (captureBox.getYsize() - le.getBbHeight()) / 2),
+                        Math.max(0, (captureBox.getZsize() - le.getBbWidth()) / 2)
                 );
                 Vector3 randomPos = vortexAt.clone().add(
                         randomRanges.getX() * rand.nextFloat() * (rand.nextBoolean() ? 1 : -1),
                         randomRanges.getY() * rand.nextFloat() * (rand.nextBoolean() ? 1 : -1),
                         randomRanges.getZ() * rand.nextFloat() * (rand.nextBoolean() ? 1 : -1)
                 );
-                le.setPositionAndRotation(randomPos.getX(), randomPos.getY(), randomPos.getZ(), le.rotationYaw, le.rotationPitch);
+                le.moveTo(randomPos.getX(), randomPos.getY(), randomPos.getZ(), le.getYRot(), le.getXRot());
             }
         }
     }
@@ -178,23 +173,25 @@ public class FountainEffectVortex extends FountainEffect<VortexContext> {
             ctx.fountainSprite = sprite;
         }
 
-        BlockPos fountainPos = fountain.getPos();
+        BlockPos fountainPos = fountain.getBlockPos();
+        Vec3 centerPos = Vec3.atCenterOf(fountainPos);
         float segmentPercent = getSegmentPercent(currentSegment, operationTick);
         switch (currentSegment) {
             case STARTUP:
-                playFountainVortexParticles(fountainPos, segmentPercent);
-                playFountainArcs(fountainPos, segmentPercent);
-                playCoreParticles(fountainPos, segmentPercent);
+                // Usa centerPos en lugar de fountainPos
+                playFountainVortexParticles(centerPos, segmentPercent);
+                playFountainArcs(centerPos, segmentPercent);
+                playCoreParticles(fountainPos, segmentPercent); // Si este aún pide BlockPos, déjalo así
                 break;
             case PREPARATION:
-                playFountainArcs(fountainPos, 1F - segmentPercent);
-                playFountainVortexParticles(fountainPos, 1F - segmentPercent);
+                playFountainArcs(centerPos, 1F - segmentPercent);
+                playFountainVortexParticles(centerPos, 1F - segmentPercent);
                 playCoreParticles(fountainPos, 1F - segmentPercent * 2F);
                 playCorePrimerParticles(fountainPos, segmentPercent);
                 break;
             case RUNNING:
-                playFountainVortexParticles(fountainPos, 0.2F);
-                playFountainArcs(fountainPos, 0.6F);
+                playFountainVortexParticles(centerPos, 0.2F);
+                playFountainArcs(centerPos, 0.6F);
                 playFountainVortexLowerParticles(fountainPos);
                 playVortexEffects(fountainPos, fountain, ctx);
                 break;
@@ -323,7 +320,7 @@ public class FountainEffectVortex extends FountainEffect<VortexContext> {
     public void transition(TileFountain fountain, VortexContext context, LogicalSide side, OperationSegment prevSegment, OperationSegment nextSegment) {
         if (side.isClient()) {
             if (nextSegment == OperationSegment.RUNNING) {
-                doVortexExplosion(fountain.getPos());
+                doVortexExplosion(fountain.getBlockPos());
             }
         }
     }

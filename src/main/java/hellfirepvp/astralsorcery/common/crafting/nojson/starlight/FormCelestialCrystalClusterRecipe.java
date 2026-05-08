@@ -25,13 +25,14 @@ import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.tile.TileCelestialCrystals;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -54,14 +55,14 @@ public class FormCelestialCrystalClusterRecipe extends LiquidStarlightRecipe {
     @Override
     @OnlyIn(Dist.CLIENT)
     public List<Ingredient> getInputForRender() {
-        return Arrays.asList(Ingredient.fromStacks(new ItemStack(ItemsAS.STARDUST)),
+        return Arrays.asList(Ingredient.of(new ItemStack(ItemsAS.STARDUST)),
                 new CrystalIngredient(false, false));
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
     public List<Ingredient> getOutputForRender() {
-        return Collections.singletonList(Ingredient.fromStacks(new ItemStack(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER)));
+        return Collections.singletonList(Ingredient.of(new ItemStack(BlocksAS.CELESTIAL_CRYSTAL_CLUSTER)));
     }
 
     @Override
@@ -73,8 +74,8 @@ public class FormCelestialCrystalClusterRecipe extends LiquidStarlightRecipe {
     }
 
     @Override
-    public boolean matches(ItemEntity trigger, World world, BlockPos at) {
-        if (!world.getBlockState(at.down()).isTopSolid(world, at.down(), trigger, Direction.UP)) {
+    public boolean matches(ItemEntity trigger, Level world, BlockPos at) {
+        if (!world.getBlockState(at.below()).isFaceSturdy(world, at.below(), Direction.UP)) {
             return false;
         }
         List<Entity> otherEntities = getEntitiesInBlock(world, at);
@@ -87,14 +88,14 @@ public class FormCelestialCrystalClusterRecipe extends LiquidStarlightRecipe {
     }
 
     @Override
-    public void doServerCraftTick(ItemEntity trigger, World world, BlockPos at) {
-        Random r = new Random(MathHelper.getPositionRandom(at));
-        if (!world.isRemote() && getAndIncrementCraftingTick(trigger) > 50 + r.nextInt(20)) {
+    public void doServerCraftTick(ItemEntity trigger, Level world, BlockPos at) {
+        Random r = new Random(Mth.getSeed(at));
+        if (!world.isClientSide() && getAndIncrementCraftingTick(trigger) > 50 + r.nextInt(20)) {
             ItemStack crystalFound;
             if (consumeItemEntityInBlock(world, at, ItemsAS.STARDUST) != null &&
                     (crystalFound = consumeItemEntityInBlock(world, at, 1, stack -> stack.getItem() instanceof ItemCrystalBase)) != null) {
 
-                if (world.setBlockState(at, BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.getDefaultState())) {
+                if (world.setBlockAndUpdate(at, BlocksAS.CELESTIAL_CRYSTAL_CLUSTER.defaultBlockState())) {
                     TileCelestialCrystals cluster = MiscUtils.getTileAt(world, at, TileCelestialCrystals.class, true);
                     if (cluster != null) {
                         CrystalAttributes attr = ((CrystalAttributeItem) crystalFound.getItem()).getAttributes(crystalFound);
@@ -109,10 +110,10 @@ public class FormCelestialCrystalClusterRecipe extends LiquidStarlightRecipe {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void doClientEffectTick(ItemEntity trigger, World world, BlockPos at) {
+    public void doClientEffectTick(ItemEntity trigger, Level world, BlockPos at) {
         for (int i = 0; i < 3; i++) {
             Vector3 pos = Vector3.atEntityCorner(trigger);
-            MiscUtils.applyRandomOffset(pos, rand, 0.15F);
+            MiscUtils.applyRandomOffset(pos, (RandomSource) rand, 0.15F);
 
             Vector3 motion = Vector3.RotAxis.Y_AXIS.clone();
             motion.rotate(Math.toRadians(10 + rand.nextInt(20)), Vector3.RotAxis.X_AXIS)

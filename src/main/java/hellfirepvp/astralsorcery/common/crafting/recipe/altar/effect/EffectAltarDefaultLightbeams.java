@@ -8,14 +8,16 @@
 
 package hellfirepvp.astralsorcery.common.crafting.recipe.altar.effect;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.PoseStack;
+import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHelper;
 import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.ActiveSimpleAltarRecipe;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.util.RandomSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -28,27 +30,41 @@ import net.minecraftforge.api.distmarker.OnlyIn;
  */
 public class EffectAltarDefaultLightbeams extends AltarRecipeEffect {
 
+    public EffectAltarDefaultLightbeams() {
+        super(AstralSorcery.key("default_lightbeams"));
+    }
+
     @Override
     @OnlyIn(Dist.CLIENT)
     public void onTick(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state) {
-        if (state == ActiveSimpleAltarRecipe.CraftingState.ACTIVE &&
-                rand.nextInt(8) == 0) {
-            float scale = (float) getRandomPillarOffset(altar.getAltarType()).getX();
+        if (state == ActiveSimpleAltarRecipe.CraftingState.ACTIVE) {
+            RandomSource random = altar.getLevel().getRandom();
 
-            Vector3 from = new Vector3(altar).add(0.5, 0, 0.5);
-            MiscUtils.applyRandomOffset(from, rand, scale * 0.85F);
-            from.setY(altar.getPos().getY() - 0.6F);
+            // Probabilidad de 1 entre 8 por tick
+            if (random.nextInt(8) == 0) {
+                // Obtenemos el radio basado en la estructura del altar
+                float scale = (float) getRandomPillarOffset(altar.getAltarType()).getX();
 
-            EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
-                    .spawn(from)
-                    .setup(from.clone().addY(5 + rand.nextFloat() * 3), 1, 1)
-                    .setMaxAge(40 + rand.nextInt(30));
+                Vector3 from = new Vector3(altar).add(0.5, 0, 0.5);
+                // Aplicamos un desfase aleatorio dentro del área del altar
+                MiscUtils.applyRandomOffset(from, random, scale * 0.85F);
+
+                // Los haces nacen un poco por debajo del altar para dar profundidad
+                from.setY(altar.getBlockPos().getY() - 0.6F);
+
+                EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
+                        .spawn(from)
+                        .setup(from.clone().addY(5 + random.nextFloat() * 3), 1, 1)
+                        .setMaxAge(40 + random.nextInt(30));
+            }
         }
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, MatrixStack renderStack, IRenderTypeBuffer buffer, float pTicks, int combinedLight) {}
+    public void onTESR(TileAltar altar, ActiveSimpleAltarRecipe.CraftingState state, PoseStack renderStack, MultiBufferSource buffer, float pTicks, int combinedLight) {
+        // No requiere renderizado de geometría estática
+    }
 
     @Override
     @OnlyIn(Dist.CLIENT)

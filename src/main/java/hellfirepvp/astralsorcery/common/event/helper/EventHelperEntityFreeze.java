@@ -13,7 +13,7 @@ import hellfirepvp.astralsorcery.common.data.sync.server.DataTimeFreezeEntities;
 import hellfirepvp.astralsorcery.common.util.tick.TimeoutList;
 import hellfirepvp.astralsorcery.common.util.time.TimeStopController;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDestroyBlockEvent;
@@ -51,14 +51,14 @@ public class EventHelperEntityFreeze {
         bus.addListener(EventHelperEntityFreeze::onDestroy);
     }
 
-    private static void onLivingTick(LivingEvent.LivingUpdateEvent event) {
-        if (TimeStopController.skipLivingTick(event.getEntityLiving())) {
+    private static void onLivingTick(LivingEvent.LivingTickEvent event) {
+        if (TimeStopController.skipLivingTick(event.getEntity())) {
             event.setCanceled(true);
         }
     }
 
     private static void onLivingKnockBack(LivingKnockBackEvent event) {
-        if (TimeStopController.skipLivingTick(event.getEntityLiving())) {
+        if (TimeStopController.skipLivingTick(event.getEntity())) {
             event.setCanceled(true);
         }
     }

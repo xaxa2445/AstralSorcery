@@ -16,10 +16,10 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchManager;
 import hellfirepvp.astralsorcery.common.lib.AltarRecipeEffectsAS;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.common.util.Constants;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nonnull;
@@ -52,7 +52,7 @@ public class AttunementUpgradeRecipe extends SimpleAltarRecipe {
     }
 
     @Override
-    public boolean matches(LogicalSide side, PlayerEntity crafter, TileAltar altar, boolean ignoreStarlightRequirement) {
+    public boolean matches(LogicalSide side, Player crafter, TileAltar altar, boolean ignoreStarlightRequirement) {
         return altar.getAltarType() == AltarType.DISCOVERY && super.matches(side, crafter, altar, ignoreStarlightRequirement);
     }
 
@@ -61,6 +61,6 @@ public class AttunementUpgradeRecipe extends SimpleAltarRecipe {
         super.onRecipeCompletion(altar, activeRecipe);
 
         ResearchManager.informCraftedAltar(altar, activeRecipe, new ItemStack(BlocksAS.ALTAR_ATTUNEMENT));
-        altar.getWorld().setBlockState(altar.getPos(), BlocksAS.ALTAR_ATTUNEMENT.getDefaultState(), Constants.BlockFlags.DEFAULT);
+        altar.getLevel().setBlock(altar.getBlockPos(), BlocksAS.ALTAR_ATTUNEMENT.defaultBlockState(), Block.UPDATE_ALL);
     }
 }

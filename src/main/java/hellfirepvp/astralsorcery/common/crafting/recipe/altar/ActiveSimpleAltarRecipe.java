@@ -26,6 +26,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
@@ -232,7 +233,7 @@ public class ActiveSimpleAltarRecipe {
                         waitMissingInputs = true;
                         continue;
                     }
-                    BlockPos at = MiscUtils.getRandomEntry(relays, rand);
+                    BlockPos at = MiscUtils.getRandomEntry(relays, (RandomSource) rand);
                     TileSpectralRelay tar = MiscUtils.getTileAt(altar.getLevel(), at, TileSpectralRelay.class, true);
                     if (tar == null) { // We were lied to. lol.
                         waitMissingInputs = true;

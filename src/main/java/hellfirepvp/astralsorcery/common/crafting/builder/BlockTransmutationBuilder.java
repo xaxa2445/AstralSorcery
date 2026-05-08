@@ -15,14 +15,13 @@ import hellfirepvp.astralsorcery.common.crafting.helper.CustomRecipeSerializer;
 import hellfirepvp.astralsorcery.common.crafting.recipe.BlockTransmutation;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
 import hellfirepvp.astralsorcery.common.util.block.BlockMatchInformation;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -39,7 +38,7 @@ public class BlockTransmutationBuilder extends CustomRecipeBuilder<BlockTransmut
 
     private final ResourceLocation id;
 
-    private BlockState outputState = Blocks.AIR.getDefaultState();
+    private BlockState outputState = Blocks.AIR.defaultBlockState();
     private double starlight = 200.0D;
     private IWeakConstellation constellation = null;
     private ItemStack outputDisplay = ItemStack.EMPTY;
@@ -49,12 +48,13 @@ public class BlockTransmutationBuilder extends CustomRecipeBuilder<BlockTransmut
         this.id = id;
     }
 
-    public static BlockTransmutationBuilder builder(ForgeRegistryEntry<?> nameProvider) {
-        return new BlockTransmutationBuilder(AstralSorcery.key(nameProvider.getRegistryName().getPath()));
-    }
-
+    // Eliminamos ForgeRegistryEntry y usamos ResourceLocation directamente
     public static BlockTransmutationBuilder builder(ResourceLocation id) {
         return new BlockTransmutationBuilder(id);
+    }
+
+    public static BlockTransmutationBuilder builder(String path) {
+        return new BlockTransmutationBuilder(AstralSorcery.key(path));
     }
 
     public BlockTransmutationBuilder multiplyStarlightCost(float multiply) {
@@ -73,14 +73,15 @@ public class BlockTransmutationBuilder extends CustomRecipeBuilder<BlockTransmut
     }
 
     public BlockTransmutationBuilder addInputCheck(Block matchBlock) {
-        return this.addInputCheck(matchBlock.getDefaultState());
+        return this.addInputCheck(matchBlock.defaultBlockState());
     }
 
     public BlockTransmutationBuilder addInputCheck(BlockState matchState) {
         return this.addInputCheck(matchState, false);
     }
 
-    public BlockTransmutationBuilder addInputCheck(ITag<Block> matchTag, ItemStack display) {
+    // ITag -> TagKey
+    public BlockTransmutationBuilder addInputCheck(TagKey<Block> matchTag, ItemStack display) {
         this.stateCheck.add(new BlockMatchInformation(matchTag, display));
         return this;
     }
@@ -89,7 +90,8 @@ public class BlockTransmutationBuilder extends CustomRecipeBuilder<BlockTransmut
         return this.addInputCheck(matchState, new ItemStack(matchState.getBlock()), matchExact);
     }
 
-    public BlockTransmutationBuilder addInputCheck(BlockState matchState, IItemProvider display, boolean matchExact) {
+    // IItemProvider -> ItemLike
+    public BlockTransmutationBuilder addInputCheck(BlockState matchState, ItemLike display, boolean matchExact) {
         return this.addInputCheck(matchState, new ItemStack(display), matchExact);
     }
 
@@ -99,7 +101,7 @@ public class BlockTransmutationBuilder extends CustomRecipeBuilder<BlockTransmut
     }
 
     public BlockTransmutationBuilder setOutput(Block output) {
-        return this.setOutput(output.getDefaultState());
+        return this.setOutput(output.defaultBlockState());
     }
 
     public BlockTransmutationBuilder setOutput(BlockState outputState) {
@@ -108,7 +110,7 @@ public class BlockTransmutationBuilder extends CustomRecipeBuilder<BlockTransmut
         return this;
     }
 
-    public BlockTransmutationBuilder setOutputDisplay(IItemProvider item) {
+    public BlockTransmutationBuilder setOutputDisplay(ItemLike item) {
         return this.setOutputDisplay(new ItemStack(item));
     }
 

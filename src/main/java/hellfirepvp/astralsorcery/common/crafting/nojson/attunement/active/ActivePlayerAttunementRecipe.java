@@ -34,11 +34,14 @@ import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.sound.SoundHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -74,7 +77,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
         this.playerUUID = playerUUID;
     }
 
-    public ActivePlayerAttunementRecipe(AttunePlayerRecipe recipe, CompoundNBT nbt) {
+    public ActivePlayerAttunementRecipe(AttunePlayerRecipe recipe, CompoundTag nbt) {
         super(recipe);
         this.readFromNBT(nbt);
     }
@@ -84,17 +87,17 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
         if (!super.matches(altar)) {
             return false;
         }
-        PlayerEntity player;
-        return (player = altar.getWorld().getPlayerByUuid(this.playerUUID)) != null && player.isAlive();
+        Player player = altar.getLevel().getPlayerByUUID(this.playerUUID);
+        return player != null && player.isAlive();
     }
 
     @Override
     public void startCrafting(TileAttunementAltar altar) {
-        PlayerEntity player = altar.getWorld().getPlayerByUuid(this.playerUUID);
+        Player player = altar.getLevel().getPlayerByUUID(this.playerUUID);
         if (player != null && player.isAlive()) {
             Vector3 offset = new Vector3(altar).add(0.5F, 1.2F, 0.5F);
-            player.setPositionAndRotation(offset.getX(), offset.getY(), offset.getZ(), 0F, 0F);
-            player.setPositionAndRotation(offset.getX(), offset.getY(), offset.getZ(), 0F, 0F);
+            player.moveTo(offset.getX(), offset.getY(), offset.getZ(), 0F, 0F);
+            player.moveTo(offset.getX(), offset.getY(), offset.getZ(), 0F, 0F);
         }
     }
 
@@ -105,7 +108,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
 
     @Override
     public void finishRecipe(TileAttunementAltar altar) {
-        PlayerEntity player = altar.getWorld().getPlayerByUuid(this.playerUUID);
+        Player player = altar.getLevel().getPlayerByUUID(this.playerUUID);
         if (player != null) {
             ResearchManager.setAttunedConstellation(player, this.constellation);
         }
@@ -114,7 +117,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
     @Override
     public void doTick(LogicalSide side, TileAttunementAltar altar) {
         if (side.isServer()) {
-            PlayerEntity player = altar.getWorld().getPlayerByUuid(this.playerUUID);
+            Player player = altar.getLevel().getPlayerByUUID(this.playerUUID);
             if (player != null) {
                 EventHelperInvulnerability.makeInvulnerable(player);
             }
@@ -148,7 +151,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
         if (tick % 40 == 0) {
             for (BlockPos pos : altar.getConstellationPositions(cst)) {
                 Vector3 from = new Vector3(pos).add(0.5, 0, 0.5);
-                MiscUtils.applyRandomOffset(from, rand, 0.1F);
+                MiscUtils.applyRandomOffset(from, (RandomSource) rand, 0.1F);
                 EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                         .spawn(from)
                         .setup(from.clone().addY(6), 1.2, 1.2)
@@ -181,7 +184,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
 
         for (int i = 0; i < 5; i++) {
             Set<BlockPos> offsets = altar.getConstellationPositions(cst);
-            BlockPos pos = MiscUtils.getRandomEntry(offsets, rand);
+            BlockPos pos = MiscUtils.getRandomEntry(offsets, (RandomSource) rand);
 
             if (tick <= 380) {
                 Vector3 offset = new Vector3(pos)
@@ -272,7 +275,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
         if (tick >= 400) {
             int amt = tick >= 500 ? 4 : 1;
             for (int i = 0; i < amt; i++) {
-                RenderOffsetNoisePlane plane = (RenderOffsetNoisePlane) MiscUtils.getRandomEntry(this.playerNoisePlanes, rand);
+                RenderOffsetNoisePlane plane = (RenderOffsetNoisePlane) MiscUtils.getRandomEntry(this.playerNoisePlanes, (RandomSource) rand);
                 FXFacingParticle p = plane.createParticle(playerTarget.clone())
                         .setMotion(Vector3.random().setY(0).multiply(rand.nextFloat() * 0.015F))
                         .setAlphaMultiplier(0.6F)
@@ -289,7 +292,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
         if (tick >= 600) {
             if (tick % 10 == 0) {
                 Vector3 from = new Vector3(altar).add(0.5, 0, 0.5);
-                MiscUtils.applyRandomOffset(from, rand, 0.25F);
+                MiscUtils.applyRandomOffset(from, (RandomSource) rand, 0.25F);
                 EffectHelper.of(EffectTemplatesAS.LIGHTBEAM)
                         .spawn(from)
                         .setup(from.clone().addY(8), 2.4, 2)
@@ -324,7 +327,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
     private void doClientSetup(TileAttunementAltar altar) {
         if (this.cameraHack == null &&
                 Minecraft.getInstance().player != null &&
-                Minecraft.getInstance().player.getUniqueID().equals(this.getPlayerUUID())) {
+                Minecraft.getInstance().player.getUUID().equals(this.getPlayerUUID())) {
             Vector3 offset = new Vector3(altar).add(0.5, 6, 0.5);
             CameraPathBuilder builder = CameraPathBuilder.builder(offset.clone().add(4, 0, 4), new Vector3(altar).add(0.5, 0.5, 0.5));
             builder.addCircularPoints(offset, CameraPathBuilder.DynamicRadiusGetter.dyanmicIncrease( 5,  0.025), 200, 2);
@@ -337,7 +340,7 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
 
         if (!startedPlayerSound) {
             startedPlayerSound = true;
-            SoundHelper.playSoundFadeInClient(SoundsAS.ATTUNEMENT_ATLAR_PLAYER_ATTUNE,
+            SoundHelper.playSoundFadeInClient(SoundsAS.ATTUNEMENT_ATLAR_PLAYER_ATTUNE.getSoundEvent(),
                     new Vector3(altar).add(0.5, 1, 0.5),
                     0.7F,
                     1F,
@@ -359,27 +362,27 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
             }
 
             float floatTick = (ClientScheduler.getClientTick() % 40) / 40F;
-            float sin = MathHelper.sin((float) (floatTick * 2 * Math.PI)) / 2F + 0.5F;
+            float sin = Mth.sin((float) (floatTick * 2 * Math.PI)) / 2F + 0.5F;
             focusedEntity.setCustomNameVisible(false);
-            focusedEntity.setPositionAndRotation(offset.getX(), offset.getY() + sin * 0.2D, offset.getZ(), 0F, 0F);
-            focusedEntity.setPositionAndRotation(offset.getX(), offset.getY() + sin * 0.2D, offset.getZ(), 0F, 0F);
-            focusedEntity.rotationYawHead = 0;
-            focusedEntity.prevRotationYawHead = 0;
-            focusedEntity.renderYawOffset = 0;
-            focusedEntity.prevRenderYawOffset = 0;
-            focusedEntity.setVelocity(0, 0, 0);
+            focusedEntity.moveTo(offset.getX(), offset.getY() + sin * 0.2D, offset.getZ(), 0F, 0F);
+            focusedEntity.moveTo(offset.getX(), offset.getY() + sin * 0.2D, offset.getZ(), 0F, 0F);
+            focusedEntity.setYHeadRot(0F);
+            focusedEntity.yHeadRotO = 0F;
+            focusedEntity.setYRot(0F);
+            focusedEntity.yRotO = 0F;
+            focusedEntity.setDeltaMovement(Vec3.ZERO);
         };
     }
 
     @OnlyIn(Dist.CLIENT)
     private ICameraStopListener createAttunementListener(TileAttunementAltar altar) {
-        BlockPos at = altar.getPos();
+        BlockPos at = altar.getBlockPos();
         return () -> {
             if (this.cameraHack != null) {
                 ICameraTransformer transformer = (ICameraTransformer) this.cameraHack;
                 ICameraPersistencyFunction persistency = transformer.getPersistencyFunction();
                 if (persistency.isExpired() && !persistency.wasForciblyStopped()) {
-                    PktAttunePlayerConstellation attuneRequest = new PktAttunePlayerConstellation(this.constellation, altar.getWorld().getDimensionKey(), at);
+                    PktAttunePlayerConstellation attuneRequest = new PktAttunePlayerConstellation(this.constellation, altar.getLevel().dimension(), at);
                     PacketChannel.CHANNEL.sendToServer(attuneRequest);
                 }
             }
@@ -404,18 +407,18 @@ public class ActivePlayerAttunementRecipe extends AttunementRecipe.Active<Attune
     }
 
     @Override
-    public void writeToNBT(CompoundNBT nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         super.writeToNBT(nbt);
 
-        nbt.putUniqueId("playerUUID", this.playerUUID);
+        nbt.putUUID("playerUUID", this.playerUUID);
         nbt.putString("constellation", this.constellation.getRegistryName().toString());
     }
 
     @Override
-    protected void readFromNBT(CompoundNBT nbt) {
+    protected void readFromNBT(CompoundTag nbt) {
         super.readFromNBT(nbt);
 
-        this.playerUUID = nbt.getUniqueId("playerUUID");
+        this.playerUUID = nbt.getUUID("playerUUID");
         this.constellation = (IMajorConstellation) RegistriesAS.REGISTRY_CONSTELLATIONS.getValue(new ResourceLocation(nbt.getString("constellation")));
     }
 }

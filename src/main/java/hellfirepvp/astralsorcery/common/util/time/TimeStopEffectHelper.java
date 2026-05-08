@@ -18,17 +18,19 @@ import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.nbt.NBTHelper;
 import net.minecraft.client.Minecraft;
-import net.minecraft.entity.EntitySize;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EntityPredicates;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -46,7 +48,7 @@ import java.util.Random;
  */
 public class TimeStopEffectHelper {
 
-    private static final Random rand = new Random();
+    private static final RandomSource rand = RandomSource.create();
 
     @Nonnull
     private final BlockPos position;
@@ -78,10 +80,10 @@ public class TimeStopEffectHelper {
 
     @OnlyIn(Dist.CLIENT)
     static void playEntityParticles(LivingEntity e) {
-        EntitySize size = e.getSize(e.getPose());
-        double x = e.getPosX() - size.width / 2F + rand.nextFloat() * size.width;
-        double y = e.getPosY() + rand.nextFloat() * size.height;
-        double z = e.getPosZ() - size.width / 2F + rand.nextFloat() * size.width;
+        EntityDimensions size = e.getDimensions(e.getPose());
+        double x = e.getX() - size.width / 2F + rand.nextFloat() * size.width;
+        double y = e.getY() + rand.nextFloat() * size.height;
+        double z = e.getZ() - size.width / 2F + rand.nextFloat() * size.width;
         playParticles(x, y, z);
     }
 
@@ -103,14 +105,14 @@ public class TimeStopEffectHelper {
 
     @OnlyIn(Dist.CLIENT)
     public void playClientTickEffect() {
-        World world = Minecraft.getInstance().world;
+        ClientLevel world = Minecraft.getInstance().level;
         if (world == null) {
             return;
         }
 
-        List<LivingEntity> entities = world.getEntitiesWithinAABB(LivingEntity.class,
-                new AxisAlignedBB(-range, -range, -range, range, range, range).offset(position.getX(), position.getY(), position.getZ()),
-                EntityPredicates.withinRange(position.getX(), position.getY(), position.getZ(), range));
+        AABB area = new AABB(position).inflate(range);
+        List<LivingEntity> entities = world.getEntitiesOfClass(LivingEntity.class, area, e ->
+                e.position().closerThan(new Vec3(position.getX(), position.getY(), position.getZ()), range));
 
         for (LivingEntity e : entities) {
             if (e != null && e.isAlive() && targetController.shouldFreezeEntity(e) && rand.nextInt(3) == 0) {
@@ -118,26 +120,26 @@ public class TimeStopEffectHelper {
             }
         }
 
-        int minX = MathHelper.floor((position.getX() - range) / 16.0D);
-        int maxX = MathHelper.floor((position.getX() + range) / 16.0D);
-        int minZ = MathHelper.floor((position.getZ() - range) / 16.0D);
-        int maxZ = MathHelper.floor((position.getZ() + range) / 16.0D);
+        int minX = Mth.floor((position.getX() - range) / 16.0D);
+        int maxX = Mth.floor((position.getX() + range) / 16.0D);
+        int minZ = Mth.floor((position.getZ() - range) / 16.0D);
+        int maxZ = Mth.floor((position.getZ() + range) / 16.0D);
 
         for (int xx = minX; xx <= maxX; ++xx) {
             for (int zz = minZ; zz <= maxZ; ++zz) {
-                Chunk ch = world.getChunk(xx, zz);
-                if (!ch.isEmpty()) {
-                    Map<BlockPos, TileEntity> map = ch.getTileEntityMap();
-                    for (Map.Entry<BlockPos, TileEntity> teEntry : map.entrySet()) {
-
-                        TileEntity te = teEntry.getValue();
-                        if (TileAccelerationBlacklistRegistry.INSTANCE.canBeInfluenced(te) && te.getPos().withinDistance(position, range)) {
-
-                            double x = te.getPos().getX() + rand.nextFloat();
-                            double y = te.getPos().getY() + rand.nextFloat();
-                            double z = te.getPos().getZ() + rand.nextFloat();
-
-                            playParticles(x, y, z);
+                LevelChunk ch = world.getChunk(xx, zz);
+                if (ch != null && !ch.isEmpty()) {
+                    // En 1.20.1 no podemos acceder directamente al mapa de TEs.
+                    // Usamos getBlockEntitiesPos() que es más eficiente en el cliente.
+                    for (BlockPos tePos : ch.getBlockEntitiesPos()) {
+                        if (tePos.closerThan(position, range)) {
+                            BlockEntity be = world.getBlockEntity(tePos);
+                            if (be != null && TileAccelerationBlacklistRegistry.INSTANCE.canBeInfluenced(be)) {
+                                double x = tePos.getX() + rand.nextFloat();
+                                double y = tePos.getY() + rand.nextFloat();
+                                double z = tePos.getZ() + rand.nextFloat();
+                                playParticles(x, y, z);
+                            }
                         }
                     }
                 }

@@ -19,9 +19,9 @@ import hellfirepvp.astralsorcery.common.constellation.IWeakConstellation;
 import hellfirepvp.astralsorcery.common.crafting.recipe.SimpleAltarRecipe;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.AltarRecipeGrid;
 import hellfirepvp.astralsorcery.common.tile.altar.TileAltar;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -59,8 +59,8 @@ public class ConstellationCopyStatsRecipe extends ConstellationBaseAverageStatsR
     public void deserializeAdditionalJson(JsonObject recipeObject) throws JsonSyntaxException {
         super.deserializeAdditionalJson(recipeObject);
 
-        if (JSONUtils.hasField(recipeObject, KEY_CONSTELLATION_SLOT)) {
-            this.constellationSlot = JSONUtils.getInt(recipeObject, KEY_CONSTELLATION_SLOT);
+        if (GsonHelper.isValidNode(recipeObject, KEY_CONSTELLATION_SLOT)) {
+            this.constellationSlot = GsonHelper.getAsInt(recipeObject, KEY_CONSTELLATION_SLOT);
         }
     }
 

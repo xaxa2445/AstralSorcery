@@ -11,13 +11,18 @@ package hellfirepvp.astralsorcery.common.data.config.registry.sets;
 import hellfirepvp.astralsorcery.common.data.config.base.ConfigDataSet;
 import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.block.Block;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -30,18 +35,12 @@ import java.util.stream.Collectors;
  */
 public class OreBlockRarityEntry implements ConfigDataSet {
 
-    private final ITag<Block> blockTag;
-    private final ResourceLocation key;
+    private final TagKey<Block> blockTag;
     private final int weight;
 
-    public OreBlockRarityEntry(ITag<Block> blockTag, ResourceLocation key, int weight) {
+    public OreBlockRarityEntry(TagKey<Block> blockTag, int weight) {
         this.blockTag = blockTag;
-        this.key = key;
         this.weight = weight;
-    }
-
-    public OreBlockRarityEntry(ITag.INamedTag<Block> blockTag, int weight) {
-        this(blockTag, blockTag.getName(), weight);
     }
 
     public int getWeight() {
@@ -49,37 +48,43 @@ public class OreBlockRarityEntry implements ConfigDataSet {
     }
 
     @Nullable
-    public Block getRandomBlock(Random rand) {
-        return MiscUtils.getRandomEntry(this.blockTag.getAllElements()
-                .stream()
-                .filter(item -> !GeneralConfig.CONFIG.modidOreBlacklist.get().contains(item.getRegistryName().getNamespace()))
-                .collect(Collectors.toList()), rand);
+    public Block getRandomBlock(RandomSource rand) {
+        // En 1.20.1, obtenemos los elementos del tag a través del registro de bloques
+        List<Block> elements = BuiltInRegistries.BLOCK.getTag(this.blockTag)
+                .map(named -> named.stream()
+                        .map(holder -> holder.value())
+                        .filter(block -> {
+                            ResourceLocation name = ForgeRegistries.BLOCKS.getKey(block);
+                            return name != null && !GeneralConfig.CONFIG.modidOreBlacklist.get().contains(name.getNamespace());
+                        })
+                        .collect(Collectors.toList()))
+                .orElse(List.of());
+
+        return elements.isEmpty() ? null : MiscUtils.getRandomEntry(elements, rand);
     }
 
     @Nullable
-    public static OreBlockRarityEntry deserialize(String str) throws IllegalArgumentException {
+    public static OreBlockRarityEntry deserialize(String str) {
         String[] split = str.split(";");
         if (split.length != 2) {
             return null;
         }
-        ResourceLocation keyBlockTag = new ResourceLocation(split[0]);
-        ITag<Block> blockTag = BlockTags.getCollection().get(keyBlockTag);
-        if (blockTag == null) {
-            return null;
-        }
-        String strWeight = split[1];
-        int weight;
+
         try {
-            weight = Integer.parseInt(strWeight);
-        } catch (NumberFormatException exc) {
+            ResourceLocation tagLocation = new ResourceLocation(split[0]);
+            // Se crea la TagKey para bloques
+            TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, tagLocation);
+
+            int weight = Integer.parseInt(split[1]);
+            return new OreBlockRarityEntry(tagKey, weight);
+        } catch (Exception exc) {
             return null;
         }
-        return new OreBlockRarityEntry(blockTag, keyBlockTag, weight);
     }
 
     @Nonnull
     @Override
     public String serialize() {
-        return String.format("%s;%s", key.toString(), weight);
+        return String.format("%s;%d", blockTag.location().toString(), weight);
     }
 }

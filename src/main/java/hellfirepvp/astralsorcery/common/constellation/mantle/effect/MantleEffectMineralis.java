@@ -17,15 +17,15 @@ import hellfirepvp.astralsorcery.common.util.block.BlockDiscoverer;
 import hellfirepvp.astralsorcery.common.util.block.BlockPredicate;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.AirBlock;
-import net.minecraft.block.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.level.block.AirBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
@@ -54,9 +54,9 @@ public class MantleEffectMineralis extends MantleEffect {
     }
 
     private void onBreak(BlockEvent.BreakEvent event) {
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getPlayer();
         if (ItemMantle.getEffect(player, ConstellationsAS.mineralis) != null) {
-            LogicalSide side = player.getEntityWorld().isRemote() ? LogicalSide.CLIENT : LogicalSide.SERVER;
+            LogicalSide side = player.level().isClientSide() ? LogicalSide.CLIENT : LogicalSide.SERVER;
             if (side.isServer()) {
                 float charge = Math.min(AlignmentChargeHandler.INSTANCE.getCurrentCharge(player, side), CONFIG.chargeCostPerBreak.get());
                 AlignmentChargeHandler.INSTANCE.drainCharge(player, side, charge, false);
@@ -66,7 +66,7 @@ public class MantleEffectMineralis extends MantleEffect {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    protected void tickClient(PlayerEntity player) {
+    protected void tickClient(Player player) {
         super.tickClient(player);
 
         this.playCapeSparkles(player, 0.15F);
@@ -77,13 +77,13 @@ public class MantleEffectMineralis extends MantleEffect {
     }
 
     @OnlyIn(Dist.CLIENT)
-    private void playBlockHighlight(PlayerEntity player) {
+    private void playBlockHighlight(Player player) {
         BlockState state = null;
-        if (!player.getHeldItem(Hand.MAIN_HAND).isEmpty()) {
-            state = ItemUtils.createBlockState(player.getHeldItem(Hand.MAIN_HAND));
+        if (!player.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
+            state = ItemUtils.createBlockState(player.getItemInHand(InteractionHand.MAIN_HAND));
         }
-        if (!player.getHeldItem(Hand.OFF_HAND).isEmpty()) {
-            state = ItemUtils.createBlockState(player.getHeldItem(Hand.OFF_HAND));
+        if (!player.getItemInHand(InteractionHand.OFF_HAND).isEmpty()) {
+            state = ItemUtils.createBlockState(player.getItemInHand(InteractionHand.OFF_HAND));
         }
         if (state == null || state.getBlock() instanceof AirBlock) {
             return;
@@ -91,7 +91,7 @@ public class MantleEffectMineralis extends MantleEffect {
         BlockState fState = state;
 
         BlockPredicate search = (world, pos, foundState) -> foundState == fState;
-        List<BlockPos> positions = BlockDiscoverer.searchForBlocksAround(player.getEntityWorld(), player.getPosition(), CONFIG.highlightRange.get(), search);
+        List<BlockPos> positions = BlockDiscoverer.searchForBlocksAround(player.level(), player.blockPosition(), CONFIG.highlightRange.get(), search);
         if (positions.isEmpty()) {
             return;
         }
@@ -101,7 +101,7 @@ public class MantleEffectMineralis extends MantleEffect {
         }
 
         BlockPos at = positions.get(index);
-        BlockState displayState = player.getEntityWorld().getBlockState(at);
+        BlockState displayState = player.level().getBlockState(at);
         MiscPlayEffect.playSingleBlockTumbleDepthEffect(new Vector3(at).add(0.5, 0.5, 0.5), displayState);
     }
 

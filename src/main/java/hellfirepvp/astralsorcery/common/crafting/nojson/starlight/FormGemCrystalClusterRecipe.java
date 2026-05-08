@@ -22,13 +22,13 @@ import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -50,14 +50,14 @@ public class FormGemCrystalClusterRecipe extends LiquidStarlightRecipe {
 
     @Override
     public List<Ingredient> getInputForRender() {
-        return Arrays.asList(Ingredient.fromStacks(new ItemStack(ItemsAS.ILLUMINATION_POWDER)),
+        return Arrays.asList(Ingredient.of(new ItemStack(ItemsAS.ILLUMINATION_POWDER)),
                 new CrystalIngredient(false, false));
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
     public List<Ingredient> getOutputForRender() {
-        return Collections.singletonList(Ingredient.fromStacks(new ItemStack(BlocksAS.GEM_CRYSTAL_CLUSTER)));
+        return Collections.singletonList(Ingredient.of(new ItemStack(BlocksAS.GEM_CRYSTAL_CLUSTER)));
     }
 
     @Override
@@ -69,8 +69,8 @@ public class FormGemCrystalClusterRecipe extends LiquidStarlightRecipe {
     }
 
     @Override
-    public boolean matches(ItemEntity trigger, World world, BlockPos at) {
-        if (!world.getBlockState(at.down()).isTopSolid(world, at.down(), trigger, Direction.UP)) {
+    public boolean matches(ItemEntity trigger, Level world, BlockPos at) {
+        if (!world.getBlockState(at.below()).isFaceSturdy(world, at.below(), Direction.UP)) { // down() -> below()
             return false;
         }
         List<Entity> otherEntities = getEntitiesInBlock(world, at);
@@ -83,20 +83,20 @@ public class FormGemCrystalClusterRecipe extends LiquidStarlightRecipe {
     }
 
     @Override
-    public void doServerCraftTick(ItemEntity trigger, World world, BlockPos at) {
-        Random r = new Random(MathHelper.getPositionRandom(at));
+    public void doServerCraftTick(ItemEntity trigger, Level world, BlockPos at) {
+        Random r = new Random(Mth.getSeed(at));
         if (getAndIncrementCraftingTick(trigger) > 50 + r.nextInt(20)) {
             if (consumeItemEntityInBlock(world, at, ItemsAS.ILLUMINATION_POWDER) != null &&
                     consumeItemEntityInBlock(world, at, 1, stack -> stack.getItem() instanceof ItemCrystalBase) != null) {
 
-                world.setBlockState(at, BlocksAS.GEM_CRYSTAL_CLUSTER.getDefaultState());
+                world.setBlockAndUpdate(at, BlocksAS.GEM_CRYSTAL_CLUSTER.defaultBlockState());
             }
         }
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void doClientEffectTick(ItemEntity trigger, World world, BlockPos at) {
+    public void doClientEffectTick(ItemEntity trigger, Level world, BlockPos at) {
         for (int i = 0; i < 4; i++) {
             Vector3 target = Vector3.atEntityCenter(trigger);
             Vector3 pos = target.clone().add(Vector3.random().normalize().multiply(3 + rand.nextFloat()));

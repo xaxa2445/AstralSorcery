@@ -12,13 +12,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.JSONUtils;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.crafting.IIngredientSerializer;
-import net.minecraftforge.fluids.FluidAttributes;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.ArrayList;
@@ -45,35 +45,35 @@ public class FluidIngredientSerializer implements IIngredientSerializer<FluidIng
             element.getAsJsonArray().forEach(e -> {
                 if (e.isJsonObject()) {
                     JsonObject object = e.getAsJsonObject();
-                    ResourceLocation key = new ResourceLocation(JSONUtils.getString(object, "fluid"));
+                    ResourceLocation key = new ResourceLocation(GsonHelper.getAsString(object, "fluid"));
                     if (!ForgeRegistries.FLUIDS.containsKey(key)) {
                         throw new JsonSyntaxException("Unknown fluid '" + key + "'");
                     }
-                    int amount = FluidAttributes.BUCKET_VOLUME;
+                    int amount = FluidType.BUCKET_VOLUME;
                     if (object.has("amount")) {
-                        amount = JSONUtils.getInt(object, "amount");
+                        amount = GsonHelper.getAsInt(object, "amount");
                     }
                     Fluid fluid = ForgeRegistries.FLUIDS.getValue(key);
                     foundFluids.add(new FluidStack(fluid, amount));
                 } else if (e.isJsonPrimitive()) {
-                    ResourceLocation key = new ResourceLocation(JSONUtils.getString(element, "fluid"));
+                    ResourceLocation key = new ResourceLocation(GsonHelper.convertToString(element, "fluid"));
                     if (!ForgeRegistries.FLUIDS.containsKey(key)) {
                         throw new JsonSyntaxException("Unknown fluid '" + key + "'");
                     }
                     Fluid fluid = ForgeRegistries.FLUIDS.getValue(key);
-                    foundFluids.add(new FluidStack(fluid, FluidAttributes.BUCKET_VOLUME));
+                    foundFluids.add(new FluidStack(fluid, FluidType.BUCKET_VOLUME));
                 } else {
                     throw new JsonSyntaxException("Value at key 'fluid' has to be a fluid name or an array of fluid names or objects containing 'fluid'.");
                 }
             });
         } else if (element.isJsonPrimitive()) {
-            ResourceLocation key = new ResourceLocation(JSONUtils.getString(element, "fluid"));
+            ResourceLocation key = new ResourceLocation(GsonHelper.convertToString(element, "fluid"));
             if (!ForgeRegistries.FLUIDS.containsKey(key)) {
                 throw new JsonSyntaxException("Unknown fluid '" + key + "'");
             }
-            int amount = FluidAttributes.BUCKET_VOLUME;
+            int amount = FluidType.BUCKET_VOLUME;
             if (json.has("amount")) {
-                amount = JSONUtils.getInt(json, "amount");
+                amount = GsonHelper.getAsInt(json, "amount");
             }
             Fluid fluid = ForgeRegistries.FLUIDS.getValue(key);
             foundFluids.add(new FluidStack(fluid, amount));
@@ -84,12 +84,12 @@ public class FluidIngredientSerializer implements IIngredientSerializer<FluidIng
     }
 
     @Override
-    public FluidIngredient parse(PacketBuffer buffer) {
+    public FluidIngredient parse(FriendlyByteBuf buffer) {
         return new FluidIngredient(ByteBufUtils.readList(buffer, ByteBufUtils::readFluidStack));
     }
 
     @Override
-    public void write(PacketBuffer buffer, FluidIngredient ingredient) {
+    public void write(FriendlyByteBuf buffer, FluidIngredient ingredient) {
         ByteBufUtils.writeCollection(buffer, ingredient.getFluids(), ByteBufUtils::writeFluidStack);
     }
 

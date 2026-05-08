@@ -13,14 +13,13 @@ import hellfirepvp.astralsorcery.common.crafting.helper.CustomRecipeBuilder;
 import hellfirepvp.astralsorcery.common.crafting.helper.CustomRecipeSerializer;
 import hellfirepvp.astralsorcery.common.crafting.recipe.WellLiquefaction;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.item.Item;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.tags.Tag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.registries.ForgeRegistryEntry;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 
 import javax.annotation.Nonnull;
 import java.awt.*;
@@ -47,21 +46,22 @@ public class WellRecipeBuilder extends CustomRecipeBuilder<WellLiquefaction> {
         this.id = id;
     }
 
-    public static WellRecipeBuilder builder(ForgeRegistryEntry<?> nameProvider) {
-        return new WellRecipeBuilder(AstralSorcery.key(nameProvider.getRegistryName().getPath()));
-    }
-
+    // Eliminado ForgeRegistryEntry por ResourceLocation/String
     public static WellRecipeBuilder builder(ResourceLocation id) {
         return new WellRecipeBuilder(id);
     }
 
-    public WellRecipeBuilder setItemInput(IItemProvider item) {
-        this.input = Ingredient.fromItems(item);
+    public static WellRecipeBuilder builder(String path) {
+        return new WellRecipeBuilder(AstralSorcery.key(path));
+    }
+
+    public WellRecipeBuilder setItemInput(ItemLike item) { // IItemProvider -> ItemLike
+        this.input = Ingredient.of(item); // fromItems -> of
         return this;
     }
 
-    public WellRecipeBuilder setItemInput(Tag<Item> tag) {
-        this.input = Ingredient.fromTag(tag);
+    public WellRecipeBuilder setItemInput(TagKey<Item> tag) { // Tag -> TagKey
+        this.input = Ingredient.of(tag); // fromTag -> of
         return this;
     }
 
@@ -93,7 +93,7 @@ public class WellRecipeBuilder extends CustomRecipeBuilder<WellLiquefaction> {
     @Nonnull
     @Override
     protected WellLiquefaction validateAndGet() {
-        if (this.input.hasNoMatchingItems()) {
+        if (this.input.isEmpty()) {
             throw new IllegalArgumentException("No valid item for input found!");
         }
         if (this.output == Fluids.EMPTY) {

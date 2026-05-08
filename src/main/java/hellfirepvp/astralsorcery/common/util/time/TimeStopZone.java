@@ -10,20 +10,18 @@ package hellfirepvp.astralsorcery.common.util.time;
 
 import hellfirepvp.astralsorcery.common.data.config.registry.TileAccelerationBlacklistRegistry;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.boss.dragon.EnderDragonEntity;
-import net.minecraft.entity.boss.dragon.phase.IPhase;
-import net.minecraft.entity.boss.dragon.phase.PhaseType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nonnull;
 import java.util.LinkedList;
@@ -40,17 +38,15 @@ import java.util.Map;
 public class TimeStopZone {
 
     final EntityTargetController targetController;
-
     final float range;
     final BlockPos offset;
-    private final World world;
+    private final Level world;
     private int ticksToLive;
-
     private boolean active = true;
 
-    private final List<TileEntity> cachedTiles = new LinkedList<>();
+    private final List<BlockPos> frozenPositions = new LinkedList<>();
 
-    TimeStopZone(EntityTargetController ctrl, float range, BlockPos offset, World world, int tickLivespan) {
+    TimeStopZone(EntityTargetController ctrl, float range, BlockPos offset, Level world, int tickLivespan) {
         this.targetController = ctrl;
         this.range = range;
         this.offset = offset;
@@ -60,41 +56,16 @@ public class TimeStopZone {
 
     void onServerTick() {
         if (!active) return;
+
+        // Reducir el tiempo de vida de la zona
         this.ticksToLive--;
 
-        int minX = MathHelper.floor((offset.getX() - range) / 16.0D);
-        int maxX = MathHelper.floor((offset.getX() + range) / 16.0D);
-        int minZ = MathHelper.floor((offset.getZ() - range) / 16.0D);
-        int maxZ = MathHelper.floor((offset.getZ() + range) / 16.0D);
-
-        for (int xx = minX; xx <= maxX; ++xx) {
-            for (int zz = minZ; zz <= maxZ; ++zz) {
-                Chunk ch = world.getChunk(xx, zz);
-                if (!ch.isEmpty()) {
-                    Map<BlockPos, TileEntity> map = ch.getTileEntityMap();
-                    for (Map.Entry<BlockPos, TileEntity> teEntry : map.entrySet()) {
-                        TileEntity te = teEntry.getValue();
-                        if (TileAccelerationBlacklistRegistry.INSTANCE.canBeInfluenced(te) &&
-                                te.getPos().withinDistance(offset, range) &&
-                                world.tickableTileEntities.contains(te)) {
-                            world.tickableTileEntities.remove(te);
-                            safeCacheTile(te);
-                        }
-                    }
-                }
-            }
+        if (this.shouldDespawn()) {
+            this.stopEffect();
         }
-    }
 
-    private void safeCacheTile(TileEntity te) {
-        if (te == null) return;
-
-        for (TileEntity tile : cachedTiles) {
-            if (tile.getPos().equals(te.getPos())) {
-                return;
-            }
-        }
-        cachedTiles.add(te);
+        // Opcional: Aquí podrías disparar partículas de "distorsión"
+        // en los bordes de la zona para feedback visual.
     }
 
     public void setTicksToLive(int ticksToLive) {
@@ -102,16 +73,7 @@ public class TimeStopZone {
     }
 
     void stopEffect() {
-        for (TileEntity cached : cachedTiles) {
-            BlockState state = world.getBlockState(cached.getPos());
-            if (state.getBlock().hasTileEntity(state)) {
-                TileEntity te = state.getBlock().createTileEntity(state, world);
-                if (te != null && te.getClass().isAssignableFrom(cached.getClass())) {
-                    world.tickableTileEntities.add(cached);
-                }
-            }
-        }
-        this.cachedTiles.clear();
+        this.frozenPositions.clear();
         this.active = false;
     }
 
@@ -125,32 +87,29 @@ public class TimeStopZone {
 
     //Mainly because we still want to be able to do damage.
     static void handleImportantEntityTicks(LivingEntity e) {
-        if (e.hurtTime > 0) {
-            e.hurtTime--;
-        }
-        if (e.hurtResistantTime > 0) {
-            e.hurtResistantTime--;
-        }
-        e.prevPosX = e.getPosX();
-        e.prevPosY = e.getPosY();
-        e.prevPosZ = e.getPosZ();
-        e.prevLimbSwingAmount = e.limbSwingAmount;
-        e.prevRenderYawOffset = e.renderYawOffset;
-        e.prevRotationPitch = e.rotationPitch;
-        e.prevRotationYaw = e.rotationYaw;
-        e.prevRotationYawHead = e.rotationYawHead;
-        e.prevSwingProgress = e.swingProgress;
-        e.prevDistanceWalkedModified = e.distanceWalkedModified;
+        if (e.hurtTime > 0) e.hurtTime--;
+        if (e.invulnerableTime > 0) e.invulnerableTime--; // hurtResistantTime -> invulnerableTime
+        e.xo = e.getX();
+        e.yo = e.getY();
+        e.zo = e.getZ();
 
-        if (!e.getEntityWorld().isRemote()) {
-            e.travel(Vector3d.ZERO);
+        e.yBodyRotO = e.yBodyRot;
+        e.xRotO = e.getXRot();
+        e.yRotO = e.getYRot();
+        e.yHeadRotO = e.yHeadRot;
+
+        e.walkAnimation.setSpeed(e.walkAnimation.speed());
+        e.walkAnimation.update(e.walkAnimation.position(), 0); // Forzamos a que el delta sea 0
+        e.swingTime = e.swingTime; // prevSwingProgress logic
+
+        if (!e.level().isClientSide()) {
+            e.travel(Vec3.ZERO);
         }
 
-        if (e instanceof EnderDragonEntity) {
-            IPhase phase = ((EnderDragonEntity) e).getPhaseManager().getCurrentPhase();
-            if (phase.getType() != PhaseType.HOLDING_PATTERN &&
-                    phase.getType() != PhaseType.DYING) {
-                ((EnderDragonEntity) e).getPhaseManager().setPhase(PhaseType.HOLDING_PATTERN);
+        if (e instanceof EnderDragon dragon) {
+            if (dragon.getPhaseManager().getCurrentPhase().getPhase() != EnderDragonPhase.HOLDING_PATTERN &&
+                    dragon.getPhaseManager().getCurrentPhase().getPhase() != EnderDragonPhase.DYING) {
+                dragon.getPhaseManager().setPhase(EnderDragonPhase.HOLDING_PATTERN);
             }
         }
     }
@@ -168,20 +127,19 @@ public class TimeStopZone {
         }
 
         boolean shouldFreezeEntity(LivingEntity e) {
-            if (!e.isAlive() || e.getHealth() <= 0) {
+            if (!e.isAlive() || e.getHealth() <= 0) return false;
+
+            if (e instanceof EnderDragon dragon &&
+                    dragon.getPhaseManager().getCurrentPhase().getPhase() == EnderDragonPhase.DYING) {
                 return false;
             }
-            if (e instanceof EnderDragonEntity && ((EnderDragonEntity) e).getPhaseManager().getCurrentPhase().getType() == PhaseType.DYING) {
-                return false;
-            }
-            if (hasOwner && e.getEntityId() == ownerId) {
-                return false;
-            }
-            return targetPlayers || !(e instanceof PlayerEntity);
+            if (hasOwner && e.getId() == ownerId) return false;
+
+            return targetPlayers || !(e instanceof Player);
         }
 
         public static EntityTargetController allExcept(Entity entity) {
-            return new EntityTargetController(entity.getEntityId(), true, true);
+            return new EntityTargetController(entity.getId(), true, true);
         }
 
         public static EntityTargetController noPlayers() {
@@ -189,8 +147,8 @@ public class TimeStopZone {
         }
 
         @Nonnull
-        public CompoundNBT serializeNBT() {
-            CompoundNBT out = new CompoundNBT();
+        public CompoundTag serializeNBT() {
+            CompoundTag out = new CompoundTag();
             out.putBoolean("targetPlayers", this.targetPlayers);
             out.putBoolean("hasOwner", this.hasOwner);
             out.putInt("ownerEntityId", this.ownerId);
@@ -198,7 +156,7 @@ public class TimeStopZone {
         }
 
         @Nonnull
-        public static EntityTargetController deserializeNBT(CompoundNBT cmp) {
+        public static EntityTargetController deserializeNBT(CompoundTag cmp) {
             boolean targetPlayers = cmp.getBoolean("targetPlayers");
             boolean hasOwner = cmp.getBoolean("hasOwner");
             int ownerId = cmp.getInt("ownerEntityId");
