@@ -21,17 +21,16 @@ import hellfirepvp.astralsorcery.common.item.crystal.ItemCrystalBase;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.item.ItemEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.Constants;
 
 import java.util.*;
 
@@ -69,7 +68,7 @@ public class MergeCrystalsRecipe extends LiquidStarlightRecipe {
     }
 
     @Override
-    public boolean matches(ItemEntity trigger, World world, BlockPos at) {
+    public boolean matches(ItemEntity trigger, Level world, BlockPos at) {
         List<Entity> otherEntities = getEntitiesInBlock(world, at);
         otherEntities.remove(trigger);
         Optional<Entity> crystalEntity = otherEntities.stream()
@@ -80,13 +79,13 @@ public class MergeCrystalsRecipe extends LiquidStarlightRecipe {
     }
 
     @Override
-    public void doServerCraftTick(ItemEntity trigger, World world, BlockPos at) {
-        Random r = new Random(MathHelper.getPositionRandom(at));
-        if (!world.isRemote() && getAndIncrementCraftingTick(trigger) > 40 + r.nextInt(20)) {
+    public void doServerCraftTick(ItemEntity trigger, Level world, BlockPos at) {
+        Random r = new Random(Mth.getSeed(at));
+        if (!world.isClientSide() && getAndIncrementCraftingTick(trigger) > 40 + r.nextInt(20)) {
             ItemStack crystalFoundOne, crystalFoundTwo;
             if ((crystalFoundOne = consumeItemEntityInBlock(world, at, 1, stack -> stack.getItem() instanceof ItemCrystalBase)) != null &&
                     (crystalFoundTwo = consumeItemEntityInBlock(world, at, 1, stack -> stack.getItem() instanceof ItemCrystalBase)) != null &&
-                    world.setBlockState(at, Blocks.AIR.getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER)) {
+                    world.setBlock(at, Blocks.AIR.defaultBlockState(), 3)) {
 
                 ItemCrystalBase crystalOne = (ItemCrystalBase) crystalFoundOne.getItem();
                 CrystalAttributes attrOne = crystalOne.getAttributes(crystalFoundOne);
@@ -118,13 +117,13 @@ public class MergeCrystalsRecipe extends LiquidStarlightRecipe {
                 }
 
                 resultCrystal.setAttributes(resultStack, resultBuilder.build());
-                ItemUtils.dropItemNaturally(world, trigger.getPosX(), trigger.getPosY(), trigger.getPosZ(), resultStack);
+                ItemUtils.dropItemNaturally(world, trigger.getX(), trigger.getY(), trigger.getZ(), resultStack);
             }
         }
     }
 
     @Override
-    public void doClientEffectTick(ItemEntity trigger, World world, BlockPos at) {
+    public void doClientEffectTick(ItemEntity trigger, Level world, BlockPos at) {
         for (int i = 0; i < 3; i++) {
             Vector3 pos = Vector3.atEntityCenter(trigger);
             MiscUtils.applyRandomOffset(pos, rand, 0.15F);

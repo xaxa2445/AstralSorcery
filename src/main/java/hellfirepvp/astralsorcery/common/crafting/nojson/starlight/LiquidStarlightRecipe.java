@@ -15,6 +15,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
  */
 public abstract class LiquidStarlightRecipe extends CustomRecipe {
 
-    protected static final Random rand = new Random();
+    protected static final RandomSource rand = RandomSource.create();
     private static final int WORLD_TIME_TOLERANCE = 10;
 
     public LiquidStarlightRecipe(ResourceLocation key) {
