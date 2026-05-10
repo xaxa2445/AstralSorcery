@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.structure;
 import hellfirepvp.astralsorcery.common.block.marble.BlockMarblePillar;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.StructureTypesAS;
+import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
 import hellfirepvp.observerlib.api.block.MatchableState;
 import hellfirepvp.observerlib.api.block.SimpleMatchableBlock;
 import hellfirepvp.observerlib.api.util.PatternBlockArray;
@@ -52,10 +53,10 @@ public class PatternSingularity extends PatternBlockArray {
         addBlock(sooty, -3, -5,  3);
         addBlock(sooty,  3, -5, -3);
         addBlock(sooty,  3, -5,  3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(), -3, -4, -3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(), -3, -4,  3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(),  3, -4, -3);
-        addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(),  3, -4,  3);
+        addBlock(RegistryFluids.LIQUID_STARLIGHT_BLOCK.get().defaultBlockState(), -3, -4, -3);
+        addBlock(RegistryFluids.LIQUID_STARLIGHT_BLOCK.get().defaultBlockState(), -3, -4,  3);
+        addBlock(RegistryFluids.LIQUID_STARLIGHT_BLOCK.get().defaultBlockState(),  3, -4, -3);
+        addBlock(RegistryFluids.LIQUID_STARLIGHT_BLOCK.get().defaultBlockState(),  3, -4,  3);
 
         addBlock(engraved, -4, -4, -4);
         addBlock(engraved, -4, -4,  4);

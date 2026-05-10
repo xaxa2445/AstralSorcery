@@ -17,6 +17,7 @@ import hellfirepvp.astralsorcery.common.block.tile.BlockLens;
 import hellfirepvp.astralsorcery.common.block.tile.BlockPrism;
 import hellfirepvp.astralsorcery.common.block.tile.BlockStructural;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
+import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
 import net.minecraft.core.Direction;
 import net.minecraft.data.PackOutput;
 import net.minecraft.resources.ResourceLocation;
@@ -49,7 +50,7 @@ public class AstralBlockStateMappingProvider extends BlockStateProvider {
 
     @Override
     protected void registerStatesAndModels() {
-        this.simpleBlockState(BlocksAS.FLUID_LIQUID_STARLIGHT);
+        this.simpleBlockState(RegistryFluids.LIQUID_STARLIGHT_BLOCK.get());
 
         this.simpleBlockState(BlocksAS.MARBLE_ARCH);
         this.simpleBlockState(BlocksAS.MARBLE_BRICKS);

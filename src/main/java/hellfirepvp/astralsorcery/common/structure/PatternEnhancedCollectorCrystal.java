@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.structure;
 import hellfirepvp.astralsorcery.common.block.marble.BlockMarblePillar;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.StructureTypesAS;
+import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
 import hellfirepvp.astralsorcery.common.tile.TileCollectorCrystal;
 import hellfirepvp.observerlib.api.block.MatchableState;
 import hellfirepvp.observerlib.api.block.SimpleMatchableBlock;
@@ -70,7 +71,7 @@ public class PatternEnhancedCollectorCrystal extends PatternBlockArray {
             }
         }
         for (BlockPos offset : TileCollectorCrystal.OFFSETS_LIQUID_STARLIGHT) {
-            addBlock(BlocksAS.FLUID_LIQUID_STARLIGHT.defaultBlockState(), offset.getX(), offset.getY(), offset.getZ());
+            addBlock(RegistryFluids.LIQUID_STARLIGHT_BLOCK.get().defaultBlockState(), offset.getX(), offset.getY(), offset.getZ());
         }
 
         addBlock(BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL.defaultBlockState(), 0, 0, 0);
