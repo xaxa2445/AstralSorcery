@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery;
 import hellfirepvp.astralsorcery.client.ClientProxy;
 import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.fluid.ASFluidTypes;
+import hellfirepvp.astralsorcery.common.lib.EntityTypesAS;
 import hellfirepvp.astralsorcery.common.registry.RegistryEffects;
 import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
 import hellfirepvp.astralsorcery.common.registry.RegistryItems;
@@ -55,13 +56,9 @@ public class AstralSorcery {
 
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        // FluidTypes (texturas, propiedades físicas)
-        ASFluidTypes.FLUID_TYPES.register(modEventBus);
-
-        // Fluidos, bloques y buckets
-        RegistryFluids.register(modEventBus);
-
-        hellfirepvp.astralsorcery.common.lib.EntityTypesAS.ENTITY_TYPES.register(modEventBus);
+        ASFluidTypes.FLUID_TYPES.register(modEventBus); // 1. El tipo
+        RegistryFluids.register(modEventBus);           // 2. El fluido, bloque y bucket
+        EntityTypesAS.ENTITY_TYPES.register(modEventBus); // 3. Las entidades
 
         // 🔥 CLIENT STUFF (sin proxy)
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
@@ -81,9 +78,6 @@ public class AstralSorcery {
 
         proxy.initialize();
 
-        // 🔥 TU SISTEMA DE REGISTRO (esto es lo importante)
-        new PrimerEventHandler(proxy.getRegistryPrimer())
-                .attachEventHandlers(modEventBus);
 
         this.proxy.attachLifecycle(FMLJavaModLoadingContext.get().getModEventBus());
 

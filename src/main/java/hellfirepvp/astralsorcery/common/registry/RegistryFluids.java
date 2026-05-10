@@ -53,8 +53,8 @@ public class RegistryFluids {
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, AstralSorcery.MODID);
 
-    public static RegistryObject<Fluid> LIQUID_STARLIGHT_SOURCE;
-    public static RegistryObject<Fluid> LIQUID_STARLIGHT_FLOWING;
+    public static RegistryObject<FlowingFluid> LIQUID_STARLIGHT_SOURCE;
+    public static RegistryObject<FlowingFluid> LIQUID_STARLIGHT_FLOWING;
 
     public static RegistryObject<LiquidBlock> LIQUID_STARLIGHT_BLOCK;
     public static RegistryObject<Item> LIQUID_STARLIGHT_BUCKET;
@@ -84,7 +84,7 @@ public class RegistryFluids {
 
         LIQUID_STARLIGHT_BLOCK = BLOCKS.register("liquid_starlight",
                 () -> new LiquidBlock(
-                        () -> (FlowingFluid) LIQUID_STARLIGHT_SOURCE.get(),
+                        (FlowingFluid) LIQUID_STARLIGHT_SOURCE.get(),
                         Block.Properties.of()
                 ));
 
