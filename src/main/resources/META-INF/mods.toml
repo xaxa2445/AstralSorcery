@@ -1,37 +1,42 @@
-    modLoader="javafml" #mandatory
-    loaderVersion="[47,)"
-    license="All rights reserved"
-    issueTrackerURL="https://github.com/HellFirePvP/AstralSorcery/issues" #optional
-    [[mods]]
-    modId="astralsorcery"
-    version="1.20.1-1.0.0"
-    displayName="Astral Sorcery"
-    displayURL="https://minecraft.curseforge.com/projects/astral-sorcery"
-    logoFile="logo.png"
-    credits="HellFirePvP (code), wiiv (models & textures), VulpTheHorseDog (models & textures)"
-    authors="HellFirePvP, wiiv, VulpTheHorseDog"
-    description='''Magic mod that draws power from stars and their constellations'''
-    [[dependencies.astralsorcery]]
-        modId="forge"
-        mandatory=true
-        versionRange="[47,)"
-        ordering="NONE"
-        side="BOTH"
-    [[dependencies.astralsorcery]]
-        modId="minecraft"
-        mandatory=true
-        versionRange="[1.20.1]"
-        ordering="NONE"
-        side="BOTH"
-    [[dependencies.astralsorcery]]
-        modId="observerlib"
-        mandatory=true
-        versionRange="[1.20.1-,]"
-        ordering="NONE"
-        side="BOTH"
-    [[dependencies.astralsorcery]]
-        modId="curios"
-        mandatory=true
-        versionRange="[FORGE-5.14.1,)"
-        ordering="NONE"
-        side="BOTH"
+modLoader="javafml" #mandatory
+loaderVersion="[47,)"
+license="All rights reserved"
+issueTrackerURL="https://github.com/HellFirePvP/AstralSorcery/issues" #optional
+
+[[mods]]
+modId="astralsorcery"
+version="1.20.1-1.0.0"
+displayName="Astral Sorcery"
+displayURL="https://minecraft.curseforge.com/projects/astral-sorcery"
+logoFile="logo.png"
+credits="HellFirePvP (code), wiiv (models & textures), VulpTheHorseDog (models & textures)"
+authors="HellFirePvP, wiiv, VulpTheHorseDog"
+description='''Magic mod that draws power from stars and their constellations'''
+
+[[dependencies.astralsorcery]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,)" # Corregido: Agregamos el .0 final
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.astralsorcery]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1, 1.20.5)" # Corregido: Rango inclusivo hasta la 1.20.4
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.astralsorcery]]
+modId="observerlib"
+mandatory=true
+versionRange="[1.20.1,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.astralsorcery]]
+modId="curios"
+mandatory=true
+versionRange="[5.14.1,)" # Corregido: Quitamos "FORGE-" para evitar errores de parseo
+ordering="NONE"
+side="BOTH"
