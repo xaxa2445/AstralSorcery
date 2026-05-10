@@ -61,14 +61,7 @@ public class AstralSorcery {
         // Fluidos, bloques y buckets
         RegistryFluids.register(modEventBus);
 
-        // 🔹 Mantienes proxy SOLO para cosas internas (como registryPrimer)
-        this.proxy = new CommonProxy();
-
-        proxy.initialize();
-
-        // 🔥 TU SISTEMA DE REGISTRO (esto es lo importante)
-        new PrimerEventHandler(proxy.getRegistryPrimer())
-                .attachEventHandlers(modEventBus);
+        hellfirepvp.astralsorcery.common.lib.EntityTypesAS.ENTITY_TYPES.register(modEventBus);
 
         // 🔥 CLIENT STUFF (sin proxy)
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
@@ -79,11 +72,21 @@ public class AstralSorcery {
         // 🔹 Forge bus (si lo usas)
         MinecraftForge.EVENT_BUS.register(this);
 
-        this.proxy.attachLifecycle(FMLJavaModLoadingContext.get().getModEventBus());
-
         RegistryEffects.EFFECTS.register(FMLJavaModLoadingContext.get().getModEventBus());
 
         RegistryStructuresAS.init(modEventBus);
+
+        // 🔹 Mantienes proxy SOLO para cosas internas (como registryPrimer)
+        this.proxy = new CommonProxy();
+
+        proxy.initialize();
+
+        // 🔥 TU SISTEMA DE REGISTRO (esto es lo importante)
+        new PrimerEventHandler(proxy.getRegistryPrimer())
+                .attachEventHandlers(modEventBus);
+
+        this.proxy.attachLifecycle(FMLJavaModLoadingContext.get().getModEventBus());
+
     }
 
     private void clientSetup(final FMLClientSetupEvent event) {

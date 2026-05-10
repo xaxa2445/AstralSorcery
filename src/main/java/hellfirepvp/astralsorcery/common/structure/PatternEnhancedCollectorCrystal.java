@@ -19,6 +19,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 
 import javax.annotation.Nonnull;
+import java.util.Map;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -29,13 +30,32 @@ import javax.annotation.Nonnull;
  */
 public class PatternEnhancedCollectorCrystal extends PatternBlockArray {
 
+    private boolean initialized = false; // Control de ingeniería para carga única
+
     public PatternEnhancedCollectorCrystal() {
         super(StructureTypesAS.PTYPE_ENHANCED_COLLECTOR_CRYSTAL.getRegistryName());
 
-        makeStructure();
+    }
+
+    @Override
+    @Nonnull
+    public Map<BlockPos, MatchableState> getContents() {
+        if (!initialized) {
+            // Verificamos que los bloques de Astral ya existan en Forge
+            if (BlocksAS.MARBLE_CHISELED != null && BlocksAS.FLUID_LIQUID_STARLIGHT != null) {
+                makeStructure();
+                initialized = true;
+            }
+        }
+        return super.getContents();
     }
 
     private void makeStructure() {
+
+        if (BlocksAS.MARBLE_CHISELED == null || BlocksAS.FLUID_LIQUID_STARLIGHT == null) {
+            return;
+        }
+
         BlockState chiseled = BlocksAS.MARBLE_CHISELED.defaultBlockState();
         BlockState raw = BlocksAS.MARBLE_RAW.defaultBlockState();
         BlockState runed = BlocksAS.MARBLE_RUNED.defaultBlockState();

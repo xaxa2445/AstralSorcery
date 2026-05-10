@@ -144,6 +144,28 @@ public class RegistryEntities {
                         .build("grappling_hook"));
     }
 
+    @OnlyIn(Dist.CLIENT)
+    public static void initClient() {
+        // En la 1.20.1 usamos EntityRenderers.register en lugar de RenderingRegistry
+        // Usamos .get() porque tus variables ahora son RegistryObjects
+
+        EntityRenderers.register(NOCTURNAL_SPARK.get(), RenderEntityEmpty::new);
+        EntityRenderers.register(ILLUMINATION_SPARK.get(), RenderEntityEmpty::new);
+        EntityRenderers.register(FLARE.get(), RenderEntityEmpty::new);
+        EntityRenderers.register(SPECTRAL_TOOL.get(), RenderEntitySpectralTool::new);
+
+        EntityRenderers.register(ITEM_HIGHLIGHT.get(), RenderEntityItemHighlighted::new);
+        EntityRenderers.register(ITEM_EXPLOSION_RESISTANT.get(), RenderEntityItemHighlighted::new);
+        EntityRenderers.register(ITEM_CRYSTAL.get(), RenderEntityItemHighlighted::new);
+
+        // Este mantiene la lambda para el ItemRenderer de Minecraft
+        EntityRenderers.register(ITEM_STARMETAL_INGOT.get(), (context) ->
+                new net.minecraft.client.renderer.entity.ItemEntityRenderer(context));
+
+        EntityRenderers.register(OBSERVATORY_HELPER.get(), RenderEntityEmpty::new);
+        EntityRenderers.register(GRAPPLING_HOOK.get(), RenderEntityGrapplingHook::new);
+    }
+
     public static void initAttributes(EntityAttributeCreationEvent event) {
         event.put(FLARE.get(), EntityFlare.createAttributes().build());
         event.put(SPECTRAL_TOOL.get(), EntitySpectralTool.createAttributes().build());
