@@ -27,6 +27,9 @@ import hellfirepvp.astralsorcery.common.block.tile.crystal.BlockCelestialCollect
 import hellfirepvp.astralsorcery.common.block.tile.crystal.BlockRockCollectorCrystal;
 import hellfirepvp.astralsorcery.common.block.tile.fountain.BlockFountainPrime;
 import hellfirepvp.astralsorcery.common.fluid.BlockLiquidStarlight;
+import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
+import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraftforge.registries.RegistryObject;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -39,7 +42,7 @@ public class BlocksAS {
 
     private BlocksAS() {}
 
-    public static BlockLiquidStarlight FLUID_LIQUID_STARLIGHT;
+    public static final RegistryObject<LiquidBlock> FLUID_LIQUID_STARLIGHT = RegistryFluids.LIQUID_STARLIGHT_BLOCK;
 
     public static BlockMarbleArch          MARBLE_ARCH;
     public static BlockMarbleBricks        MARBLE_BRICKS;

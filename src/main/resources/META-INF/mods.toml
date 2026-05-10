@@ -23,7 +23,7 @@ side="BOTH"
 [[dependencies.astralsorcery]]
 modId="minecraft"
 mandatory=true
-versionRange="[1.20.1, 1.20.5)" # Corregido: Rango inclusivo hasta la 1.20.4
+versionRange="[1.20.1]" # Corregido: Rango inclusivo hasta la 1.20.4
 ordering="NONE"
 side="BOTH"
 

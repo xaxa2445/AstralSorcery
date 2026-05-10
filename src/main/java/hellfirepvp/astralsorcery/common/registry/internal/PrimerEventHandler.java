@@ -76,7 +76,6 @@ public class PrimerEventHandler {
         event.register(ForgeRegistries.Keys.ITEMS, helper -> {
             RegistryItems.registerItems();
             RegistryItems.registerItemBlocks();
-            RegistryItems.registerFluidContainerItems();
 
             fillRegistry(helper, Item.class);
 
@@ -91,11 +90,6 @@ public class PrimerEventHandler {
             fillRegistry(helper, Block.class);
         });
 
-        // FLUIDS
-        event.register(ForgeRegistries.Keys.FLUIDS, helper -> {
-            fillRegistry(helper, Fluid.class);
-        });
-
         // BLOCK ENTITIES
         event.register(ForgeRegistries.Keys.BLOCK_ENTITY_TYPES, helper -> {
             RegistryTileEntities.registerTiles();
@@ -106,6 +100,11 @@ public class PrimerEventHandler {
         event.register(ForgeRegistries.Keys.ENTITY_TYPES, helper -> {
             RegistryEntities.init();
             fillRegistry(helper, (Class) EntityType.class);
+        });
+
+        event.register(ForgeRegistries.Keys.FLUIDS, helper -> {
+            // Asegúrate de que NO haya llamadas manuales aquí como "RegistryFluids.init()"
+            fillRegistry(helper, Fluid.class);
         });
 
         // ENCHANTMENTS

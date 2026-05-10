@@ -1,0 +1,15 @@
+{
+  "description": {
+    "translate": "fluid_type.astralsorcery.liquid_starlight"
+  },
+  "motion_scale": 0.014,
+  "can_push_entity": true,
+  "can_swim": false,
+  "can_drown": true,
+  "fall_distance_modifier": 0.5,
+  "rarity": "UNCOMMON",
+  "light_level": 15,
+  "density": 800,
+  "viscosity": 1500,
+  "temperature": 100
+}

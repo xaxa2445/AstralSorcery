@@ -42,7 +42,7 @@ import static hellfirepvp.astralsorcery.common.lib.FluidsAS.*;
  * Created by HellFirePvP
  * Date: 20.09.2019 / 21:53
  */
-public class RegistryFluids {
+    public class RegistryFluids {
 
     public static final DeferredRegister<Fluid> FLUIDS =
             DeferredRegister.create(ForgeRegistries.FLUIDS, AstralSorcery.MODID);
@@ -53,45 +53,28 @@ public class RegistryFluids {
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, AstralSorcery.MODID);
 
-    public static RegistryObject<FlowingFluid> LIQUID_STARLIGHT_SOURCE;
-    public static RegistryObject<FlowingFluid> LIQUID_STARLIGHT_FLOWING;
-
-    public static RegistryObject<LiquidBlock> LIQUID_STARLIGHT_BLOCK;
-    public static RegistryObject<Item> LIQUID_STARLIGHT_BUCKET;
-    public static final List<Item> FLUID_HOLDER_ITEMS = new LinkedList<>();
-
     public static void register(IEventBus bus) {
         FLUIDS.register(bus);
         BLOCKS.register(bus);
         ITEMS.register(bus);
 
-        registerStarlight();
     }
 
-    private static void registerStarlight() {
-        // 1. NO crees las 'props' aquí afuera como una variable estática o local inmediata.
-        // 2. Definimos los registros usando Suppliers para las propiedades.
+    public static final RegistryObject<FlowingFluid> LIQUID_STARLIGHT_SOURCE = FLUIDS.register("liquid_starlight",
+            () -> new FluidLiquidStarlight.Source(makeProperties()));
 
-        LIQUID_STARLIGHT_SOURCE = FLUIDS.register("liquid_starlight",
-                () -> new FluidLiquidStarlight.Source(makeProperties()));
+    public static final RegistryObject<FlowingFluid> LIQUID_STARLIGHT_FLOWING = FLUIDS.register("liquid_starlight_flowing",
+            () -> new FluidLiquidStarlight.Flowing(makeProperties()));
 
-        LIQUID_STARLIGHT_FLOWING = FLUIDS.register("liquid_starlight_flowing",
-                () -> new FluidLiquidStarlight.Flowing(makeProperties()));
+    public static final RegistryObject<LiquidBlock> LIQUID_STARLIGHT_BLOCK = BLOCKS.register("liquid_starlight",
+            () -> new LiquidBlock(LIQUID_STARLIGHT_SOURCE, Block.Properties.of()));
 
-        LIQUID_STARLIGHT_BLOCK = BLOCKS.register("liquid_starlight",
-                () -> new LiquidBlock(
-                        LIQUID_STARLIGHT_SOURCE, // RegistryObject es un Supplier por sí mismo
-                        Block.Properties.of()
-                ));
-
-        LIQUID_STARLIGHT_BUCKET = ITEMS.register("liquid_starlight_bucket",
-                () -> new BucketItem(LIQUID_STARLIGHT_SOURCE,
-                        new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
-    }
+    public static final RegistryObject<Item> LIQUID_STARLIGHT_BUCKET = ITEMS.register("liquid_starlight_bucket",
+            () -> new BucketItem(LIQUID_STARLIGHT_SOURCE, new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
 
     private static ForgeFlowingFluid.Properties makeProperties() {
         return new ForgeFlowingFluid.Properties(
-                ASFluidTypes.LIQUID_STARLIGHT_TYPE, // Pasamos el RegistryObject
+                () -> ASFluidTypes.LIQUID_STARLIGHT_TYPE.get(), // Usar lambda para retrasar la carga de la clase
                 LIQUID_STARLIGHT_SOURCE,
                 LIQUID_STARLIGHT_FLOWING
         )

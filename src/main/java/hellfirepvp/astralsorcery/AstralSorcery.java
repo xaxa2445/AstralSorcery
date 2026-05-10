@@ -26,6 +26,7 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.data.loading.DatagenModLoader; // Actualizado para 1.20.1
+import net.minecraftforge.registries.ForgeRegistries;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -56,31 +57,37 @@ public class AstralSorcery {
 
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-        ASFluidTypes.FLUID_TYPES.register(modEventBus); // 1. El tipo
-        RegistryFluids.register(modEventBus);           // 2. El fluido, bloque y bucket
-        EntityTypesAS.ENTITY_TYPES.register(modEventBus); // 3. Las entidades
+        // 1. REGISTROS (El orden importa)
+        // Registramos primero los tipos de fluidos
+        ASFluidTypes.FLUID_TYPES.register(modEventBus);
 
-        // 🔥 CLIENT STUFF (sin proxy)
+        // Registramos los fluidos, bloques y buckets (SOLO UNA VEZ)
+        RegistryFluids.register(modEventBus);
+
+        // Registramos las entidades (Asegúrate de que esta línea exista)
+        EntityTypesAS.ENTITY_TYPES.register(modEventBus);
+
+        // Efectos y estructuras
+        RegistryEffects.EFFECTS.register(modEventBus);
+        RegistryStructuresAS.init(modEventBus);
+
+        // 2. PROXY Y LOGICA (Después de los registros)
+        this.proxy = new CommonProxy();
+
+        // OJO: Si initialize() intenta usar LIQUID_STARLIGHT_BLOCK.get()
+        // lanzará el NullPointerException porque Forge aún no inyecta los valores.
+        // Lo ideal es que initialize() no toque registros.
+        proxy.initialize();
+
+        // 3. EVENTOS Y CLIENTE
+        this.proxy.attachLifecycle(modEventBus);
+
         DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             modEventBus.addListener(RegistryItems::registerColors);
             modEventBus.addListener(this::clientSetup);
         });
 
-        // 🔹 Forge bus (si lo usas)
         MinecraftForge.EVENT_BUS.register(this);
-
-        RegistryEffects.EFFECTS.register(FMLJavaModLoadingContext.get().getModEventBus());
-
-        RegistryStructuresAS.init(modEventBus);
-
-        // 🔹 Mantienes proxy SOLO para cosas internas (como registryPrimer)
-        this.proxy = new CommonProxy();
-
-        proxy.initialize();
-
-
-        this.proxy.attachLifecycle(FMLJavaModLoadingContext.get().getModEventBus());
-
     }
 
     private void clientSetup(final FMLClientSetupEvent event) {

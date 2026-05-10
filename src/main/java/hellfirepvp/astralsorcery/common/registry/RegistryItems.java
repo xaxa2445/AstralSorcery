@@ -39,7 +39,9 @@ import net.minecraft.client.renderer.item.ItemProperties; // ItemModelsPropertie
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -48,6 +50,7 @@ import java.util.List;
 import java.util.Locale;
 
 import static hellfirepvp.astralsorcery.common.lib.ItemsAS.*;
+import static hellfirepvp.astralsorcery.common.registry.RegistryFluids.ITEMS;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -128,12 +131,6 @@ public class RegistryItems {
 
     public static void registerItemBlocks() {
         RegistryBlocks.ITEM_BLOCKS.forEach(RegistryItems::registerItemBlock);
-    }
-
-    public static void registerFluidContainerItems() {
-        RegistryFluids.FLUID_HOLDER_ITEMS.forEach(item ->
-                registerItem(getName(item), item)
-        );
     }
 
     @OnlyIn(Dist.CLIENT)
