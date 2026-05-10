@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.crystal.property;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crystal.CrystalProperty;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
+import net.minecraft.resources.ResourceLocation;
 
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.USE_RITUAL_RANGE;
 
@@ -22,6 +23,8 @@ import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.US
  * Date: 02.02.2019 / 21:57
  */
 public class PropertyRitualRange extends CrystalProperty {
+
+    ResourceLocation registryName;
 
     public PropertyRitualRange() {
         super(AstralSorcery.key("ritual.range"));
@@ -39,5 +42,15 @@ public class PropertyRitualRange extends CrystalProperty {
     @Override
     public int getMaxTier() {
         return 2;
+    }
+
+    @Override
+    public void setRegistryName(ResourceLocation id) {
+        this.registryName = id;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName() {
+        return this.registryName;
     }
 }

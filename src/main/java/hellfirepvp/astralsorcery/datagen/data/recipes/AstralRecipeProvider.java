@@ -43,11 +43,13 @@ public class AstralRecipeProvider extends RecipeProvider {
         CelestialAltarRecipeProvider.registerAltarRecipes(registrar);
         RadianceAltarRecipeProvider.registerAltarRecipes(registrar);
 
+        // Recetas de Maquinaria y Mundo
         InfuserRecipeProvider.registerInfuserRecipes(registrar);
         LightwellRecipeProvider.registerLightwellRecipes(registrar);
         BlockTransmutationRecipeProvider.registerTransmutationRecipes(registrar);
         InteractionRecipeProvider.registerLiquidInteractionRecipes(registrar);
 
+        // Recetas de Vanilla (Mesa de crafteo, horno, cortapiedras)
         VanillaTypedRecipeProvider.registerStoneCutterRecipes(registrar);
         VanillaTypedRecipeProvider.registerShapedRecipes(registrar);
         VanillaTypedRecipeProvider.registerCookingRecipes(registrar);

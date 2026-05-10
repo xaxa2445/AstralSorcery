@@ -11,9 +11,9 @@ package hellfirepvp.astralsorcery.datagen.data.recipes.transmutation;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crafting.builder.BlockTransmutationBuilder;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
-import net.minecraft.block.Blocks;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.ItemStack;
+import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.Tags;
 
 import java.util.function.Consumer;
@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  */
 public class BlockTransmutationRecipeProvider {
 
-    public static void registerTransmutationRecipes(Consumer<IFinishedRecipe> registrar) {
+    public static void registerTransmutationRecipes(Consumer<FinishedRecipe> registrar) {
         BlockTransmutationBuilder.builder(AstralSorcery.key("iron_starmetal"))
                 .multiplyStarlightCost(0.5F)
                 .addInputCheck(Tags.Blocks.ORES_IRON, new ItemStack(Blocks.IRON_ORE))

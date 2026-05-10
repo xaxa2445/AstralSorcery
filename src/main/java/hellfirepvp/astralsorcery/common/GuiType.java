@@ -93,6 +93,7 @@ public enum GuiType {
                     at = NBTHelper.readBlockPosFromNBT(data);
                     TileTelescope telescope = MiscUtils.getTileAt(clWorld, at, TileTelescope.class, true);
                     if (telescope != null) {
+                        // AQUÍ ESdonde llamamos a la PANTALLA (Screen), no al bloque (Tile)
                         return new ScreenTelescope(telescope);
                     }
                     return null;

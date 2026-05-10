@@ -9,14 +9,13 @@
 package hellfirepvp.astralsorcery.mixin;
 
 import hellfirepvp.astralsorcery.common.enchantment.dynamic.DynamicEnchantmentHelper;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Map;
@@ -36,16 +35,15 @@ public class MixinEnchantmentHelper {
         cir.setReturnValue(DynamicEnchantmentHelper.getNewEnchantmentLevel(cir.getReturnValue(), enchID, stack, null));
     }
 
-    @Redirect(
-            method = "applyEnchantmentModifier",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/item/ItemStack;getEnchantmentTagList()Lnet/minecraft/nbt/ListNBT;")
-    )
-    private static ListNBT applyEnhancedEnchantmentsTag(ItemStack stack) {
-        return DynamicEnchantmentHelper.modifyEnchantmentTags(stack.getEnchantmentTagList(), stack);
-    }
-
-    @Inject(method = "getEnchantments", at = @At("RETURN"))
+    @Inject(method = "getEnchantments(Lnet/minecraft/world/item/ItemStack;)Ljava/util/Map;", at = @At("RETURN"), cancellable = true)
     private static void applyDeserializedEnhancedEnchantments(ItemStack stack, CallbackInfoReturnable<Map<Enchantment, Integer>> cir) {
-        DynamicEnchantmentHelper.addNewLevels(cir.getReturnValue(), stack);
+        // Obtenemos el mapa que Minecraft deserializó del NBT
+        Map<Enchantment, Integer> enchants = cir.getReturnValue();
+
+        // El helper de Astral añade los niveles dinámicos (Prisma, Perks, etc.) al mapa
+        DynamicEnchantmentHelper.addNewLevels(enchants, stack);
+
+        // Devolvemos el mapa ya modificado
+        cir.setReturnValue(enchants);
     }
 }

@@ -18,14 +18,15 @@ import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
 import hellfirepvp.astralsorcery.common.perk.tick.PlayerTickPerk;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.Block;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.tags.BlockTags;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.LogicalSide;
 
 /**
@@ -48,7 +49,7 @@ public class KeyStoneEnrichment extends KeyPerk implements PlayerTickPerk {
     }
 
     @Override
-    public void onPlayerTick(PlayerEntity player, LogicalSide side) {
+    public void onPlayerTick(Player player, LogicalSide side) {
         if (side.isServer()) {
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
             float modChance = (float) CONFIG.chanceToEnrich.get();
@@ -64,12 +65,13 @@ public class KeyStoneEnrichment extends KeyPerk implements PlayerTickPerk {
                         (rand.nextFloat() * radius * 2) - radius,
                         (rand.nextFloat() * radius * 2) - radius,
                         (rand.nextFloat() * radius * 2) - radius);
-                World world = player.getEntityWorld();
+                Level world = player.level();
                 BlockPos pos = vec.toBlockPos();
-                if (BlockTags.BASE_STONE_OVERWORLD.contains(world.getBlockState(pos).getBlock())) {
-                    Block block = OreBlockRarityRegistry.STONE_ENRICHMENT.getRandomBlock(rand);
+                BlockState state = world.getBlockState(pos);
+                if (state.is(BlockTags.BASE_STONE_OVERWORLD)) {
+                    Block block = OreBlockRarityRegistry.STONE_ENRICHMENT.getRandomBlock((RandomSource) rand);
                     if (block != null) {
-                        if (world.setBlockState(pos, block.getDefaultState(), Constants.BlockFlags.DEFAULT_AND_RERENDER)) {
+                        if (world.setBlock(pos, block.defaultBlockState(), 3)) {
                             AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), false);
                         }
                     }

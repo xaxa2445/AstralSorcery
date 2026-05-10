@@ -29,6 +29,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -161,7 +162,7 @@ public class GatewayInteractionHandler {
                 float pc = ((float) i) / ((float) positions.size());
                 if (pc >= perc) continue;
 
-                Color color = MiscUtils.eitherOf(rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
+                Color color = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
                 Vector3 at = positions.get(i);
                 FXFacingParticle p = EffectHelper.of(EffectTemplatesAS.GENERIC_GATEWAY_PARTICLE)
                         .spawn(at)
@@ -181,7 +182,7 @@ public class GatewayInteractionHandler {
                 float pc = ((float) i) / ((float) positions.size());
                 if (pc >= perc) continue;
 
-                Color color = MiscUtils.eitherOf(rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
+                Color color = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
                 Vector3 at = positions.get(i);
                 FXFacingParticle p = EffectHelper.of(EffectTemplatesAS.GENERIC_GATEWAY_PARTICLE)
                         .spawn(at)
@@ -197,7 +198,7 @@ public class GatewayInteractionHandler {
         } else {
             for (Vector3 v : MiscUtils.getCirclePositions(pos, dir, rand.nextFloat() * 0.3 + 0.2, rand.nextInt(20) + 30)) {
 
-                Color color = MiscUtils.eitherOf(rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
+                Color color = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
                 Vector3 m = mov.clone().multiply(0.5 + rand.nextFloat() * 0.5);
                 EffectHelper.of(EffectTemplatesAS.GENERIC_GATEWAY_PARTICLE)
                         .spawn(v)

@@ -28,13 +28,24 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 @Mixin(GameRenderer.class)
 public class MixinGameRenderer {
 
-    @ModifyConstant(method = "getMouseOver", constant = @Constant(intValue = 1, ordinal = 0), require = 1)
-    public int adjustDistanceCheck(int flagDoDistanceCheck) {
-        PlayerProgress prog = ResearchHelper.getProgress(Minecraft.getInstance().player, LogicalSide.CLIENT);
-        if (prog.isValid() && prog.getPerkData().hasPerkEffect(perk -> perk instanceof KeyEntityReach)) {
-            return 0;
+    @ModifyConstant(
+            method = "pick(F)V", // Antes "getMouseOver"
+            constant = @Constant(doubleValue = 3.0D), // Minecraft suele usar 3.0D o 6.0D para checks de distancia
+            require = 1
+    )
+    public double adjustDistanceCheck(double originalDistance) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            return originalDistance;
         }
-        return flagDoDistanceCheck;
+
+        PlayerProgress prog = ResearchHelper.getProgress(mc.player, LogicalSide.CLIENT);
+        if (prog.isValid() && prog.getPerkData().hasPerkEffect(perk -> perk instanceof KeyEntityReach)) {
+            // Devolvemos un valor muy alto para "saltarnos" el check de distancia restrictivo,
+            // permitiendo que el alcance extendido del perk funcione.
+            return 64.0D;
+        }
+        return originalDistance;
     }
 
 }

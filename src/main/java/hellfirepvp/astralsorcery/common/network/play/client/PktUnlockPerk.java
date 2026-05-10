@@ -15,13 +15,13 @@ import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.PerkTree;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.gui.screens.Screen; // 1.20.1: Cambio de paquete
+import net.minecraft.resources.ResourceLocation; // 1.20.1: Cambio de paquete
+import net.minecraft.world.entity.player.Player; // 1.20.1: PlayerEntity -> Player
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 
@@ -76,9 +76,9 @@ public class PktUnlockPerk extends ASPacket<PktUnlockPerk> {
                 context.enqueueWork(() -> {
                     if (packet.serverAccept) {
                         PerkTree.PERK_TREE.getPerk(LogicalSide.CLIENT, packet.perkKey).ifPresent(perk -> {
-                            Screen current = Minecraft.getInstance().currentScreen;
+                            Screen current = Minecraft.getInstance().screen;
                             if (current instanceof ScreenJournalPerkTree) {
-                                Minecraft.getInstance().enqueue(() -> ((ScreenJournalPerkTree) current).playUnlockAnimation(perk));
+                                Minecraft.getInstance().execute(() -> ((ScreenJournalPerkTree) current).playUnlockAnimation(perk));
                             }
                         });
                     }
@@ -89,7 +89,7 @@ public class PktUnlockPerk extends ASPacket<PktUnlockPerk> {
             public void handle(PktUnlockPerk packet, NetworkEvent.Context context, LogicalSide side) {
                 context.enqueueWork(() -> {
                     PerkTree.PERK_TREE.getPerk(side, packet.perkKey).ifPresent(perk -> {
-                        PlayerEntity player = context.getSender();
+                        Player player = context.getSender();
                         PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
                         if (prog.isValid()) {
                             PlayerPerkData perkData = prog.getPerkData();

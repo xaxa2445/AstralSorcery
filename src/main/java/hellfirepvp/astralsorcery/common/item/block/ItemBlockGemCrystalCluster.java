@@ -34,20 +34,10 @@ public class ItemBlockGemCrystalCluster extends ItemBlockCustom {
         super(block, itemProperties);
     }
 
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
-        if (this.allowedIn(tab)) {
-            for (BlockGemCrystalCluster.GrowthStageType stage : BlockGemCrystalCluster.STAGE.getPossibleValues()) {
-                ItemStack stack = new ItemStack(this);
-                setStage(stack, stage);
-                items.add(stack);
-            }
-        }
-    }
-
     @Nullable
     @Override
-    protected BlockState getStateForPlacement(BlockPlaceContext context) {
-        BlockState toPlace = super.getStateForPlacement(context);
+    protected BlockState getPlacementState(BlockPlaceContext context) {
+        BlockState toPlace = super.getPlacementState(context);
         if (toPlace != null) {
             return toPlace.setValue(
                     BlockGemCrystalCluster.STAGE,

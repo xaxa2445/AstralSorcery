@@ -10,10 +10,10 @@ package hellfirepvp.astralsorcery.common.world.structure;
 
 import hellfirepvp.astralsorcery.common.lib.WorldGenerationAS;
 import hellfirepvp.astralsorcery.common.world.TemplateStructure;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.gen.feature.template.TemplateManager;
+import net.minecraft.nbt.CompoundTag; // 1.20.1: CompoundNBT -> CompoundTag
+import net.minecraft.resources.ResourceLocation; // 1.20.1: util -> resources
+import net.minecraft.core.BlockPos; // 1.20.1: util.math -> core
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager; // 1.20.1: TemplateManager -> StructureTemplateManager
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -24,13 +24,24 @@ import net.minecraft.world.gen.feature.template.TemplateManager;
  */
 public class AncientShrineStructure extends TemplateStructure {
 
-    public AncientShrineStructure(TemplateManager mgr, BlockPos templatePosition) {
-        super(WorldGenerationAS.Structures.ANCIENT_SHRINE_PIECE, mgr, templatePosition);
+    public AncientShrineStructure(StructureTemplateManager mgr, BlockPos templatePosition) {
+        super(
+                WorldGenerationAS.Structures.ANCIENT_SHRINE_PIECE,
+                mgr,
+                templatePosition,
+                WorldGenerationAS.Structures.KEY_ANCIENT_SHRINE
+        );
+
         this.setYOffset(-7);
     }
 
-    public AncientShrineStructure(TemplateManager mgr, CompoundNBT nbt) {
-        super(WorldGenerationAS.Structures.ANCIENT_SHRINE_PIECE, mgr, nbt);
+    public AncientShrineStructure(StructureTemplateManager mgr, CompoundTag tag) {
+        super(
+                WorldGenerationAS.Structures.ANCIENT_SHRINE_PIECE,
+                mgr,
+                tag
+        );
+
         this.setYOffset(-7);
     }
 

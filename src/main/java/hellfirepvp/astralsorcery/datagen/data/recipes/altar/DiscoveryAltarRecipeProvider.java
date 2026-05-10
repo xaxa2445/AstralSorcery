@@ -18,11 +18,12 @@ import hellfirepvp.astralsorcery.common.item.ItemResonator;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.FluidsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.data.recipes.FinishedRecipe; // IFinishedRecipe -> FinishedRecipe
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.tags.ItemTags;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.registries.ForgeRegistries; // Necesario para obtener las llaves
 
 import java.util.function.Consumer;
 
@@ -35,14 +36,14 @@ import java.util.function.Consumer;
  */
 public class DiscoveryAltarRecipeProvider {
 
-    public static void registerAltarRecipes(Consumer<IFinishedRecipe> registrar) {
+    public static void registerAltarRecipes(Consumer<FinishedRecipe> registrar) {
         registerRecipes(registrar);
         registerBuildingBlockRecipes(registrar);
     }
 
-    private static void registerRecipes(Consumer<IFinishedRecipe> registrar) {
+    private static void registerRecipes(Consumer<FinishedRecipe> registrar) {
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.ALTAR_UPGRADE_ATTUNEMENT)
-                .createRecipe(BlocksAS.ALTAR_ATTUNEMENT, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.ALTAR_ATTUNEMENT), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("PCP")
@@ -57,7 +58,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.WAND, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.WAND), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" AE")
@@ -71,7 +72,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.HAND_TELESCOPE, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.HAND_TELESCOPE), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.2F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" SL")
@@ -86,7 +87,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.RESONATOR, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.RESONATOR), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.15F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" A ")
@@ -105,7 +106,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.TOME, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.TOME), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" P ")
@@ -119,7 +120,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.PARCHMENT, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.PARCHMENT), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" P ")
@@ -132,7 +133,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.GLASS_LENS, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.GLASS_LENS), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.2F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" P ")
@@ -145,7 +146,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.SPECTRAL_RELAY, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.SPECTRAL_RELAY), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.2F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("NGN")
@@ -159,7 +160,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.WELL, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.WELL), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.2F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("R R")
@@ -174,7 +175,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.ILLUMINATOR, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.ILLUMINATOR), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.8F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("RIR")
@@ -188,7 +189,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.ILLUMINATION_POWDER, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.ILLUMINATION_POWDER), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.4F)
                 .multiplyDuration(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -202,7 +203,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.NOCTURNAL_POWDER, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.NOCTURNAL_POWDER), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.8F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" D ")
@@ -218,7 +219,7 @@ public class DiscoveryAltarRecipeProvider {
 
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CONSTELLATION_CRYSTAL_MERGE)
-                .createRecipe(ItemsAS.CRYSTAL_AXE, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_AXE), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.5F)
                 .multiplyDuration(1.75F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -232,7 +233,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CONSTELLATION_CRYSTAL_MERGE)
-                .createRecipe(ItemsAS.CRYSTAL_PICKAXE, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_PICKAXE), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.5F)
                 .multiplyDuration(1.75F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -246,7 +247,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CONSTELLATION_CRYSTAL_MERGE)
-                .createRecipe(ItemsAS.CRYSTAL_SHOVEL, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_SHOVEL), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.5F)
                 .multiplyDuration(1.75F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -260,7 +261,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CONSTELLATION_CRYSTAL_MERGE)
-                .createRecipe(ItemsAS.CRYSTAL_SWORD, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_SWORD), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.5F)
                 .multiplyDuration(1.75F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -274,12 +275,12 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
     }
 
-    private static void registerBuildingBlockRecipes(Consumer<IFinishedRecipe> registrar) {
+    private static void registerBuildingBlockRecipes(Consumer<FinishedRecipe> registrar) {
         /*****************************************************************************
          * Infused wood
          *****************************************************************************/
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSED_WOOD_ARCH, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD_ARCH), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -290,7 +291,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSED_WOOD_COLUMN, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD_COLUMN), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -302,7 +303,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSED_WOOD_ENGRAVED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD_ENGRAVED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -315,7 +316,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSED_WOOD_ENRICHED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD_ENRICHED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -329,7 +330,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSED_WOOD_PLANKS, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD_PLANKS), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -340,7 +341,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSED_WOOD_SLAB, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD_SLAB), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -351,7 +352,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSED_WOOD_STAIRS, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD_STAIRS), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -367,7 +368,7 @@ public class DiscoveryAltarRecipeProvider {
          * Marble
          *****************************************************************************/
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_ARCH, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_ARCH), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -378,7 +379,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_PILLAR, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_PILLAR), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -390,7 +391,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_BRICKS, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_BRICKS), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -402,7 +403,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_CHISELED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_CHISELED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -415,7 +416,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_ENGRAVED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_ENGRAVED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -428,7 +429,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_RUNED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_RUNED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -440,7 +441,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_SLAB, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_SLAB), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -462,7 +463,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.MARBLE_STAIRS, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.MARBLE_STAIRS), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -491,7 +492,7 @@ public class DiscoveryAltarRecipeProvider {
          * Sooty Marble
          *****************************************************************************/
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_RAW, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_RAW), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -505,7 +506,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_PILLAR, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_PILLAR), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -517,7 +518,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_ARCH, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_ARCH), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -528,7 +529,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_BRICKS, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_BRICKS), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -540,7 +541,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_CHISELED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_CHISELED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -553,7 +554,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_ENGRAVED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_ENGRAVED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -566,7 +567,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_RUNED, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_RUNED), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -578,7 +579,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_SLAB, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_SLAB), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -589,7 +590,7 @@ public class DiscoveryAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.BLACK_MARBLE_STAIRS, AltarType.DISCOVERY)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.BLACK_MARBLE_STAIRS), AltarType.DISCOVERY)
                 .setStarlightRequirement(0.1F)
                 .multiplyDuration(0.4F)
                 .setInputs(AltarRecipeGrid.builder()

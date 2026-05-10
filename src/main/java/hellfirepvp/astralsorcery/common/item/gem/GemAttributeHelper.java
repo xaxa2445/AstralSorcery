@@ -57,7 +57,7 @@ public class GemAttributeHelper {
     private static float lessModifierHigher = -0.08F;
 
     public static boolean rollGem(ItemStack gem) {
-        return rollGem(gem, rand);
+        return rollGem(gem, (Random) rand);
     }
 
     public static boolean rollGem(ItemStack gem, Random random) {
@@ -76,7 +76,7 @@ public class GemAttributeHelper {
         for (int i = 0; i < rolls; i++) {
             PerkAttributeEntry entry = null;
             if (allowDuplicateTypes) {
-                entry = MiscUtils.getWeightedRandomEntry(configuredModifiers, random, PerkAttributeEntry::getWeight);
+                entry = MiscUtils.getWeightedRandomEntry(configuredModifiers,(RandomSource) random, PerkAttributeEntry::getWeight);
             } else {
                 List<PerkAttributeEntry> keys = new ArrayList<>(configuredModifiers);
                 while (!keys.isEmpty() && entry == null) {
@@ -152,7 +152,7 @@ public class GemAttributeHelper {
         if (list.isEmpty()) {
             return null;
         }
-        PerkAttributeEntry result = MiscUtils.getWeightedRandomEntry(list, random, PerkAttributeEntry::getWeight);
+        PerkAttributeEntry result = MiscUtils.getWeightedRandomEntry(list, (RandomSource) random, PerkAttributeEntry::getWeight);
         if (result != null) {
             list.remove(result);
         }

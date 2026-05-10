@@ -48,11 +48,9 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
     public ItemCrystalSword() {
         super(
                 CrystalToolTier.getInstance(),
-                0,
-                0F,
-                new Properties()
-                        .durability(CrystalToolTier.getInstance().getUses())
-                        .setNoRepair()
+                3,
+                -2.4F,
+                new  Properties().durability(CrystalToolTier.getInstance().getUses()).setNoRepair()
         );
     }
 
@@ -60,15 +58,6 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
     public boolean canEnchantItem(ItemStack stack, EnchantmentCategory category) {
         return category == EnchantmentCategory.WEAPON
                 || category == EnchantmentCategory.BREAKABLE;
-    }
-
-    @Override
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> stacks) {
-        if (this.allowedIn(tab)) {
-            ItemStack stack = new ItemStack(this);
-            CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
-            stacks.add(stack);
-        }
     }
 
     @Override
@@ -102,10 +91,10 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
                 || enchantment.category == EnchantmentCategory.BREAKABLE;
     }
 
+    // Para determinar si el ítem es "encantable" en general (habilita el brillo y la lógica base)
     @Override
-    public boolean canEnchant(ItemStack stack, Enchantment enchantment) {
-        return enchantment.category == EnchantmentCategory.WEAPON
-                || enchantment.category == EnchantmentCategory.BREAKABLE;
+    public boolean isEnchantable(ItemStack stack) {
+        return true;
     }
 
     @Override
@@ -118,20 +107,6 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
 
     private double getAttackSpeed() {
         return -2.4;
-    }
-
-    @Override
-    public float getAttackDamage() {
-        return CrystalToolTier.getInstance().getAttackDamage();
-    }
-
-    public float getAttackDamage(ItemStack stack) {
-        CrystalAttributes attr = getAttributes(stack);
-        if (attr != null) {
-            return CrystalCalculations.getToolEfficiency(this.getAttackDamage(), stack);
-        } else {
-            return this.getAttackDamage();
-        }
     }
 
     @Nullable
@@ -165,26 +140,30 @@ public class ItemCrystalSword extends SwordItem implements CrystalAttributeItem,
     }
 
     @Override
-    public Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(EquipmentSlot slot) {
-        Multimap<Attribute, AttributeModifier> map = HashMultimap.create();
+    public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlot slot, ItemStack stack) {
+        Multimap<Attribute, AttributeModifier> modifiers = HashMultimap.create();
 
         if (slot == EquipmentSlot.MAINHAND) {
 
             double damage = CrystalToolTier.getInstance().getAttackDamageBonus();
+            CrystalAttributes attr = getAttributes(stack);
+            if (attr != null) {
+                damage = CrystalCalculations.getToolEfficiency((float) damage, stack);
+            }
 
-            map.put(Attributes.ATTACK_DAMAGE,
-                    new AttributeModifier(BASE_ATTACK_DAMAGE_UUID,
-                            "Tool modifier",
-                            damage,
-                            AttributeModifier.Operation.ADDITION));
+            modifiers.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(
+                    BASE_ATTACK_DAMAGE_UUID,
+                    "Weapon modifier",
+                    (double) damage,
+                    AttributeModifier.Operation.ADDITION));
 
-            map.put(Attributes.ATTACK_SPEED,
-                    new AttributeModifier(BASE_ATTACK_SPEED_UUID,
-                            "Tool modifier",
-                            this.getAttackSpeed(),
-                            AttributeModifier.Operation.ADDITION));
+            modifiers.put(Attributes.ATTACK_SPEED, new AttributeModifier(
+                    BASE_ATTACK_SPEED_UUID,
+                    "Weapon modifier",
+                    this.getAttackSpeed(),
+                    AttributeModifier.Operation.ADDITION));
         }
 
-        return map;
+        return modifiers;
     }
 }

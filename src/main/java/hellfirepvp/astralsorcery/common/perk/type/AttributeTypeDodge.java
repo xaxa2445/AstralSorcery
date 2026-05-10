@@ -53,10 +53,10 @@ public class AttributeTypeDodge extends PerkAttributeType {
     }
 
     private void onDamageTaken(LivingDamageEvent event) {
-        if (!(event.getEntityLiving() instanceof PlayerEntity)) {
+        if (!(event.getEntity() instanceof Player)) {
             return;
         }
-        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        Player player = (Player) event.getEntity();
         LogicalSide side = this.getSide(player);
         if (!hasTypeApplied(player, side)) {
             return;

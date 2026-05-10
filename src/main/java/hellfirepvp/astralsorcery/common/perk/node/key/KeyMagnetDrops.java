@@ -12,11 +12,11 @@ import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -47,8 +47,7 @@ public class KeyMagnetDrops extends KeyPerk {
 
     private void onEntityLoot(LivingDropsEvent event) {
         DamageSource source = event.getSource();
-        if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) source.getTrueSource();
+        if (source.getEntity() instanceof Player player) {
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
             if (prog.getPerkData().hasPerkEffect(this)) {
@@ -56,8 +55,8 @@ public class KeyMagnetDrops extends KeyPerk {
                 for (ItemEntity drop : event.getDrops()) {
                     ItemStack remain = ItemUtils.dropItemToPlayer(player, drop.getItem());
                     if (!remain.isEmpty()) {
-                        ItemEntity newDrop = new ItemEntity(drop.getEntityWorld(), drop.getPosX(), drop.getPosY(), drop.getPosZ());
-                        newDrop.copyDataFromOld(drop);
+                        ItemEntity newDrop = new ItemEntity(drop.level(), drop.getX(), drop.getY(), drop.getZ(), remain);
+                        newDrop.restoreFrom(drop);
                         remaining.add(newDrop);
                     }
                 }

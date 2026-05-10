@@ -74,7 +74,7 @@ public class ResearchHelper {
     }
 
     @Nonnull
-    private static PlayerProgress getProgress(UUID uuid) {
+    public static PlayerProgress getProgress(UUID uuid) {
         PlayerProgress progress = playerProgressServer.get(uuid);
         if (progress == null) {
             loadPlayerKnowledge(uuid);

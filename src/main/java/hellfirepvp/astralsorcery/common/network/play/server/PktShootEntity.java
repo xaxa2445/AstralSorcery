@@ -17,13 +17,13 @@ import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.network.base.ASPacket;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.LogicalSidedProvider;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 import java.util.Optional;
@@ -87,16 +87,24 @@ public class PktShootEntity extends ASPacket<PktShootEntity> {
             @Override
             @OnlyIn(Dist.CLIENT)
             public void handleClient(PktShootEntity packet, NetworkEvent.Context context) {
+                // context.enqueueWork asegura que esto corra en el ciclo del motor principal (Hook)
                 context.enqueueWork(() -> {
-                    Optional<World> world = LogicalSidedProvider.CLIENTWORLD.get(LogicalSide.CLIENT);
-                    Entity entity = world.map(w -> w.getEntityByID(packet.entityId)).orElse(null);
+                    Level world = Minecraft.getInstance().level;
+                    if (world == null) return;
+
+                    // 1.20.1: getEntityByID -> getEntity
+                    Entity entity = world.getEntity(packet.entityId);
+
                     if (entity != null) {
-                        entity.setMotion(packet.motionVector.toVector3d());
+                        // 1.20.1: setMotion -> setDeltaMovement
+                        entity.setDeltaMovement(packet.motionVector.toVec3());
 
                         if (packet.hasEffect) {
+                            // 1.20.1: getPosY -> getY, getLookVec -> getLookAngle
                             Vector3 origin = Vector3.atEntityCenter(entity)
-                                    .setY(entity.getPosY() + entity.getHeight());
-                            Vector3 look = new Vector3(entity.getLookVec()).normalize().multiply(packet.effectLength * 18);
+                                    .setY(entity.getY() + entity.getBbHeight());
+
+                            Vector3 look = new Vector3(entity.getLookAngle()).normalize().multiply(packet.effectLength * 18);
                             Vector3 motionReverse = look.clone().normalize().multiply(-0.4 * packet.effectLength);
 
                             Vector3 perp = look.clone().perpendicular().normalize().multiply(6F);
@@ -124,6 +132,7 @@ public class PktShootEntity extends ASPacket<PktShootEntity> {
                         }
                     }
                 });
+                context.setPacketHandled(true);
             }
 
             @Override

@@ -1,0 +1,8 @@
+{
+  "type": "forge:add_features",
+  "biomes": "#minecraft:is_overworld",
+  "features": [
+    "astralsorcery:ancient_shrine"
+  ],
+  "step": "surface_structures"
+}

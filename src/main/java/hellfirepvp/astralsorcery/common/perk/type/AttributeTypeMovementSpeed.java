@@ -10,8 +10,8 @@ package hellfirepvp.astralsorcery.common.perk.type;
 
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.type.vanilla.VanillaAttributeType;
-import net.minecraft.entity.ai.attributes.Attribute;
-import net.minecraft.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.attributes.Attribute;  // 1.20.1: Cambio de paquete
+import net.minecraft.world.entity.ai.attributes.Attributes; // 1.20.1: Cambio de paquete
 
 import javax.annotation.Nonnull;
 import java.util.UUID;

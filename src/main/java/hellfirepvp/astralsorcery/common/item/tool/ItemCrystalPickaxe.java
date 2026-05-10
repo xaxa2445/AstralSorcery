@@ -31,7 +31,8 @@ import net.minecraft.world.level.block.state.BlockState;
 public class ItemCrystalPickaxe extends ItemCrystalTierItem implements TypeEnchantableItem {
 
     public ItemCrystalPickaxe() {
-        super(Tiers.DIAMOND, 1, -2.8F, new Properties());
+        // El padre ItemCrystalTierItem solo acepta Properties
+        super(new Properties());
     }
 
     @Override
@@ -43,15 +44,6 @@ public class ItemCrystalPickaxe extends ItemCrystalTierItem implements TypeEncha
     @Override
     protected boolean isCorrectTool(BlockState state) {
         return state.is(BlockTags.MINEABLE_WITH_PICKAXE);
-    }
-
-    @Override
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> stacks) {
-        if (this.allowedIn(tab)) {
-            ItemStack stack = new ItemStack(this);
-            CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
-            stacks.add(stack);
-        }
     }
 
     @Override

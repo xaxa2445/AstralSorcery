@@ -14,12 +14,13 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
-import net.minecraft.entity.LivingEntity;
+
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -52,25 +53,24 @@ public class KeyDamageEffects extends KeyPerk {
 
     private void onDamageResult(LivingDamageEvent event) {
         DamageSource source = event.getSource();
-        if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) source.getTrueSource();
+        if (source.getEntity() instanceof Player player) {
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
             if (prog.getPerkData().hasPerkEffect(this)) {
-                LivingEntity attacked = event.getEntityLiving();
+                LivingEntity attacked = event.getEntity();
                 float chance = PerkAttributeHelper.getOrCreateMap(player, side)
                         .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, CONFIG.applicationChance.get().floatValue());
                 if (rand.nextFloat() < chance) {
                     switch (rand.nextInt(3)) {
                         case 0:
-                            attacked.addPotionEffect(new EffectInstance(Effects.WITHER, 200, 1, false, false, true));
+                            attacked.addEffect(new MobEffectInstance(MobEffects.WITHER, 200, 1, false, false, true));
                             break;
                         case 1:
-                            attacked.addPotionEffect(new EffectInstance(Effects.POISON, 200, 1, false, false, true));
+                            attacked.addEffect(new MobEffectInstance(MobEffects.POISON, 200, 1, false, false, true));
                             break;
                         case 2:
-                            attacked.addPotionEffect(new EffectInstance(Effects.SLOWNESS, 200, 1, false, false, true));
-                            attacked.addPotionEffect(new EffectInstance(Effects.WEAKNESS, 200, 1, false, false, true));
+                            attacked.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 200, 1, false, false, true));
+                            attacked.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 200, 1, false, false, true));
                             break;
                         default:
                             break;

@@ -13,10 +13,13 @@ import hellfirepvp.astralsorcery.common.CommonProxy;
 import hellfirepvp.astralsorcery.common.data.config.entry.GeneralConfig;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -69,7 +72,9 @@ public class ItemColoredLensRegeneration extends ItemColoredLens {
                 }
                 if (le.isInvertedHealAndHarm()) {
                     DamageUtil.shotgunAttack(le, e -> {
-                        DamageUtil.attackEntityFrom(e, CommonProxy.DAMAGE_SOURCE_STELLAR, 0.5F);
+                        DamageSource astralDamage = new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                                .getHolderOrThrow(ASDamageTypes.STELLAR));
+                        DamageUtil.attackEntityFrom(e, astralDamage, 0.5F);
                     });
                 } else {
                     le.heal(0.5F);

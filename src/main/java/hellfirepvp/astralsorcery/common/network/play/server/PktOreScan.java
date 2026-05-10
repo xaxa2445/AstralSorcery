@@ -12,14 +12,14 @@ import hellfirepvp.astralsorcery.client.util.MiscPlayEffect;
 import hellfirepvp.astralsorcery.common.network.base.ASPacket;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -66,7 +66,7 @@ public class PktOreScan extends ASPacket<PktOreScan> {
             @OnlyIn(Dist.CLIENT)
             public void handleClient(PktOreScan packet, NetworkEvent.Context context) {
                 context.enqueueWork(() -> {
-                    PlayerEntity player = Minecraft.getInstance().player;
+                    Player player = Minecraft.getInstance().player;
                     if (player == null) {
                         return;
                     }
@@ -74,7 +74,7 @@ public class PktOreScan extends ASPacket<PktOreScan> {
                     for (BlockPos at : packet.positions) {
                         Vector3 atPos = new Vector3(at).add(0.5, 0.5, 0.5);
                         atPos.add(rand.nextFloat() - rand.nextFloat(), rand.nextFloat() - rand.nextFloat(), rand.nextFloat() - rand.nextFloat());
-                        BlockState state = Minecraft.getInstance().world.getBlockState(at);
+                        BlockState state = Minecraft.getInstance().level.getBlockState(at);
                         //if (Mods.ORESTAGES.isPresent()) {
                         //    if(changed.contains(state) || !ModIntegrationOreStages.canSeeOreClient(state)) {
                         //        changed.add(state);

@@ -38,8 +38,7 @@ public abstract class ItemPerkGem extends Item implements GemSocketItem {
 
     public ItemPerkGem(GemType type) {
         super(new Properties()
-                .stacksTo(1) // <- antes maxStackSize
-                .tab(CommonProxy.ITEM_GROUP_AS)); // <- antes group
+                .stacksTo(1)); // <- antes maxStackSize
         this.type = type;
     }
 

@@ -145,31 +145,31 @@ public class IntegrationJEI implements IModPlugin {
 
         // T1 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarDiscovery.class,
-                stackHelper, transferHelper, 9), ALTAR_DISCOVERY_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 9), ALTAR_DISCOVERY_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarAttunement.class,
-                stackHelper, transferHelper, 13), ALTAR_DISCOVERY_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 13), ALTAR_DISCOVERY_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarConstellation.class,
-                stackHelper, transferHelper, 21), ALTAR_DISCOVERY_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 21), ALTAR_DISCOVERY_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), ALTAR_DISCOVERY_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 25), ALTAR_DISCOVERY_TYPE);
 
         // T2 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarAttunement.class,
-                stackHelper, transferHelper, 13), ALTAR_ATTUNEMENT_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 13), ALTAR_ATTUNEMENT_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarConstellation.class,
-                stackHelper, transferHelper, 21), ALTAR_ATTUNEMENT_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 21), ALTAR_ATTUNEMENT_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), ALTAR_ATTUNEMENT_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 25), ALTAR_ATTUNEMENT_TYPE);
 
         // T3 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarConstellation.class,
-                stackHelper, transferHelper, 21), ALTAR_CONSTELLATION_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 21), ALTAR_CONSTELLATION_TYPE);
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), ALTAR_CONSTELLATION_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 25), ALTAR_CONSTELLATION_TYPE);
 
         // T4 recipes
         registry.addRecipeTransferHandler(new TieredAltarRecipeTransferHandler<>(ContainerAltarTrait.class,
-                stackHelper, transferHelper, 25), ALTAR_TRAIT_TYPE);
+                ALTAR_DISCOVERY_TYPE,stackHelper, transferHelper, 25), ALTAR_TRAIT_TYPE);
     }
 
     @Override

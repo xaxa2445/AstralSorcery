@@ -83,7 +83,7 @@ public class RenderPageRecipe extends RenderPageRecipeTemplate {
         this.clearFrameRectangles();
 
         this.renderRecipeGrid(renderStack.pose(), x, y, z, TexturesAS.TEX_GUI_BOOK_GRID_T1);
-        this.renderExpectedItemStackOutput(renderStack.pose(), x + 78, y + 25, z, 1.4F, this.output);
+        this.renderExpectedItemStackOutput(renderStack, x + 78, y + 25, z, 1.4F, this.output);
 
         float recipeX = x + 55;
         float recipeY = y + 103;
@@ -104,7 +104,7 @@ public class RenderPageRecipe extends RenderPageRecipeTemplate {
     }
 
     @Override
-    public void postRender(PoseStack renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
+    public void postRender(GuiGraphics renderStack, float x, float y, float z, float pTicks, float mouseX, float mouseY) {
         this.renderHoverTooltips(renderStack, mouseX, mouseY, z, this.recipeId);
     }
 }

@@ -45,6 +45,7 @@ import net.minecraftforge.fml.LogicalSide;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Random;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -85,7 +86,7 @@ public class FountainEffectLiquid extends FountainEffect<LiquidContext> {
             }
 
             if (ctx.tickLiquidProduction()) {
-                ctx.resetLiquidProductionTick(rand);
+                ctx.resetLiquidProductionTick((Random) rand);
                 produceLiquid(fountain);
             }
         }

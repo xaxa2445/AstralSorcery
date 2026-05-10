@@ -136,7 +136,7 @@ public class CelestialStrike {
                 .setAlphaMultiplier(1F)
                 .setMaxAge(24 + r.nextInt(6));
 
-        AbstractRenderableTexture tex = MiscUtils.eitherOf(r,
+        AbstractRenderableTexture tex = MiscUtils.eitherOf((RandomSource) r,
                 TexturesAS.TEX_SMOKE_1, TexturesAS.TEX_SMOKE_2, TexturesAS.TEX_SMOKE_3, TexturesAS.TEX_SMOKE_4);
         EffectHelper.of(EffectTemplatesAS.TEXTURE_SPRITE)
                 .spawn(vec.clone().addY(0.1F))
@@ -154,7 +154,7 @@ public class CelestialStrike {
             FXLightning lightning = EffectHelper.of(EffectTemplatesAS.LIGHTNING)
                     .spawn(vec.clone())
                     .makeDefault(randTo);
-            lightning.color(MiscUtils.eitherOf(r,
+            lightning.color(MiscUtils.eitherOf((RandomSource) r,
                     VFXColorFunction.constant(Color.WHITE),
                     VFXColorFunction.constant(ColorsAS.EFFECT_BLUE_LIGHT),
                     VFXColorFunction.constant(ColorsAS.EFFECT_BLUE_DARK)));
@@ -166,7 +166,7 @@ public class CelestialStrike {
                     .setGravityStrength(-0.005F)
                     .setScaleMultiplier(0.85F)
                     .setMaxAge(14 + r.nextInt(6));
-            p.color(MiscUtils.eitherOf(r,
+            p.color(MiscUtils.eitherOf((RandomSource) r,
                     VFXColorFunction.constant(Color.WHITE),
                     VFXColorFunction.constant(ColorsAS.EFFECT_BLUE_LIGHT),
                     VFXColorFunction.constant(ColorsAS.EFFECT_BLUE_DARK)));

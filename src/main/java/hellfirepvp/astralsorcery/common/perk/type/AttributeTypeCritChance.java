@@ -14,10 +14,10 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.modifier.AttributeModifierCritChance;
 import hellfirepvp.astralsorcery.common.perk.modifier.PerkAttributeModifier;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.projectile.ArrowEntity;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraft.world.entity.projectile.AbstractArrow; // 1.20.1: Usamos AbstractArrow
+import net.minecraftforge.event.entity.EntityJoinLevelEvent; // World -> Level
 import net.minecraftforge.event.entity.player.CriticalHitEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -52,12 +52,11 @@ public class AttributeTypeCritChance extends PerkAttributeType {
         return new AttributeModifierCritChance(this, mode, modifier);
     }
 
-    private void onArrowCrit(EntityJoinWorldEvent event) {
-        if (event.getEntity() instanceof ArrowEntity) {
-            ArrowEntity arrow = (ArrowEntity) event.getEntity();
-            Entity shooter = arrow.func_234616_v_();
-            if (shooter instanceof PlayerEntity) {
-                PlayerEntity player = (PlayerEntity) shooter;
+    private void onArrowCrit(EntityJoinLevelEvent event) {
+        if (event.getEntity() instanceof AbstractArrow arrow) {
+            Entity shooter = arrow.getOwner();
+            if (shooter instanceof Player) {
+                Player player = (Player) shooter;
                 LogicalSide side = this.getSide(player);
                 if (!hasTypeApplied(player, side)) {
                     return;
@@ -67,7 +66,7 @@ public class AttributeTypeCritChance extends PerkAttributeType {
                 critChance = AttributeEvent.postProcessModded(player, this, critChance);
                 critChance /= 100.0F;
                 if (critChance >= rand.nextFloat()) {
-                    arrow.setIsCritical(true);
+                    arrow.setCritArrow(true);
                 }
             }
         }
@@ -77,7 +76,7 @@ public class AttributeTypeCritChance extends PerkAttributeType {
         if (event.isVanillaCritical() || event.getResult() == Event.Result.ALLOW) {
             return;
         }
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getEntity();
         LogicalSide side = this.getSide(player);
         if (!hasTypeApplied(player, side)) {
             return;

@@ -15,21 +15,21 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.enchantment.SweepingEnchantment;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.projectile.TridentEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.IndirectEntityDamageSource;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.entity.projectile.ThrownTrident;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
+
+import static net.minecraft.world.item.enchantment.SweepingEdgeEnchantment.getSweepingDamageRatio;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -42,7 +42,7 @@ public class KeyAreaOfEffect extends KeyAddEnchantment {
 
     public KeyAreaOfEffect(ResourceLocation name, float x, float y) {
         super(name, x, y);
-        this.addEnchantment(Enchantments.SWEEPING, 2);
+        this.addEnchantment(Enchantments.SWEEPING_EDGE, 2);
     }
 
     @Override
@@ -57,20 +57,18 @@ public class KeyAreaOfEffect extends KeyAddEnchantment {
         }
 
         DamageSource source = event.getSource();
-        if (source instanceof IndirectEntityDamageSource &&
-                source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) source.getTrueSource();
+        if (source.getEntity() instanceof Player player) {
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
             if (prog.getPerkData().hasPerkEffect(this)) {
-                LivingEntity attacked = event.getEntityLiving();
+                LivingEntity attacked = event.getEntity();
 
                 float sweepingPercentage;
-                Entity indirectSource = source.getImmediateSource();
-                if (indirectSource instanceof TridentEntity) {
-                    ItemStack tridentStack = ((TridentEntity) indirectSource).thrownStack;
-                    int sweepLevel = EnchantmentHelper.getEnchantmentLevel(Enchantments.SWEEPING, tridentStack);
-                    sweepingPercentage = sweepLevel > 0 ? SweepingEnchantment.getSweepingDamageRatio(sweepLevel) : 0;
+                Entity directSource = source.getDirectEntity();
+                if (directSource instanceof ThrownTrident trident) {
+                    ItemStack tridentStack = net.minecraftforge.fml.util.ObfuscationReflectionHelper.getPrivateValue(ThrownTrident.class ,trident, "tridentItem");
+                    int sweepLevel = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SWEEPING_EDGE, tridentStack);
+                    sweepingPercentage = sweepLevel > 0 ? getSweepingDamageRatio(sweepLevel) : 0;
                 } else {
                     sweepingPercentage = EnchantmentHelper.getSweepingDamageRatio(player);
                 }
@@ -81,8 +79,8 @@ public class KeyAreaOfEffect extends KeyAddEnchantment {
 
                     float range = 2.5F * PerkAttributeHelper.getOrCreateMap(player, side).getModifier(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT);
                     EventFlags.SWEEP_ATTACK.executeWithFlag(() -> {
-                        for (LivingEntity target : attacked.getEntityWorld().getEntitiesWithinAABB(LivingEntity.class,
-                                attacked.getBoundingBox().grow(range, range / 2F, range))) {
+                        for (LivingEntity target : attacked.level().getEntitiesOfClass(LivingEntity.class,
+                                attacked.getBoundingBox().inflate(range, range / 2F, range))) {
                             if (MiscUtils.canPlayerAttackServer(player, target) && !player.equals(target)) {
                                 DamageUtil.attackEntityFrom(target, source, toApply);
                             }

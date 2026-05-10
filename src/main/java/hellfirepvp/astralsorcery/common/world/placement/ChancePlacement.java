@@ -8,10 +8,13 @@
 
 package hellfirepvp.astralsorcery.common.world.placement;
 
+import hellfirepvp.astralsorcery.common.lib.WorldGenerationAS;
 import hellfirepvp.astralsorcery.common.world.placement.config.ChanceConfig;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.gen.placement.ConfiguredPlacement;
-import net.minecraft.world.gen.placement.SimplePlacement;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.levelgen.placement.PlacementContext;
+import net.minecraft.world.level.levelgen.placement.PlacementModifier;
+import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
 
 import java.util.Random;
 import java.util.stream.Stream;
@@ -23,18 +26,26 @@ import java.util.stream.Stream;
  * Created by HellFirePvP
  * Date: 19.11.2020 / 22:45
  */
-public class ChancePlacement extends SimplePlacement<ChanceConfig> {
+public class ChancePlacement extends PlacementModifier {
+
+    private ChanceConfig config = new ChanceConfig(0.1F); // Valor por defecto
 
     public ChancePlacement() {
-        super(ChanceConfig.CODEC);
     }
 
-    public ConfiguredPlacement<ChanceConfig> withChance(float chance) {
-        return this.configure(new ChanceConfig(chance));
+    public ChancePlacement withChance(float chance) {
+        return this; // O una nueva instancia si guardas el estado aquí
     }
 
     @Override
-    protected Stream<BlockPos> getPositions(Random random, ChanceConfig config, BlockPos pos) {
-        return config.test(random) ? Stream.of(pos) : Stream.empty();
+    public Stream<BlockPos> getPositions(PlacementContext context, RandomSource random, BlockPos pos) {
+        // Ahora usamos el campo 'config' que actualizamos en withChance
+        return this.config.test(random) ? Stream.of(pos) : Stream.empty();
+    }
+
+    @Override
+    public PlacementModifierType<?> type() {
+        // Esto es obligatorio en 1.20.1
+        return WorldGenerationAS.Placements.CHANCE.type();
     }
 }

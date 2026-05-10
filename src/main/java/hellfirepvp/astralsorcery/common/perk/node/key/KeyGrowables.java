@@ -21,13 +21,14 @@ import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
 import hellfirepvp.astralsorcery.common.perk.tick.PlayerTickPerk;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -51,7 +52,7 @@ public class KeyGrowables extends KeyPerk implements PlayerTickPerk {
     }
 
     @Override
-    public void onPlayerTick(PlayerEntity player, LogicalSide side) {
+    public void onPlayerTick(Player player, LogicalSide side) {
         if (!side.isServer()) {
             return;
         }
@@ -62,25 +63,25 @@ public class KeyGrowables extends KeyPerk implements PlayerTickPerk {
         if (rand.nextFloat() < cChance && AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), true)) {
             float fRadius = PerkAttributeHelper.getOrCreateMap(player, side)
                     .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, CONFIG.radius.get());
-            int rRadius = Math.max(MathHelper.floor(fRadius), 1);
+            int rRadius = Math.max(Mth.floor(fRadius), 1);
 
-            BlockPos pos = player.getPosition().add(
+            BlockPos pos = player.blockPosition().offset(
                     rand.nextInt(rRadius * 2) + 1 - rRadius,
                     rand.nextInt(rRadius * 2) + 1 - rRadius,
                     rand.nextInt(rRadius * 2) + 1 - rRadius);
-            World w = player.getEntityWorld();
+            Level w = player.level();
             CropHelper.GrowablePlant plant = CropHelper.wrapPlant(w, pos);
             PktPlayEffect pkt = null;
             if (plant != null) {
-                if (plant.tryGrow(w, rand)) {
+                if (plant.tryGrow(w, (RandomSource) rand)) {
                     AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), false);
                     pkt = new PktPlayEffect(PktPlayEffect.Type.CROP_GROWTH)
                         .addData(buf -> ByteBufUtils.writeVector(buf, new Vector3(pos)));
                 }
             } else {
                 BlockState at = w.getBlockState(pos);
-                if (at.getBlock().equals(Blocks.DIRT) && w.isAirBlock(pos.up())) {
-                    if (w.setBlockState(pos, Blocks.GRASS_BLOCK.getDefaultState())) {
+                if (at.getBlock().equals(Blocks.DIRT) && w.isEmptyBlock(pos.above())) {
+                    if (w.setBlockAndUpdate(pos, Blocks.GRASS_BLOCK.defaultBlockState())) {
                         AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), false);
                         pkt = new PktPlayEffect(PktPlayEffect.Type.CROP_GROWTH)
                                 .addData(buf -> ByteBufUtils.writeVector(buf, new Vector3(pos)));

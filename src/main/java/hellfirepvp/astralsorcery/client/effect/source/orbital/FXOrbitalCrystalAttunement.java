@@ -19,6 +19,7 @@ import hellfirepvp.astralsorcery.client.lib.EffectTemplatesAS;
 import hellfirepvp.astralsorcery.common.constellation.IConstellation;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.util.RandomSource;
 
 import java.util.function.Function;
 
@@ -46,7 +47,7 @@ public class FXOrbitalCrystalAttunement extends FXSourceOrbital<FXFacingParticle
         motion.add(this.getOrbitAxis().normalize().multiply(0.15 + rand.nextFloat() * 0.15));
 
         Vector3 vortexPos = pos.clone();
-        MiscUtils.applyRandomOffset(vortexPos, rand, 0.4F);
+        MiscUtils.applyRandomOffset(vortexPos, (RandomSource) rand, 0.4F);
 
         FXFacingParticle p = effectRegistrar.apply(vortexPos)
                 .color(VFXColorFunction.WHITE)

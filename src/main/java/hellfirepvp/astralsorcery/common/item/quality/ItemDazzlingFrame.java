@@ -33,8 +33,7 @@ public class ItemDazzlingFrame extends Item {
 
     public ItemDazzlingFrame() {
         super(new Item.Properties()
-                .stacksTo(1)
-                .tab(CommonProxy.ITEM_GROUP_AS)); // ⚠️ asegúrate que tu CreativeTab esté porteado
+                .stacksTo(1));
     }
 
     @Override

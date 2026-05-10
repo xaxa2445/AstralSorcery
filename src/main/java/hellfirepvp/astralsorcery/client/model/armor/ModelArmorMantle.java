@@ -11,9 +11,11 @@ package hellfirepvp.astralsorcery.client.model.armor;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
 /**
@@ -24,6 +26,9 @@ import net.minecraft.world.entity.LivingEntity;
  * Date: 17.02.2020 / 21:21
  */
 public class ModelArmorMantle extends CustomArmorModel<LivingEntity> {
+
+    public static final ModelLayerLocation MANTLE_LAYER = new ModelLayerLocation(
+            new ResourceLocation("astralsorcery", "mantle"), "main");
 
     // En la 1.20.1 guardamos las partes que queremos manipular o mostrar/ocultar
     private final ModelPart cowl;
@@ -85,7 +90,7 @@ public class ModelArmorMantle extends CustomArmorModel<LivingEntity> {
                         .addBox(-1.0F, -3.5F, 1.0F, 9, 21, 5, delta),
                 PartPose.offsetAndRotation(-6.25F, 2.0F, 0.0F, 0.0873F, -0.2618F, 0.0F));
 
-        // --- ARMS ---
+        // --- LEFT ARM ---
         PartDefinition lArm = root.getChild("left_arm");
         PartDefinition lAnchor = lArm.addOrReplaceChild("arm_l_anchor", CubeListBuilder.create()
                         .texOffs(0, 41).mirror()
@@ -102,7 +107,23 @@ public class ModelArmorMantle extends CustomArmorModel<LivingEntity> {
                         .addBox(-6.0F, -2.0F, -1.0F, 4, 1, 2, delta),
                 PartPose.offsetAndRotation(0.5F, -3.0F, 0.0F, 0.0F, 0.0F, 0.0873F));
 
-        // (Repetir lógica similar para el brazo derecho rArm...)
+        // --- RIGHT ARM ---
+
+        PartDefinition rightArm = root.getChild("right_arm");
+        PartDefinition armRAnchor = rightArm.addOrReplaceChild("arm_r_anchor", CubeListBuilder.create()
+                        .texOffs(0, 41)
+                        .addBox(4.0F, -2.0F, -1.0F, 2, 2, 2, new CubeDeformation(0.01F)),
+                PartPose.offset(-4.0F, 2.0F, 0.0F));
+
+        PartDefinition armRpauldron = armRAnchor.addOrReplaceChild("arm_r_pauldron", CubeListBuilder.create()
+                        .texOffs(0, 21)
+                        .addBox(0.45F, -4.0F, -3.0F, 5, 6, 6, new CubeDeformation(0.01F)),
+                PartPose.ZERO);
+
+        armRpauldron.addOrReplaceChild("fitting_r", CubeListBuilder.create()
+                        .texOffs(18, 12)
+                        .addBox(1.5F, -2.0F, -1.0F, 4, 1, 2, new CubeDeformation(0.01F)),
+                PartPose.offsetAndRotation(0.0F, -3.0F, 0.0F, 0.0F, 0.0F, -0.0873F));
 
         return LayerDefinition.create(mesh, 64, 128);
     }

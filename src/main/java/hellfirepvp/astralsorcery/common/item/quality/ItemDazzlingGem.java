@@ -33,8 +33,7 @@ public class ItemDazzlingGem extends Item {
 
     public ItemDazzlingGem() {
         super(new Item.Properties()
-                .stacksTo(1)
-                .tab(CommonProxy.ITEM_GROUP_AS));
+                .stacksTo(1));
     }
 
     @Override

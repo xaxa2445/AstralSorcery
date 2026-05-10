@@ -14,6 +14,7 @@ import hellfirepvp.astralsorcery.common.fluid.ASFluidTypes;
 import hellfirepvp.astralsorcery.common.registry.RegistryEffects;
 import hellfirepvp.astralsorcery.common.registry.RegistryFluids;
 import hellfirepvp.astralsorcery.common.registry.RegistryItems;
+import hellfirepvp.astralsorcery.common.registry.RegistryStructuresAS;
 import hellfirepvp.astralsorcery.common.registry.internal.PrimerEventHandler;
 import net.minecraft.resources.ResourceLocation; // CORRECCIÓN: Nuevo paquete en 1.20.1
 import net.minecraftforge.api.distmarker.Dist;
@@ -81,6 +82,8 @@ public class AstralSorcery {
         this.proxy.attachLifecycle(FMLJavaModLoadingContext.get().getModEventBus());
 
         RegistryEffects.EFFECTS.register(FMLJavaModLoadingContext.get().getModEventBus());
+
+        RegistryStructuresAS.init(modEventBus);
     }
 
     private void clientSetup(final FMLClientSetupEvent event) {

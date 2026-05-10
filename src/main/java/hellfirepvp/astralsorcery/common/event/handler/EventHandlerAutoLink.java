@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess; // Chunk -> ChunkAccess
 import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -29,7 +30,7 @@ import net.minecraft.world.level.chunk.ChunkStatus;
 public class EventHandlerAutoLink implements BlockChangeNotifier.Listener {
 
     @Override
-    public void onChange(Level world, ChunkAccess chunk, BlockPos pos, BlockState oldState, BlockState newState) {
+    public void onChange(Level world, LevelChunk chunk, BlockPos pos, BlockState oldState, BlockState newState) {
         // En 1.20.1 world.isClientSide() reemplaza a isRemote()
         // ChunkAccess es la interfaz moderna para manejar Chunks
         if (world.isClientSide() || !chunk.getStatus().isOrAfter(ChunkStatus.FULL)) {

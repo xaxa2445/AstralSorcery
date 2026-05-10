@@ -9,12 +9,11 @@
 package hellfirepvp.astralsorcery.mixin;
 
 import hellfirepvp.astralsorcery.common.util.collision.CollisionHelper;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.ReuseableStream;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.shapes.ISelectionContext;
-import net.minecraft.util.math.shapes.VoxelShape;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB; // AxisAlignedBB -> AABB
+import net.minecraft.world.phys.Vec3; // Vector3d -> Vec3
+import net.minecraft.world.phys.shapes.CollisionContext; // ISelectionContext -> CollisionContext
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -31,12 +30,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Entity.class)
 public class MixinEntity {
 
-    @Inject(method = "collideBoundingBoxHeuristically", at = @At(value = "RETURN", ordinal = 1), cancellable = true)
-    private static void addCustomCollision(Entity entity, Vector3d vec, AxisAlignedBB collisionBox, World world, ISelectionContext context, ReuseableStream<VoxelShape> potentialHits, CallbackInfoReturnable<Vector3d> cir) {
-        if (entity == null) {
-            return;
-        }
-        Vector3d allowedMovement = CollisionHelper.onEntityCollision(vec, entity);
+    @Inject(
+            method = "collide(Lnet/minecraft/world/phys/Vec3;)Lnet/minecraft/world/phys/Vec3;",
+            at = @At("RETURN"),
+            cancellable = true
+    )
+    private void addCustomCollision(Vec3 vec, CallbackInfoReturnable<Vec3> cir) {
+        Entity entity = (Entity) (Object) this;
+
+        // Ejecutamos la lógica de colisión personalizada de Astral
+        Vec3 allowedMovement = CollisionHelper.onEntityCollision(cir.getReturnValue(), entity);
+
         if (allowedMovement != null) {
             cir.setReturnValue(allowedMovement);
         }

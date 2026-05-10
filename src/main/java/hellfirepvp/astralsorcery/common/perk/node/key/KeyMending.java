@@ -15,9 +15,9 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
 import hellfirepvp.astralsorcery.common.perk.tick.PlayerTickPerk;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -40,19 +40,19 @@ public class KeyMending extends KeyPerk implements PlayerTickPerk {
     }
 
     @Override
-    public void onPlayerTick(PlayerEntity player, LogicalSide side) {
+    public void onPlayerTick(Player player, LogicalSide side) {
         if (side.isServer()) {
             int repairChance = CONFIG.chanceToRepair.get();
             repairChance /= PerkAttributeHelper.getOrCreateMap(player, side)
                     .getModifier(player, ResearchHelper.getProgress(player, side), PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT);
             repairChance = Math.max(repairChance, 1);
-            for (ItemStack armor : player.getArmorInventoryList()) {
+            for (ItemStack armor : player.getArmorSlots()) {
                 if (rand.nextInt(repairChance) != 0) {
                     continue;
                 }
-                if (!armor.isEmpty() && armor.isDamageable() && armor.isDamaged()) {
+                if (!armor.isEmpty() && armor.isDamageableItem() && armor.isDamaged()) {
                     if (AlignmentChargeHandler.INSTANCE.drainCharge(player, LogicalSide.SERVER, CONFIG.chargeCost.get(), false)) {
-                        armor.setDamage(armor.getDamage() - 1);
+                        armor.setDamageValue(armor.getDamageValue() - 1);
                     }
                 }
             }

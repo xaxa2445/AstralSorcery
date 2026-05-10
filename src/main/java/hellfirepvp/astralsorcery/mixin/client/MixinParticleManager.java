@@ -8,15 +8,15 @@
 
 package hellfirepvp.astralsorcery.mixin.client;
 
-import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack; // MatrixStack -> PoseStack
 import hellfirepvp.astralsorcery.client.effect.handler.EffectHandler;
-import net.minecraft.client.particle.ParticleManager;
-import net.minecraft.client.renderer.ActiveRenderInfo;
-import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.Camera; // ActiveRenderInfo -> Camera
+import net.minecraft.client.particle.ParticleEngine; // ParticleManager -> ParticleEngine
 import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.client.renderer.culling.ClippingHelper;
+import net.minecraft.client.renderer.MultiBufferSource; // IRenderTypeBuffer -> MultiBufferSource
+import net.minecraft.client.renderer.culling.Frustum; // ClippingHelper -> Frustum
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,23 +29,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Created by HellFirePvP
  * Date: 01.01.2022 / 09:52
  */
-@Mixin(ParticleManager.class)
+@Mixin(ParticleEngine.class)
 public class MixinParticleManager {
 
     @Inject(
-            method = "renderParticles(Lcom/mojang/blaze3d/matrix/MatrixStack;Lnet/minecraft/client/renderer/IRenderTypeBuffer$Impl;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/renderer/ActiveRenderInfo;FLnet/minecraft/client/renderer/culling/ClippingHelper;)V",
-            at = @At("RETURN"),
-            remap = false
+            method = "render(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/renderer/LightTexture;Lnet/minecraft/client/Camera;FLnet/minecraft/client/renderer/culling/Frustum;)V",
+            at = @At("RETURN")
     )
-    public void renderParticles(MatrixStack matrixStack, IRenderTypeBuffer.Impl buffer, LightTexture lightTexture, ActiveRenderInfo ari, float pTicks, ClippingHelper clippingHelper, CallbackInfo ci) {
-        EffectHandler.getInstance().render(matrixStack, pTicks);
+    public void renderParticles(PoseStack poseStack, MultiBufferSource.BufferSource buffer, LightTexture lightTexture, Camera camera, float partialTick, Frustum frustum, CallbackInfo ci) {
+        // Renderizamos los efectos personalizados de Astral
+        EffectHandler.getInstance().render(poseStack, buffer, partialTick);
 
-        //Setup GL states again
-        //Seriously, keep a clean GL state for once mojang.
-        RenderSystem.enableAlphaTest();
-        RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA,
-                GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-        GlStateManager.enableDepthTest();
-        GlStateManager.enableTexture();
+        // En 1.20.1, enableAlphaTest() ya no existe. El blending se maneja así:
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.enableDepthTest();
+
+        // El estado de textura se asume habilitado en el pipeline moderno de Shaders,
+        // pero podemos asegurar el estado de profundidad si es necesario.
+        RenderSystem.depthMask(true);
     }
 }

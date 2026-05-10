@@ -50,8 +50,7 @@ public class ItemKnowledgeShare extends Item {
 
     public ItemKnowledgeShare() {
         super(new Properties()
-                .stacksTo(1)
-                .tab(CommonProxy.ITEM_GROUP_AS));
+                .stacksTo(1));
     }
 
     @Override

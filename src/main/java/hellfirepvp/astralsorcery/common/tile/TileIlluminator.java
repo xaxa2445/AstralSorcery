@@ -25,6 +25,7 @@ import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -148,7 +149,7 @@ public class TileIlluminator extends TileEntityTick {
                         rand.nextFloat() * 0.025F * (rand.nextBoolean() ? 1 : -1),
                         rand.nextFloat() * 0.025F * (rand.nextBoolean() ? 1 : -1)));
         Color c = ColorUtils.flareColorFromDye(this.getColor());
-        p.color(VFXColorFunction.constant(MiscUtils.eitherOf(rand,
+        p.color(VFXColorFunction.constant(MiscUtils.eitherOf((RandomSource) rand,
                 Color.WHITE, c.brighter().brighter(), c)));
 
         if (this.boostedTicks > 0) {
@@ -162,7 +163,7 @@ public class TileIlluminator extends TileEntityTick {
                             .spawn(v)
                             .setScaleMultiplier(0.15F)
                             .setMotion(new Vector3(0, (rand.nextBoolean() ? 1 : -1) * rand.nextFloat() * 0.01, 0));
-                    p.color(VFXColorFunction.constant(MiscUtils.eitherOf(rand,
+                    p.color(VFXColorFunction.constant(MiscUtils.eitherOf((RandomSource) rand,
                             Color.WHITE, c.brighter().brighter(), c)));
                 }
             }

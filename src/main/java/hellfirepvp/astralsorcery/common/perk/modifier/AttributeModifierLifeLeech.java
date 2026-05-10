@@ -10,7 +10,7 @@ package hellfirepvp.astralsorcery.common.perk.modifier;
 
 import hellfirepvp.astralsorcery.common.perk.type.ModifierType;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
-import net.minecraft.client.resources.I18n;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
@@ -35,6 +35,6 @@ public class AttributeModifierLifeLeech extends PerkAttributeModifier {
     @Override
     @OnlyIn(Dist.CLIENT)
     public String getAttributeDisplayFormat() {
-        return I18n.format("perk.modifier.astralsorcery.format.lifeleech");
+        return I18n.get("perk.modifier.astralsorcery.format.lifeleech");
     }
 }

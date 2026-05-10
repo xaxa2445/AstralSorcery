@@ -41,6 +41,19 @@ public abstract class CrystalProperty implements IHasRegistryName, Comparable<Cr
         this.setRegistryName(registryName);
     }
 
+    ResourceLocation registryName;
+
+    @Override
+    public void setRegistryName(ResourceLocation id) {
+        this.registryName = id;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName() {
+        return this.registryName;
+    }
+
+
     /**
      * Sets/Overwrites the research the player needs to obtain to see/understand this property.
      *

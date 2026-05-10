@@ -10,6 +10,7 @@ package hellfirepvp.astralsorcery.client.screen.base;
 
 import hellfirepvp.astralsorcery.common.util.tile.NamedInventoryTile;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
@@ -24,8 +25,8 @@ public abstract class TileConstellationDiscoveryScreen<T extends BlockEntity & N
 
     private final T tile;
 
-    protected TileConstellationDiscoveryScreen(T tile, int guiHeight, int guiWidth) {
-        super(tile.getDisplayName(), guiHeight, guiWidth);
+    public TileConstellationDiscoveryScreen(T tile, int height, int width, Component title) { // <--- 1. Agregas el Component aquí
+        super(title, height, width);
         this.tile = tile;
     }
 

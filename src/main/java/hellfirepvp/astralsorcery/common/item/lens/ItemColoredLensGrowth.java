@@ -17,6 +17,7 @@ import hellfirepvp.astralsorcery.common.network.play.server.PktPlayEffect;
 import hellfirepvp.astralsorcery.common.util.PartialEffectExecutor;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.core.BlockPos;
@@ -65,7 +66,7 @@ public class ItemColoredLensGrowth extends ItemColoredLens {
             if (plant != null) {
                 executor.executeAll(() -> {
                     if (random.nextInt(18) == 0) {
-                        plant.tryGrow(world, random);
+                        plant.tryGrow(world, (RandomSource) random);
                         PktPlayEffect packet = new PktPlayEffect(PktPlayEffect.Type.CROP_GROWTH)
                                 .addData(buf -> ByteBufUtils.writeVector(buf, new Vector3(pos)));
                         PacketChannel.CHANNEL.sendToAllAround(packet, PacketChannel.pointFromPos(world, pos, 16));

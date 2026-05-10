@@ -16,6 +16,7 @@ import hellfirepvp.astralsorcery.common.crystal.source.Crystal;
 import hellfirepvp.astralsorcery.common.crystal.source.Ritual;
 import hellfirepvp.astralsorcery.common.data.research.PlayerProgress;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
+import net.minecraft.resources.ResourceLocation;
 
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Sources.*;
 

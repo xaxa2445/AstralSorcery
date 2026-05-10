@@ -15,13 +15,13 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.EquipmentSlotType;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -54,23 +54,22 @@ public class KeyDisarm extends KeyPerk {
 
     private void onAttack(LivingHurtEvent event) {
         DamageSource source = event.getSource();
-        if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) source.getTrueSource();
+        if (source.getEntity() instanceof Player player) {
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
             if (prog.getPerkData().hasPerkEffect(this)) {
                 float chance = PerkAttributeHelper.getOrCreateMap(player, side)
                         .modifyValue(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT, CONFIG.dropChance.get().floatValue());
-                float currentChance = MathHelper.clamp(chance, 0F, 1F);
-                for (EquipmentSlotType slot : EquipmentSlotType.values()) {
+                float currentChance = Mth.clamp(chance, 0F, 1F);
+                for (EquipmentSlot slot : EquipmentSlot.values()) {
                     if (rand.nextFloat() >= currentChance) {
                         continue;
                     }
-                    LivingEntity attacked = event.getEntityLiving();
-                    ItemStack stack = attacked.getItemStackFromSlot(slot);
+                    LivingEntity attacked = event.getEntity();
+                    ItemStack stack = attacked.getItemBySlot(slot);
                     if (!stack.isEmpty()) {
-                        attacked.setItemStackToSlot(slot, ItemStack.EMPTY);
-                        ItemUtils.dropItemNaturally(attacked.world, attacked.getPosX(), attacked.getPosY(), attacked.getPosZ(), stack);
+                        attacked.setItemSlot(slot, ItemStack.EMPTY);
+                        ItemUtils.dropItemNaturally(attacked.level(), attacked.getX(), attacked.getY(), attacked.getZ(), stack);
                         break;
                     }
                 }

@@ -221,9 +221,9 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
 
         if (this.doublePageID == 0) {
             drawCstBackground(renderStack);
-            drawDefault(renderStack, TexturesAS.TEX_GUI_BOOK_FRAME_LEFT, mouseX, mouseY);
+            drawDefault(guiGraphics, TexturesAS.TEX_GUI_BOOK_FRAME_LEFT, mouseX, mouseY);
         } else {
-            drawDefault(renderStack, TexturesAS.TEX_GUI_BOOK_BLANK, mouseX, mouseY);
+            drawDefault(guiGraphics, TexturesAS.TEX_GUI_BOOK_BLANK, mouseX, mouseY);
         }
 
         drawNavArrows(renderStack, pTicks, mouseX, mouseY);
@@ -232,21 +232,21 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
         renderStack.translate(0, 0, 120);
         switch (doublePageID) {
             case 0:
-                drawPageConstellation(renderStack, pTicks);
-                drawPagePhaseInformation(renderStack);
-                drawPageExtendedInformation(renderStack);
+                drawPageConstellation(guiGraphics, pTicks);
+                drawPagePhaseInformation(guiGraphics);
+                drawPageExtendedInformation(guiGraphics);
                 break;
             case 1:
-                drawRefractionTableInformation(renderStack, mouseX, mouseY, pTicks);
+                drawRefractionTableInformation(guiGraphics, mouseX, mouseY, pTicks);
                 break;
             case 2:
-                drawCapeInformationPages(renderStack, mouseX, mouseY, pTicks);
+                drawCapeInformationPages(guiGraphics, mouseX, mouseY, pTicks);
                 if (this.constellation instanceof IMinorConstellation) { //Doesn't have a 3rd double page
-                    drawConstellationPaperRecipePage(renderStack, mouseX, mouseY, pTicks);
+                    drawConstellationPaperRecipePage(guiGraphics, mouseX, mouseY, pTicks);
                 }
                 break;
             case 3:
-                drawConstellationPaperRecipePage(renderStack, mouseX, mouseY, pTicks);
+                drawConstellationPaperRecipePage(guiGraphics, mouseX, mouseY, pTicks);
                 break;
             default:
                 break;
@@ -254,8 +254,9 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
         renderStack.popPose();
     }
 
-    private void drawRefractionTableInformation(PoseStack renderStack, int mouseX, int mouseY, float pTicks) {
+    private void drawRefractionTableInformation(GuiGraphics graphics, int mouseX, int mouseY, float pTicks) {
         // Primera columna (Ritual)
+        PoseStack renderStack = graphics.pose();
         for (int i = 0; i < locTextRitual.size(); i++) {
             FormattedCharSequence line = locTextRitual.get(i);
             renderStack.pushPose();
@@ -265,7 +266,7 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
             // CORRECCIÓN:
             // 1. Pasamos el fontRenderer primero.
             // 2. Quitamos el 'true' del final porque tu utilidad no lo tiene.
-            RenderingDrawUtils.renderStringAt(this.font, renderStack, line, 0xFFCCCCCC);
+            RenderingDrawUtils.renderStringAt(this.font, graphics, line, 0xFFCCCCCC);
 
             renderStack.popPose();
         }
@@ -277,21 +278,22 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
             renderStack.translate(guiLeft + 220, guiTop + 30 + (i * 10), this.getGuiZLevel());
 
             // Misma corrección aquí
-            RenderingDrawUtils.renderStringAt(this.font, renderStack, line, 0xFFCCCCCC);
+            RenderingDrawUtils.renderStringAt(this.font, graphics, line, 0xFFCCCCCC);
 
             renderStack.popPose();
         }
     }
 
-    private void drawCapeInformationPages(PoseStack renderStack, int mouseX, int mouseY, float partialTicks) {
+    private void drawCapeInformationPages(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         // 1. Renderizado del texto del Mantle (Capa)
+        PoseStack renderStack = graphics.pose();
         for (int i = 0; i < locTextMantle.size(); i++) {
             FormattedCharSequence line = locTextMantle.get(i);
             renderStack.pushPose();
             renderStack.translate(guiLeft + 30, guiTop + 30 + (i * 10), this.getGuiZLevel());
 
             // CORRECCIÓN: Orden (Font, Stack, Line, Color) y sin el booleano extra
-            RenderingDrawUtils.renderStringAt(this.font, renderStack, line, 0xFFCCCCCC);
+            RenderingDrawUtils.renderStringAt(this.font, graphics, line, 0xFFCCCCCC);
 
             renderStack.popPose();
         }
@@ -309,13 +311,13 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
 
                 // Renderizado de la receta en la página derecha
                 // Asegúrate de que los tipos de datos (float/double) coincidan con la firma de RenderPage
-                lastFramePage.render(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), partialTicks, (float) mouseX, (float) mouseY);
-                lastFramePage.postRender(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), partialTicks, (float) mouseX, (float) mouseY);
+                lastFramePage.render(graphics, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), partialTicks, (float) mouseX, (float) mouseY);
+                lastFramePage.postRender(graphics, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), partialTicks, (float) mouseX, (float) mouseY);
             }
         }
     }
 
-    private void drawConstellationPaperRecipePage(PoseStack renderStack, int mouseX, int mouseY, float partialTicks) {
+    private void drawConstellationPaperRecipePage(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
         if (ResearchHelper.getClientProgress().getTierReached().isThisLaterOrEqual(ProgressionTier.TRAIT_CRAFT)) {
             SimpleAltarRecipe recipe = RecipeHelper.findAltarRecipeResult(stack ->
                     stack.getItem() instanceof ItemConstellationPaper &&
@@ -323,13 +325,14 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
 
             if (recipe != null) {
                 lastFramePage = new RenderPageAltarRecipe(null, -1, recipe);
-                lastFramePage.render    (renderStack, guiLeft + 30, guiTop + 20, this.getGuiZLevel(), partialTicks, mouseX, mouseY);
-                lastFramePage.postRender(renderStack, guiLeft + 30, guiTop + 20, this.getGuiZLevel(), partialTicks, mouseX, mouseY);
+                lastFramePage.render    (graphics, guiLeft + 30, guiTop + 20, this.getGuiZLevel(), partialTicks, mouseX, mouseY);
+                lastFramePage.postRender(graphics, guiLeft + 30, guiTop + 20, this.getGuiZLevel(), partialTicks, mouseX, mouseY);
             }
         }
     }
 
-    private void drawPageExtendedInformation(PoseStack renderStack) {
+    private void drawPageExtendedInformation(GuiGraphics graphics) {
+        PoseStack renderStack = graphics.pose();
         MutableComponent info = this.getConstellation().getConstellationTag();
         if (!detailed) {
             info = Component.translatable("astralsorcery.journal.constellation.unknown");
@@ -339,7 +342,7 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
         float chX = 305 - (width / 2F);
         renderStack.pushPose();
         renderStack.translate(guiLeft + chX, guiTop + 44, this.getGuiZLevel());
-        RenderingDrawUtils.renderStringAt(font, renderStack, info, 0xFFCCCCCC);
+        RenderingDrawUtils.renderStringAt(font, graphics, info, 0xFFCCCCCC);
         renderStack.popPose();
 
         if (detailed && !locTextMain.isEmpty()) {
@@ -347,14 +350,15 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
             renderStack.pushPose();
             renderStack.translate(guiLeft + offsetX, guiTop + offsetY, this.getGuiZLevel());
             for (FormattedCharSequence line : locTextMain) {
-                RenderingDrawUtils.renderStringAt(font, renderStack, line, 0xFFCCCCCC);
+                RenderingDrawUtils.renderStringAt(font, graphics, line, 0xFFCCCCCC);
                 renderStack.translate(0, 13, 0);
             }
             renderStack.popPose();
         }
     }
 
-    private void drawPagePhaseInformation(PoseStack renderStack) {
+    private void drawPagePhaseInformation(GuiGraphics graphics) {
+        PoseStack renderStack = graphics.pose();
         if (this.activePhases == null) {
             this.testActivePhases();
             if (this.activePhases == null) {
@@ -374,7 +378,7 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
             renderStack.pushPose();
             renderStack.translate(offsetLeft + 10, offsetTop, getGuiZLevel());
             renderStack.scale(scale, scale, scale);
-            RenderingDrawUtils.renderStringAt(this.font, renderStack, none.getVisualOrderText(), 0xCCDDDDDD);
+            RenderingDrawUtils.renderStringAt(this.font, graphics, none.getVisualOrderText(), 0xCCDDDDDD);
             renderStack.popPose();
         } else {
             boolean known = ResearchHelper.getClientProgress().hasConstellationDiscovered(this.constellation);
@@ -412,14 +416,15 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
         }
     }
 
-    private void drawPageConstellation(PoseStack renderStack, float partial) {
+    private void drawPageConstellation(GuiGraphics graphics, float partial) {
         MutableComponent cstName = this.constellation.getConstellationName();
         int width = font.width(cstName);
+        PoseStack renderStack = graphics.pose();
 
         renderStack.pushPose();
         renderStack.translate(guiLeft + (305 - (width * 1.8F / 2F)), guiTop + 26, this.getGuiZLevel());
         renderStack.scale(1.8F, 1.8F, 1);
-        RenderingDrawUtils.renderStringAt(this.font, renderStack, cstName.getVisualOrderText(), 0xFFC3C3C3);
+        RenderingDrawUtils.renderStringAt(this.font, graphics, cstName.getVisualOrderText(), 0xFFC3C3C3);
         renderStack.popPose();
 
         MutableComponent dstInfo = constellation.getConstellationTypeDescription();
@@ -430,7 +435,7 @@ public class ScreenJournalConstellationDetail extends ScreenJournal implements N
 
         renderStack.pushPose();
         renderStack.translate(guiLeft + (305 - (width / 2F)), guiTop + 219, this.getGuiZLevel());
-        RenderingDrawUtils.renderStringAt(this.font, renderStack, dstInfo.getVisualOrderText(), 0xFFDDDDDD);
+        RenderingDrawUtils.renderStringAt(this.font, graphics, dstInfo.getVisualOrderText(), 0xFFDDDDDD);
         renderStack.popPose();
 
         RenderSystem.enableBlend();

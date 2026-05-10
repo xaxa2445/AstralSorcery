@@ -16,10 +16,12 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.altar.AltarRecipeTypeHan
 import hellfirepvp.astralsorcery.common.item.ItemResonator;
 import hellfirepvp.astralsorcery.common.lib.*;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.ItemStack;
+import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.tags.ItemTags;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.function.Consumer;
 
@@ -32,13 +34,13 @@ import java.util.function.Consumer;
  */
 public class AttunementAltarRecipeProvider {
 
-    public static void registerAltarRecipes(Consumer<IFinishedRecipe> registrar) {
+    public static void registerAltarRecipes(Consumer<FinishedRecipe> registrar) {
         registerRecipes(registrar);
     }
 
-    private static void registerRecipes(Consumer<IFinishedRecipe> registrar) {
+    private static void registerRecipes(Consumer<FinishedRecipe> registrar) {
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.ALTAR_UPGRADE_CONSTELLATION)
-                .createRecipe(BlocksAS.ALTAR_CONSTELLATION, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.ALTAR_CONSTELLATION), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("S   S")
@@ -56,8 +58,9 @@ public class AttunementAltarRecipeProvider {
                 .addOutput(BlocksAS.ALTAR_CONSTELLATION)
                 .build(registrar);
 
+        ResourceLocation resonate = ForgeRegistries.ITEMS.getKey(ItemsAS.RESONATOR);
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.NBT_COPY)
-                .createRecipe(NameUtil.suffixPath(ItemsAS.RESONATOR.getRegistryName(), "_upgrade_domic"), AltarType.ATTUNEMENT)
+                .createRecipe(NameUtil.suffixPath(resonate, "_upgrade_domic"), AltarType.ATTUNEMENT)
                 .modify(recipe -> recipe.addNBTCopyMatchIngredient(ItemsAS.RESONATOR))
                 .setStarlightRequirement(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -79,7 +82,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.TELESCOPE, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.TELESCOPE), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" T ")
@@ -94,7 +97,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.GATEWAY, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.GATEWAY), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("S   S")
@@ -114,7 +117,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.RITUAL_PEDESTAL, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.RITUAL_PEDESTAL), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("G   G")
@@ -133,7 +136,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CRYSTAL_SET_COUNT)
-                .createRecipe(BlocksAS.LENS, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.LENS), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.3F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -152,7 +155,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.ATTUNEMENT_ALTAR, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.ATTUNEMENT_ALTAR), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.8F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("A   A")
@@ -173,7 +176,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.PERK_SEAL, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.PERK_SEAL), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.1F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("N   N")
@@ -189,7 +192,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.KNOWLEDGE_SHARE, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.KNOWLEDGE_SHARE), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("I   I")
@@ -207,7 +210,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.GRAPPLE_WAND, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.GRAPPLE_WAND), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -223,7 +226,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.ARCHITECT_WAND, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.ARCHITECT_WAND), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -239,7 +242,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.EXCHANGE_WAND, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.EXCHANGE_WAND), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -255,7 +258,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.BLINK_WAND, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.BLINK_WAND), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -272,7 +275,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.LINKING_TOOL, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.LINKING_TOOL), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.3F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -289,7 +292,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.SHIFTING_STAR, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.SHIFTING_STAR), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.8F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("A   A")
@@ -306,7 +309,7 @@ public class AttunementAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.CHISEL, AltarType.ATTUNEMENT)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.CHISEL), AltarType.ATTUNEMENT)
                 .setStarlightRequirement(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")

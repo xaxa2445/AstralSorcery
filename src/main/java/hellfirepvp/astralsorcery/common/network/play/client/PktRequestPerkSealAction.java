@@ -16,13 +16,13 @@ import hellfirepvp.astralsorcery.common.perk.AbstractPerk;
 import hellfirepvp.astralsorcery.common.perk.PerkTree;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.client.gui.screens.Screen; // 1.20.1: Cambio de paquete
+import net.minecraft.resources.ResourceLocation; // 1.20.1: Cambio de paquete
+import net.minecraft.world.entity.player.Player; // 1.20.1: PlayerEntity -> Player
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 
@@ -74,13 +74,13 @@ public class PktRequestPerkSealAction extends ASPacket<PktRequestPerkSealAction>
             @Override
             @OnlyIn(Dist.CLIENT)
             public void handleClient(PktRequestPerkSealAction packet, NetworkEvent.Context context) {
-                Screen current = Minecraft.getInstance().currentScreen;
+                Screen current = Minecraft.getInstance().screen;
                 if (current instanceof ScreenJournalPerkTree) {
                     PerkTree.PERK_TREE.getPerk(LogicalSide.CLIENT, packet.perkKey).ifPresent(perk -> {
                         if (!packet.doSealing) {
-                            Minecraft.getInstance().enqueue(() -> ((ScreenJournalPerkTree) current).playSealBreakAnimation(perk));
+                            Minecraft.getInstance().execute(() -> ((ScreenJournalPerkTree) current).playSealBreakAnimation(perk));
                         } else {
-                            Minecraft.getInstance().enqueue(() -> ((ScreenJournalPerkTree) current).playSealApplyAnimation(perk));
+                            Minecraft.getInstance().execute(() -> ((ScreenJournalPerkTree) current).playSealApplyAnimation(perk));
                         }
                     });
                 }
@@ -94,7 +94,7 @@ public class PktRequestPerkSealAction extends ASPacket<PktRequestPerkSealAction>
                     }
 
                     PerkTree.PERK_TREE.getPerk(side, packet.perkKey).ifPresent(perk -> {
-                        PlayerEntity player = context.getSender();
+                        Player player = context.getSender();
                         if (packet.doSealing) {
                             if (ItemPerkSeal.useSeal(player, true) &&
                                     ResearchManager.applyPerkSeal(player, perk)) {

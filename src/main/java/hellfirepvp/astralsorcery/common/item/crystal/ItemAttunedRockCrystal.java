@@ -30,17 +30,6 @@ public class ItemAttunedRockCrystal extends ItemAttunedCrystalBase {
     }
 
     @Override
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
-        if (this.allowedIn(tab)) {
-            for (IWeakConstellation cst : ConstellationRegistry.getWeakConstellations()) {
-                ItemStack stack = new ItemStack(this);
-                setAttunedConstellation(stack, cst);
-                items.add(stack);
-            }
-        }
-    }
-
-    @Override
     public ItemAttunedCrystalBase getTunedItemVariant() {
         return ItemsAS.ATTUNED_ROCK_CRYSTAL;
     }

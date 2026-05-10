@@ -1,0 +1,14 @@
+{
+  "structures": [
+    {
+      "structure": "astralsorcery:small_shrine",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 18,
+    "separation": 4,
+    "salt": 14357617
+  }
+}

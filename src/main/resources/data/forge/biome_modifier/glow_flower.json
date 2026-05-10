@@ -1,0 +1,9 @@
+{
+  "type": "forge:add_features",
+  "biomes": [
+    "#minecraft:is_mountain",
+    "#minecraft:has_structure/village_snowy"
+  ],
+  "features": "astralsorcery:glow_flower",
+  "step": "vegetal_decoration"
+}

@@ -13,13 +13,11 @@ import hellfirepvp.astralsorcery.common.base.patreon.PatreonEffectHelper;
 import hellfirepvp.astralsorcery.common.base.patreon.entity.PatreonPartialEntity;
 import hellfirepvp.astralsorcery.common.data.sync.base.ClientData;
 import hellfirepvp.astralsorcery.common.data.sync.base.ClientDataReader;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.INBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.DimensionType;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.LogicalSide;
 
 import javax.annotation.Nonnull;
@@ -52,7 +50,7 @@ public class ClientPatreonFlares extends ClientData<ClientPatreonFlares> {
     }
 
     @Override
-    public void clear(RegistryKey<World> dim) {}
+    public void clear(ResourceKey<Level> dim) {}
 
     @Override
     public void clearClient() {
@@ -62,21 +60,21 @@ public class ClientPatreonFlares extends ClientData<ClientPatreonFlares> {
     public static class Reader extends ClientDataReader<ClientPatreonFlares> {
 
         @Override
-        public void readFromIncomingFullSync(ClientPatreonFlares data, CompoundNBT compound) {
+        public void readFromIncomingFullSync(ClientPatreonFlares data, CompoundTag compound) {
             data.entitiesClient.clear();
 
-            ListNBT entities = compound.getList("entities", Constants.NBT.TAG_COMPOUND);
-            for (INBT iNBT : entities) {
-                CompoundNBT tag = (CompoundNBT) iNBT;
+            ListTag entities = compound.getList("entities", 3);
+            for (Tag iNBT : entities) {
+                CompoundTag tag = (CompoundTag) iNBT;
 
-                UUID playerUUID = tag.getUniqueId("playerUUID");
+                UUID playerUUID = tag.getUUID("playerUUID");
                 Set<PatreonPartialEntity> entitySet = new HashSet<>();
 
-                ListNBT entityList = tag.getList("entityList", Constants.NBT.TAG_COMPOUND);
-                for (INBT iEntityTag : entityList) {
-                    CompoundNBT entityNBT = (CompoundNBT) iEntityTag;
+                ListTag entityList = tag.getList("entityList", 3);
+                for (Tag iEntityTag : entityList) {
+                    CompoundTag entityNBT = (CompoundTag) iEntityTag;
 
-                    UUID effectUUID = entityNBT.getUniqueId("id");
+                    UUID effectUUID = entityNBT.getUUID("id");
                     PatreonEffect effect = PatreonEffectHelper.getPatreonEffects(LogicalSide.CLIENT, playerUUID)
                             .stream()
                             .filter(eff -> eff.getEffectUUID().equals(effectUUID))
@@ -98,19 +96,19 @@ public class ClientPatreonFlares extends ClientData<ClientPatreonFlares> {
         }
 
         @Override
-        public void readFromIncomingDiff(ClientPatreonFlares data, CompoundNBT compound) {
-            ListNBT entities = compound.getList("updates", Constants.NBT.TAG_COMPOUND);
-            for (INBT iNBT : entities) {
-                CompoundNBT tag = (CompoundNBT) iNBT;
+        public void readFromIncomingDiff(ClientPatreonFlares data, CompoundTag compound) {
+            ListTag entities = compound.getList("updates", 3);
+            for (Tag iNBT : entities) {
+                CompoundTag tag = (CompoundTag) iNBT;
 
-                UUID playerUUID = tag.getUniqueId("playerUUID");
+                UUID playerUUID = tag.getUUID("playerUUID");
                 Set<PatreonPartialEntity> entitySet = data.entitiesClient.computeIfAbsent(playerUUID, p -> new HashSet<>());
 
-                ListNBT entityList = tag.getList("entityList", Constants.NBT.TAG_COMPOUND);
-                for (INBT iEntityTag : entityList) {
-                    CompoundNBT entityNBT = (CompoundNBT) iEntityTag;
+                ListTag entityList = tag.getList("entityList", 3);
+                for (Tag iEntityTag : entityList) {
+                    CompoundTag entityNBT = (CompoundTag) iEntityTag;
 
-                    UUID effectUUID = entityNBT.getUniqueId("id");
+                    UUID effectUUID = entityNBT.getUUID("id");
                     PatreonEffect effect = PatreonEffectHelper.getPatreonEffects(LogicalSide.CLIENT, playerUUID)
                             .stream()
                             .filter(eff -> eff.getEffectUUID().equals(effectUUID))
@@ -134,11 +132,11 @@ public class ClientPatreonFlares extends ClientData<ClientPatreonFlares> {
                 }
             }
 
-            ListNBT removals = compound.getList("removals", Constants.NBT.TAG_COMPOUND);
-            for (INBT iNBT : removals) {
-                CompoundNBT tag = (CompoundNBT) iNBT;
+            ListTag removals = compound.getList("removals", 3);
+            for (Tag iNBT : removals) {
+                CompoundTag tag = (CompoundTag) iNBT;
 
-                UUID playerUUID = tag.getUniqueId("playerUUID");
+                UUID playerUUID = tag.getUUID("playerUUID");
                 data.entitiesClient.remove(playerUUID);
             }
         }

@@ -10,8 +10,8 @@ package hellfirepvp.astralsorcery.common.event.helper;
 
 import hellfirepvp.astralsorcery.common.enchantment.EnchantmentPlayerTick;
 import hellfirepvp.observerlib.common.util.tick.ITickHandler;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -37,7 +37,7 @@ public class EventHelperEnchantmentTick implements ITickHandler {
 
     @Override
     public void tick(TickEvent.Type type, Object... context) {
-        PlayerEntity player = (PlayerEntity) context[0];
+        Player player = (Player) context[0];
         LogicalSide side = (LogicalSide) context[1];
 
         if (tickableEnchantments == null) {
@@ -48,7 +48,7 @@ public class EventHelperEnchantmentTick implements ITickHandler {
         }
 
         for (EnchantmentPlayerTick ench : this.tickableEnchantments) {
-            int totalLevel = EnchantmentHelper.getMaxEnchantmentLevel(ench, player);
+            int totalLevel = EnchantmentHelper.getEnchantmentLevel(ench, player);
             if (totalLevel > 0) {
                 ench.tick(player, side, totalLevel);
             }

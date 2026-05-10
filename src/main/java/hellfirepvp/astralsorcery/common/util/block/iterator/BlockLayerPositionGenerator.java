@@ -10,10 +10,11 @@ package hellfirepvp.astralsorcery.common.util.block.iterator;
 
 import hellfirepvp.astralsorcery.common.util.block.BlockGeometry;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.util.Direction;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.core.BlockPos; // net.minecraft.util.math -> net.minecraft.core
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag; // CompoundNBT -> CompoundTag
+import net.minecraft.util.Mth; // MathHelper -> Mth
+import net.minecraft.util.RandomSource;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -35,7 +36,7 @@ public class BlockLayerPositionGenerator extends BlockPositionGenerator {
 
     @Override
     protected BlockPos genNext(Vector3 offset, double radius) {
-        int size = MathHelper.floor(radius);
+        int size = Mth.floor(radius);
 
         while (currentPositions.isEmpty()) {
             generatePositions(size);
@@ -53,17 +54,17 @@ public class BlockLayerPositionGenerator extends BlockPositionGenerator {
             this.layer = -maxLayers;
         }
         Collection<BlockPos> positions = BlockGeometry.getPlane(Direction.UP, maxLayers);
-        positions.forEach(pos -> this.currentPositions.add(pos.add(0, this.layer, 0)));
+        positions.forEach(pos -> this.currentPositions.add(pos.offset(0, this.layer, 0)));
         Collections.shuffle(this.currentPositions, new Random(0xF518E23A05B27C19L));
     }
 
     @Override
-    public void writeToNBT(CompoundNBT nbt) {
+    public void writeToNBT(CompoundTag nbt) {
         nbt.putInt("layer", this.layer);
     }
 
     @Override
-    public void readFromNBT(CompoundNBT nbt) {
+    public void readFromNBT(CompoundTag nbt) {
         this.layer = nbt.getInt("layer");
     }
 }

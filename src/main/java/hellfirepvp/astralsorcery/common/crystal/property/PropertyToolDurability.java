@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.crystal.property;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crystal.CrystalProperty;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
+import net.minecraft.resources.ResourceLocation;
 
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.USE_TOOL_DURABILITY;
 
@@ -23,6 +24,8 @@ import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.US
  */
 public class PropertyToolDurability extends CrystalProperty {
 
+    ResourceLocation registryName;
+
     public PropertyToolDurability() {
         super(AstralSorcery.key("tool.durability"));
         this.setRequiredResearch(ResearchProgression.BASIC_CRAFT);
@@ -30,5 +33,15 @@ public class PropertyToolDurability extends CrystalProperty {
         this.addUsage(ctx -> ctx.uses(USE_TOOL_DURABILITY));
         this.addModifier((value, originalValue, propertyLevel, context) ->
                 context.withUse(USE_TOOL_DURABILITY, value, () -> value * (1.0 + (0.25 * propertyLevel))));
+    }
+
+    @Override
+    public void setRegistryName(ResourceLocation id) {
+        this.registryName = id;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName() {
+        return this.registryName;
     }
 }

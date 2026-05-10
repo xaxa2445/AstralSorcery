@@ -60,17 +60,6 @@ public class ItemCrystalShovel extends ItemCrystalTierItem implements TypeEnchan
     }
 
     @Override
-    public void fillItemCategory(net.minecraft.world.item.CreativeModeTab tab,
-                                 net.minecraft.core.NonNullList<ItemStack> items) {
-
-        if (this.allowedIn(tab)) {
-            ItemStack stack = new ItemStack(this);
-            CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
-            items.add(stack);
-        }
-    }
-
-    @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment) {
         return enchantment.category == EnchantmentCategory.DIGGER
                 || enchantment.category == EnchantmentCategory.BREAKABLE;

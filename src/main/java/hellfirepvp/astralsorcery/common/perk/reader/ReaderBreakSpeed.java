@@ -13,11 +13,11 @@ import hellfirepvp.astralsorcery.common.perk.PerkAttributeLimiter;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeMap;
 import hellfirepvp.astralsorcery.common.perk.type.AttributeTypeBreakSpeed;
 import hellfirepvp.astralsorcery.common.perk.type.PerkAttributeType;
-import net.minecraft.block.Blocks;
-import net.minecraft.client.resources.I18n;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
@@ -37,11 +37,11 @@ public class ReaderBreakSpeed extends ReaderFlatAttribute {
     }
 
     @Override
-    public double getDefaultValue(PerkAttributeMap statMap, PlayerEntity player, LogicalSide side) {
+    public double getDefaultValue(PerkAttributeMap statMap, Player player, LogicalSide side) {
         AttributeTypeBreakSpeed.evaluateBreakSpeedWithoutPerks = true;
         double speed;
         try {
-            speed = player.getDigSpeed(Blocks.COBBLESTONE.getDefaultState(), BlockPos.ZERO);
+            speed = player.getDigSpeed(Blocks.COBBLESTONE.defaultBlockState(), BlockPos.ZERO);
         } finally {
             AttributeTypeBreakSpeed.evaluateBreakSpeedWithoutPerks = false;
         }
@@ -50,23 +50,23 @@ public class ReaderBreakSpeed extends ReaderFlatAttribute {
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public PerkStatistic getStatistics(PerkAttributeMap statMap, PlayerEntity player) {
+    public PerkStatistic getStatistics(PerkAttributeMap statMap, Player player) {
         String limitStr = "";
         Double limit = null;
         if (PerkAttributeLimiter.hasLimit(this.getType())) {
             Pair<Double, Double> limits = PerkAttributeLimiter.getLimit(this.getType());
             limit = limits.getRight();
-            limitStr = I18n.format("perk.reader.astralsorcery.limit.percent", MathHelper.floor(limit * 100));
+            limitStr = I18n.get("perk.reader.astralsorcery.limit.percent", Mth.floor(limit * 100));
         }
 
-        double value = player.getDigSpeed(Blocks.COBBLESTONE.getDefaultState(), BlockPos.ZERO);
+        double value = player.getDigSpeed(Blocks.COBBLESTONE.defaultBlockState(), BlockPos.ZERO);
 
         String postProcess = "";
         double post = AttributeEvent.postProcessModded(player, this.getType(), value);
         if (Math.abs(value - post) > 1E-4 &&
                 (limit == null || Math.abs(post - limit) > 1E-4)) {
             if (Math.abs(post) >= 1E-4) {
-                postProcess = I18n.format("perk.reader.astralsorcery.postprocess.default",
+                postProcess = I18n.get("perk.reader.astralsorcery.postprocess.default",
                         (post >= 0 ? "+" : "") + formatDecimal(post));
             }
             value = post;

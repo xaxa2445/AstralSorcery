@@ -12,13 +12,14 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.event.AttributeEvent;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.EffectType;
-import net.minecraft.util.math.MathHelper;
-import net.minecraftforge.event.entity.living.PotionEvent;
+import net.minecraft.util.Mth; // MathHelper -> Mth
+import net.minecraft.world.effect.MobEffectCategory; // EffectType -> MobEffectCategory
+import net.minecraft.world.effect.MobEffectInstance; // EffectInstance -> MobEffectInstance
+import net.minecraft.world.entity.player.Player; // PlayerEntity -> Player
+import net.minecraftforge.event.entity.living.MobEffectEvent; // PotionEvent -> MobEffectEvent
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
+import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -39,23 +40,30 @@ public class AttributeTypePotionDuration extends PerkAttributeType {
         eventBus.addListener(this::onEffect);
     }
 
-    private void onEffect(PotionEvent.PotionAddedEvent event) {
-        if (event.getEntityLiving() instanceof PlayerEntity) {
-            if (event.getOldPotionEffect() == null) {
-                //New effect
-                modifyPotionDuration((PlayerEntity) event.getEntityLiving(), event.getPotionEffect(), event.getPotionEffect());
+    private void onEffect(MobEffectEvent.Added event) {
+        // Usamos pattern matching para Player
+        if (event.getEntity() instanceof Player player) {
+
+            // El método correcto según el source de Forge que pasaste:
+            MobEffectInstance oldEffect = event.getOldEffectInstance();
+            MobEffectInstance newEffect = event.getEffectInstance();
+
+            if (oldEffect == null) {
+                // Caso: Efecto nuevo (if original)
+                modifyPotionDuration(player, newEffect, newEffect);
             } else {
-                //Existing effect
-                if (new EffectInstance(event.getOldPotionEffect()).combine(event.getPotionEffect())) {
-                    modifyPotionDuration((PlayerEntity) event.getEntityLiving(), event.getPotionEffect(), event.getOldPotionEffect());
+                // Caso: Efecto existente (else original)
+                // Creamos una copia para intentar combinar y ver si hay cambios, como hacía AS
+                if (new MobEffectInstance(oldEffect).update(newEffect)) {
+                    modifyPotionDuration(player, newEffect, oldEffect);
                 }
             }
         }
     }
 
-    private void modifyPotionDuration(PlayerEntity player, EffectInstance newSetEffect, EffectInstance existingEffect) {
-        if (player.getEntityWorld().isRemote() ||
-                newSetEffect.getPotion().getEffectType().equals(EffectType.HARMFUL) ||
+    private void modifyPotionDuration(Player player, MobEffectInstance newSetEffect, MobEffectInstance existingEffect) {
+        if (player.level().isClientSide() ||
+                newSetEffect.getEffect().getCategory().equals(MobEffectCategory.HARMFUL) ||
                 existingEffect.getAmplifier() < newSetEffect.getAmplifier()) {
             return;
         }
@@ -66,7 +74,8 @@ public class AttributeTypePotionDuration extends PerkAttributeType {
         newDuration = AttributeEvent.postProcessModded(player, this, newDuration);
 
         if (newSetEffect.getDuration() < newDuration) {
-            newSetEffect.duration = MathHelper.floor(newDuration);
+            int finalDurationTicks = Mth.floor(newDuration);
+            ObfuscationReflectionHelper.setPrivateValue(MobEffectInstance.class, newSetEffect, finalDurationTicks, "f_19504_");
         }
     }
 

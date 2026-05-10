@@ -9,8 +9,8 @@
 package hellfirepvp.astralsorcery.mixin;
 
 import hellfirepvp.astralsorcery.common.event.AttributeEvent;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.attributes.AttributeModifierManager;
+import net.minecraft.world.entity.LivingEntity; // net.minecraft.entity -> world.entity
+import net.minecraft.world.entity.ai.attributes.AttributeMap; // AttributeModifierManager -> AttributeMap
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 01.01.2022 / 09:52
  */
-@Mixin(AttributeModifierManager.class)
+@Mixin(AttributeMap.class)
 public class MixinAttributeModifierManager implements AttributeEvent.EntityModifierManager {
 
     @Unique public LivingEntity astralSorceryEntityReference;

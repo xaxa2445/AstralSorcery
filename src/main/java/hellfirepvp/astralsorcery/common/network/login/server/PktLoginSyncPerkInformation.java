@@ -18,7 +18,8 @@ import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
+
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;

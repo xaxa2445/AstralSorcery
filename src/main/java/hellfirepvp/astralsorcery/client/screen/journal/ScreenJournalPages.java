@@ -158,13 +158,13 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
         int index = currentPageOffset * 2;
 
         if (pages.size() > index) {
-            pages.get(index).render(renderStack, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+            pages.get(index).render(graphics, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
         }
 
         index++;
 
         if (pages.size() > index) {
-            pages.get(index).render(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+            pages.get(index).render(graphics, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
         }
 
         renderStack.popPose();
@@ -181,13 +181,13 @@ public class ScreenJournalPages extends ScreenJournal implements NavigationArrow
         index = currentPageOffset * 2;
 
         if (pages.size() > index) {
-            pages.get(index).postRender(renderStack, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+            pages.get(index).postRender(graphics, guiLeft + 30, guiTop + pageYOffset, this.getGuiZLevel(), pTicks, mouseX, mouseY);
         }
 
         index++;
 
         if (pages.size() > index) {
-            pages.get(index).postRender(renderStack, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
+            pages.get(index).postRender(graphics, guiLeft + 220, guiTop + 20, this.getGuiZLevel(), pTicks, mouseX, mouseY);
         }
 
         renderStack.popPose();

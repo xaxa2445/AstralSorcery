@@ -26,10 +26,13 @@ import java.util.function.Consumer;
 public class EventHelperTemporaryFlight {
 
     private static final TimeoutList<Player> temporaryFlight = new TimeoutList<>(player -> {
-        if (player instanceof ServerPlayerEntity && ((ServerPlayerEntity) player).interactionManager.getGameType().isSurvivalOrAdventure()) {
-            player.abilities.allowFlying = false;
-            player.abilities.isFlying = false;
-            player.sendPlayerAbilities();
+        if (player instanceof ServerPlayer serverPlayer) {
+            net.minecraft.world.level.GameType gameType = serverPlayer.gameMode.getGameModeForPlayer();
+            if (gameType != net.minecraft.world.level.GameType.CREATIVE && gameType != net.minecraft.world.level.GameType.SPECTATOR) {
+                serverPlayer.getAbilities().mayfly = false; // allowFlying -> mayfly
+                serverPlayer.getAbilities().flying = false; // isFlying -> flying
+                serverPlayer.onUpdateAbilities(); // sendPlayerAbilities() -> onUpdateAbilities()
+            }
         }
     }, TickEvent.Type.SERVER);
 

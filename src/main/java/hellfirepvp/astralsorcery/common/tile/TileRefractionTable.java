@@ -172,7 +172,7 @@ public class TileRefractionTable extends TileEntityTick implements NamedInventor
         }
 
         if (rand.nextInt(4) == 0) {
-            Color beamColor = MiscUtils.eitherOf(rand,
+            Color beamColor = MiscUtils.eitherOf((RandomSource) rand,
                     ColorsAS.CONSTELLATION_TYPE_MAJOR,
                     ColorsAS.CONSTELLATION_TYPE_WEAK,
                     ColorsAS.CONSTELLATION_TYPE_MINOR);

@@ -17,7 +17,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 
@@ -84,7 +84,7 @@ public class PktSyncModifierSource extends ASPacket<PktSyncModifierSource> {
             @OnlyIn(Dist.CLIENT)
             public void handleClient(PktSyncModifierSource packet, NetworkEvent.Context context) {
                 context.enqueueWork(() -> {
-                    PlayerEntity player = Minecraft.getInstance().player;
+                    Player player = Minecraft.getInstance().player;
                     if (player == null) {
                         return;
                     }

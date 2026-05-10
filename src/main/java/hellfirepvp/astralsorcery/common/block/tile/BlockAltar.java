@@ -65,7 +65,7 @@ public abstract class BlockAltar extends BlockStarlightNetwork implements Custom
                     case DISCOVERY:
                         provider = new ContainerAltarDiscoveryProvider(altar);
 
-                        if (!ResearchHelper.getProgress(player)
+                        if (!ResearchHelper.getProgress(player.getUUID())
                                 .getTierReached().isThisLaterOrEqual(ProgressionTier.BASIC_CRAFT)) {
 
                             ResearchManager.informCrafted(player, new ItemStack(BlocksAS.ALTAR_DISCOVERY));
@@ -124,6 +124,6 @@ public abstract class BlockAltar extends BlockStarlightNetwork implements Custom
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new TileAltar().updateType(this.type, true);
+        return new TileAltar(pos, state).updateType(this.type, true);
     }
 }

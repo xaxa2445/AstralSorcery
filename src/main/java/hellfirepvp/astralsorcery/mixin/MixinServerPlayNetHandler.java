@@ -9,11 +9,11 @@
 package hellfirepvp.astralsorcery.mixin;
 
 import hellfirepvp.astralsorcery.common.entity.InteractableEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.network.play.ServerPlayNetHandler;
-import net.minecraft.network.play.client.CUseEntityPacket;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import net.minecraft.network.protocol.game.ServerboundInteractPacket;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,34 +27,24 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Created by HellFirePvP
  * Date: 01.01.2022 / 09:52
  */
-@Mixin(ServerPlayNetHandler.class)
-public class MixinServerPlayNetHandler {
+@Mixin(ServerGamePacketListenerImpl.class)
+public abstract class MixinServerPlayNetHandler {
 
-    @Shadow public ServerPlayerEntity player;
-
-    //Due to compatibility, this will not be used. see reach_set_server_entity_interact.js
-    /*@ModifyConstant(method = "processUseEntity", constant = @Constant(doubleValue = 36.0, ordinal = 1), require = 1)
-    public double overrideEntityInteractDistanceLimit(double distance) {
-        ServerPlayNetHandler playNetHandler = (ServerPlayNetHandler)(Object) this;
-        PlayerEntity player = playNetHandler.player;
-
-        PlayerProgress prog = ResearchHelper.getProgress(player, player.getEntityWorld().isRemote() ? LogicalSide.CLIENT : LogicalSide.SERVER);
-        if (prog.isValid() && prog.getPerkData().hasPerkEffect(perk -> perk instanceof KeyEntityReach)) {
-            return Double.MAX_VALUE;
-        }
-        return distance;
-    }*/
+    @Shadow public ServerPlayer player;
 
     @Inject(
-            method = "processUseEntity",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/network/play/ServerPlayNetHandler;disconnect(Lnet/minecraft/util/text/ITextComponent;)V"),
+            method = "handleInteract",
+            at = @At("HEAD"),
             cancellable = true
     )
-    public void allowInteractableEntity(CUseEntityPacket packet, CallbackInfo ci) {
-        ServerWorld world = this.player.getServerWorld();
-        Entity interacted = packet.getEntityFromWorld(world);
+    private void allowInteractableEntity(ServerboundInteractPacket packet, CallbackInfo ci) {
+
+        ServerLevel level = this.player.serverLevel();
+
+        Entity interacted = packet.getTarget(level);
+
         if (interacted instanceof InteractableEntity) {
-            this.player.attackTargetEntityWithCurrentItem(interacted);
+            this.player.attack(interacted);
             ci.cancel();
         }
     }

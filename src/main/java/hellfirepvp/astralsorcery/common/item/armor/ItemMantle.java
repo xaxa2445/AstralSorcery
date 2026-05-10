@@ -75,21 +75,6 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
     }
 
     @Override
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
-        if (this.allowedIn(tab)) {
-            items.add(new ItemStack(this));
-
-            for (IConstellation cst : RegistriesAS.REGISTRY_CONSTELLATIONS) {
-                if (!(cst instanceof IWeakConstellation)) continue;
-
-                ItemStack stack = new ItemStack(this);
-                this.setConstellation(stack, cst);
-                items.add(stack);
-            }
-        }
-    }
-
-    @Override
     public boolean canElytraFly(ItemStack stack, LivingEntity entity) {
         if (!(entity instanceof Player player)) return false;
         return MantleEffectVicio.isUsableElytra(stack, player);
@@ -135,21 +120,25 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public <A extends EntityModel<?>> A getArmorModel(LivingEntity entity,
-                                                      ItemStack stack,
-                                                      EquipmentSlot slot,
-                                                      A defaultModel) {
-        if (modelArmor == null) {
-            modelArmor = new ModelArmorMantle();
-        }
-        return (A) modelArmor;
+    public void initializeClient(java.util.function.Consumer<net.minecraftforge.client.extensions.common.IClientItemExtensions> consumer) {
+        consumer.accept(new net.minecraftforge.client.extensions.common.IClientItemExtensions() {
+            @Override
+            public @Nonnull HumanoidModel<?> getHumanoidArmorModel(LivingEntity entityLiving, ItemStack itemStack, EquipmentSlot armorSlot, HumanoidModel<?> _default) {
+                if (modelArmor == null) {
+                    // Aquí es donde necesitas pasar el ModelPart.
+                    // Usualmente se obtiene del EntityModels de Minecraft.
+                    modelArmor = new ModelArmorMantle(net.minecraft.client.Minecraft.getInstance()
+                            .getEntityModels().bakeLayer(ModelArmorMantle.MANTLE_LAYER));
+                }
+                return modelArmor;
+            }
+        });
     }
 
+    // El método getArmorTexture ahora se maneja normalmente pero asegúrate de que use el tipo correcto
     @Override
-    @OnlyIn(Dist.CLIENT)
     public String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {
-        return AstralSorcery.key("textures/model/armor/mantle.png").toString();
+        return "astralsorcery:textures/model/armor/mantle.png";
     }
 
     @Nullable
@@ -214,4 +203,6 @@ public class ItemMantle extends ArmorItem implements ItemDynamicColor, Constella
     public float getAlignmentChargeCost(Player player, ItemStack stack) {
         return 0;
     }
+
+
 }

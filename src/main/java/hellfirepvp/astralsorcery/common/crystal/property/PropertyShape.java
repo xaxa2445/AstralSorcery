@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.crystal.property;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crystal.CrystalProperty;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
+import net.minecraft.resources.ResourceLocation;
 
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.*;
 
@@ -22,6 +23,8 @@ import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.*;
  * Date: 02.02.2019 / 17:18
  */
 public class PropertyShape extends CrystalProperty {
+
+    ResourceLocation registryName;
 
     public PropertyShape() {
         super(AstralSorcery.key("shape"));
@@ -50,5 +53,15 @@ public class PropertyShape extends CrystalProperty {
             }
             return value;
         }));
+    }
+
+    @Override
+    public void setRegistryName(ResourceLocation id) {
+        this.registryName = id;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName() {
+        return this.registryName;
     }
 }

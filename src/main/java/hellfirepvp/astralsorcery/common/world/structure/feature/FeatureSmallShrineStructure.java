@@ -8,18 +8,17 @@
 
 package hellfirepvp.astralsorcery.common.world.structure.feature;
 
+import com.mojang.serialization.Codec;
+import hellfirepvp.astralsorcery.common.registry.RegistryStructuresAS;
 import hellfirepvp.astralsorcery.common.world.TemplateStructureFeature;
 import hellfirepvp.astralsorcery.common.world.structure.SmallShrineStructure;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MutableBoundingBox;
-import net.minecraft.util.registry.DynamicRegistries;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.gen.ChunkGenerator;
-import net.minecraft.world.gen.Heightmap;
-import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.feature.structure.Structure;
-import net.minecraft.world.gen.feature.structure.StructureStart;
-import net.minecraft.world.gen.feature.template.TemplateManager;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.StructureType;
+
+import java.util.Optional;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -28,27 +27,48 @@ import net.minecraft.world.gen.feature.template.TemplateManager;
  * Created by HellFirePvP
  * Date: 18.11.2020 / 22:12
  */
-public class FeatureSmallShrineStructure extends TemplateStructureFeature {
+public class FeatureSmallShrineStructure extends Structure {
 
-    @Override
-    public IStartFactory<NoFeatureConfig> getStartFactory() {
-        return Start::new;
+    public static final Codec<FeatureSmallShrineStructure> CODEC =
+            simpleCodec(FeatureSmallShrineStructure::new);
+
+    public FeatureSmallShrineStructure(StructureSettings settings) {
+        super(settings);
     }
 
-    public static class Start extends StructureStart<NoFeatureConfig> {
+    @Override
+    public Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
 
-        public Start(Structure<NoFeatureConfig> config, int chunkPosX, int chunkPosZ, MutableBoundingBox bounds, int ref, long seed) {
-            super(config, chunkPosX, chunkPosZ, bounds, ref, seed);
-        }
+        int x = context.chunkPos().getMinBlockX() + context.random().nextInt(16);
+        int z = context.chunkPos().getMinBlockZ() + context.random().nextInt(16);
 
-        @Override
-        public void func_230364_a_(DynamicRegistries registries, ChunkGenerator gen, TemplateManager mgr, int chunkX, int chunkZ, Biome biome, NoFeatureConfig cfg) {
-            int x = chunkX * 16 + rand.nextInt(16);
-            int z = chunkZ * 16 + rand.nextInt(16);
-            int y = gen.getHeight(x, z, Heightmap.Type.MOTION_BLOCKING);
-            SmallShrineStructure structure = new SmallShrineStructure(mgr, new BlockPos(x, y, z));
-            this.components.add(structure);
-            this.recalculateStructureSize();
-        }
+        int y = context.chunkGenerator()
+                .getFirstOccupiedHeight(
+                        x,
+                        z,
+                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        context.heightAccessor(),
+                        context.randomState()
+                );
+
+        BlockPos pos = new BlockPos(x, y, z);
+
+        return Optional.of(new GenerationStub(
+                pos,
+                builder -> {
+                    SmallShrineStructure piece =
+                            new SmallShrineStructure(
+                                    context.structureTemplateManager(),
+                                    pos
+                            );
+
+                    builder.addPiece(piece);
+                }
+        ));
+    }
+
+    @Override
+    public StructureType<?> type() {
+        return RegistryStructuresAS.SMALL_SHRINE_TYPE.get();
     }
 }

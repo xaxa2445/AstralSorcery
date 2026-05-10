@@ -39,6 +39,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.Nameable;
 import net.minecraft.world.entity.LivingEntity;
@@ -185,7 +186,7 @@ public class TileCelestialGateway extends TileEntityTick implements Nameable, Ti
                 offset.add(rand.nextFloat() * 5, 0, 5 * (rand.nextBoolean() ? 1 : 0));
             }
 
-            Color c = MiscUtils.eitherOf(rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
+            Color c = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(offset)
                     .setGravityStrength(-0.0001F)
@@ -195,10 +196,10 @@ public class TileCelestialGateway extends TileEntityTick implements Nameable, Ti
         }
         for (int i = 0; i < 2; i++) {
             Vector3 offset = new Vector3();
-            MiscUtils.applyRandomOffset(offset, rand, 3F);
+            MiscUtils.applyRandomOffset(offset, (RandomSource) rand, 3F);
             offset.add(new Vector3(this)).add(0.5, 0, 0.5).setY(this.getBlockPos().getY() + 0.05);
 
-            Color c = MiscUtils.eitherOf(rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
+            Color c = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, gatewayColor, gatewayColor.brighter());
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(offset)
                     .setGravityStrength(-0.00004F)
@@ -211,8 +212,8 @@ public class TileCelestialGateway extends TileEntityTick implements Nameable, Ti
             Vector3 center = new Vector3(this).add(0.5, 0.2, 0.5);
             for (int i = 0; i < rand.nextInt(5) + 2; i++) {
                 Vector3 pos = MiscUtils.getRandomCirclePosition(center, Vector3.RotAxis.Y_AXIS, 1.7);
-                MiscUtils.applyRandomOffset(pos, rand, 0.05F);
-                Color c = MiscUtils.eitherOf(rand, Color.WHITE, ColorsAS.EFFECT_BLUE_LIGHT, ColorsAS.EFFECT_BLUE_DARK);
+                MiscUtils.applyRandomOffset(pos, (RandomSource) rand, 0.05F);
+                Color c = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, ColorsAS.EFFECT_BLUE_LIGHT, ColorsAS.EFFECT_BLUE_DARK);
                 EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                         .spawn(pos)
                         .color(VFXColorFunction.constant(c))
@@ -222,8 +223,8 @@ public class TileCelestialGateway extends TileEntityTick implements Nameable, Ti
             }
             for (int i = 0; i < rand.nextInt(3) + 1; i++) {
                 Vector3 pos = MiscUtils.getRandomCirclePosition(center, Vector3.RotAxis.Y_AXIS, 1.1).addY(0.3);
-                MiscUtils.applyRandomOffset(pos, rand, 0.05F);
-                Color c = MiscUtils.eitherOf(rand, Color.WHITE, ColorsAS.EFFECT_BLUE_LIGHT, ColorsAS.EFFECT_BLUE_DARK);
+                MiscUtils.applyRandomOffset(pos, (RandomSource) rand, 0.05F);
+                Color c = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, ColorsAS.EFFECT_BLUE_LIGHT, ColorsAS.EFFECT_BLUE_DARK);
                 EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                         .spawn(pos)
                         .color(VFXColorFunction.constant(c))
@@ -304,7 +305,7 @@ public class TileCelestialGateway extends TileEntityTick implements Nameable, Ti
         }
 
         Collections.shuffle(availableIndices);
-        this.allowedUsers.put(MiscUtils.getRandomEntry(availableIndices, rand), otherUser);
+        this.allowedUsers.put(MiscUtils.getRandomEntry(availableIndices, (RandomSource) rand), otherUser);
         this.updateAccessInformation();
         return true;
     }

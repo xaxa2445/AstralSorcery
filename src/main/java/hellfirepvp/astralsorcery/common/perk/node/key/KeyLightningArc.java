@@ -23,24 +23,26 @@ import hellfirepvp.astralsorcery.common.network.PacketChannel;
 import hellfirepvp.astralsorcery.common.network.play.server.PktPlayEffect;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
 import hellfirepvp.astralsorcery.common.util.entity.EntityUtils;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.PacketDistributor;
+import net.minecraftforge.network.PacketDistributor;
 
 import java.util.List;
 
@@ -80,8 +82,7 @@ public class KeyLightningArc extends KeyPerk {
         }
 
         DamageSource source = event.getSource();
-        if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-            PlayerEntity player = (PlayerEntity) source.getTrueSource();
+        if (source.getEntity() instanceof Player player) {
             LogicalSide side = this.getSide(player);
             PlayerProgress prog = ResearchHelper.getProgress(player, side);
             if (side.isServer() && prog.getPerkData().hasPerkEffect(this) && prog.doPerkAbilities()) {
@@ -90,10 +91,10 @@ public class KeyLightningArc extends KeyPerk {
                 if (rand.nextFloat() < chance && AlignmentChargeHandler.INSTANCE.drainCharge(player, side, CONFIG.chargeCost.get(), false)) {
                     float dmg = event.getAmount();
                     dmg *= CONFIG.arcPercent.get();
-                    new RepetitiveArcEffect(player.world,
+                    new RepetitiveArcEffect(player.level(),
                             player,
                             CONFIG.arcTicks.get(),
-                            event.getEntityLiving().getEntityId(),
+                            event.getEntity().getId(),
                             dmg,
                             CONFIG.arcDistance.get()).fire();
                 }
@@ -139,15 +140,15 @@ public class KeyLightningArc extends KeyPerk {
 
     static class RepetitiveArcEffect {
 
-        private final World world;
-        private final PlayerEntity player;
+        private final Level world;
+        private final Player player;
         private final int entityStartId;
         private final float damage;
         private final double distance;
 
         private int count;
 
-        public RepetitiveArcEffect(World world, PlayerEntity player, int count, int entityStartId, float damage, double distance) {
+        public RepetitiveArcEffect(Level world, Player player, int count, int entityStartId, float damage, double distance) {
             this.world = world;
             this.player = player;
             this.count = count;
@@ -164,10 +165,10 @@ public class KeyLightningArc extends KeyPerk {
             int chainTimes = Math.round(PerkAttributeHelper.getOrCreateMap(player, LogicalSide.SERVER)
                     .modifyValue(player, ResearchHelper.getProgress(player, LogicalSide.SERVER), PerkAttributeTypesAS.ATTR_TYPE_ARC_CHAINS, arcChains));
             List<LivingEntity> visitedEntities = Lists.newArrayList();
-            Entity start = world.getEntityByID(entityStartId);
+            Entity start = world.getEntity(entityStartId);
 
             if (start instanceof LivingEntity && start.isAlive()) {
-                AxisAlignedBB box = new AxisAlignedBB(-distance, -distance, -distance, distance, distance, distance);
+                AABB box = new AABB(-distance, -distance, -distance, distance, distance, distance);
 
                 LivingEntity last = null;
                 LivingEntity entity = (LivingEntity) start;
@@ -178,7 +179,7 @@ public class KeyLightningArc extends KeyPerk {
                     if (last != null) {
                         Vector3 from = Vector3.atEntityCenter(entity);
                         Vector3 to = Vector3.atEntityCenter(last);
-                        PacketDistributor.TargetPoint target = PacketChannel.pointFromPos(world, entity.getPosition(), 16);
+                        PacketDistributor.TargetPoint target = PacketChannel.pointFromPos(world, entity.blockPosition(), 16);
                         PacketChannel.CHANNEL.sendToAllAround(new PktPlayEffect(PktPlayEffect.Type.LIGHTNING)
                                 .addData(buf -> {
                                     ByteBufUtils.writeVector(buf, from);
@@ -192,7 +193,7 @@ public class KeyLightningArc extends KeyPerk {
                                     buf.writeInt(ColorsAS.EFFECT_LIGHTNING.getRGB());
                                 }), target);
                     }
-                    List<LivingEntity> entities = entity.getEntityWorld().getEntitiesWithinAABB(LivingEntity.class, box.offset(entity.getPositionVec()), EntityUtils.selectEntities(LivingEntity.class));
+                    List<LivingEntity> entities = entity.level().getEntitiesOfClass(LivingEntity.class, box.move(entity.position()), EntityUtils.selectEntities(LivingEntity.class));
                     entities.remove(entity);
                     if (last != null) {
                         entities.remove(last);
@@ -205,7 +206,7 @@ public class KeyLightningArc extends KeyPerk {
 
                     if (!entities.isEmpty()) {
                         LivingEntity tmpEntity = entity; //Final for lambda
-                        LivingEntity closest = EntityUtils.selectClosest(entities, (e) -> (double) e.getDistance(tmpEntity));
+                        LivingEntity closest = EntityUtils.selectClosest(entities, (e) -> (double) e.distanceTo(tmpEntity));
                         if (closest != null && closest.isAlive()) {
                             last = entity;
                             entity = closest;
@@ -220,7 +221,9 @@ public class KeyLightningArc extends KeyPerk {
                 if (visitedEntities.size() > 1) {
                     visitedEntities.forEach((e) -> {
                         EventFlags.LIGHTNING_ARC.executeWithFlag(() -> {
-                            DamageUtil.attackEntityFrom(e, CommonProxy.DAMAGE_SOURCE_STELLAR, damage, player);
+                            DamageSource astralDamage = new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE)
+                                    .getHolderOrThrow(ASDamageTypes.STELLAR));
+                            DamageUtil.attackEntityFrom(e, astralDamage, damage, player);
                         });
                     });
                 }

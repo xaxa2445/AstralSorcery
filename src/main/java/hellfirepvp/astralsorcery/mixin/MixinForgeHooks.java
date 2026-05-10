@@ -13,13 +13,14 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.perk.node.key.KeyMagnetDrops;
 import hellfirepvp.astralsorcery.common.util.item.ItemUtils;
 import hellfirepvp.astralsorcery.common.util.loot.LootUtil;
-import net.minecraft.entity.Entity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.ItemStack;
-import net.minecraft.loot.LootContext;
-import net.minecraft.loot.LootParameterSets;
-import net.minecraft.loot.LootParameters;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.storage.loot.LootContext; // net.minecraft.loot -> world.level.storage.loot
+import net.minecraft.world.level.storage.loot.LootParams; // LootParameters -> LootParams (en algunas versiones)
+import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets; // LootParameterSets -> LootContextParamSets
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams; // LootParameters -> LootContextParams
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.fml.LogicalSide;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,38 +43,48 @@ import java.util.List;
 public class MixinForgeHooks {
 
     @Inject(
-            method = "modifyLoot(Lnet/minecraft/util/ResourceLocation;Ljava/util/List;Lnet/minecraft/loot/LootContext;)Ljava/util/List;",
+            // El método ahora usa ResourceLocation, List<ItemStack> y LootContext
+            method = "modifyLoot",
             at = @At("RETURN"),
             cancellable = true,
-            remap = false
+            remap = false // Importante: ForgeHooks es código de Forge, no de Mojang, por eso remap = false
     )
     private static void runLootTeleportation(ResourceLocation lootTableId, List<ItemStack> generatedLoot, LootContext context, CallbackInfoReturnable<List<ItemStack>> cir) {
         List<ItemStack> loot = cir.getReturnValue();
 
-        if (!LootUtil.doesContextFulfillSet(context, LootParameterSets.BLOCK)) {
+        // LootParameterSets.BLOCK -> LootContextParamSets.BLOCK
+        if (!LootUtil.doesContextFulfillSet(context, LootContextParamSets.BLOCK)) {
             return;
         }
-        Entity e = context.get(LootParameters.THIS_ENTITY);
-        if (!(e instanceof PlayerEntity)) {
+
+        // LootParameters.THIS_ENTITY -> LootContextParams.THIS_ENTITY
+        Entity e = context.getParamOrNull(LootContextParams.THIS_ENTITY);
+        if (!(e instanceof Player player)) {
             return;
         }
-        PlayerEntity player = (PlayerEntity) e;
+
         PlayerProgress prog = ResearchHelper.getProgress(player, LogicalSide.SERVER);
         if (!prog.isValid() || !prog.getPerkData().hasPerkEffect(perk -> perk instanceof KeyMagnetDrops)) {
             return;
         }
 
-        //Means we're in the 2nd run of loot manipulation, re-run by top.theillusivec4.curios.common.objects.FortuneBonusMultiplier
-        ItemStack tool = context.get(LootParameters.TOOL);
-        if (tool != null && tool.hasTag() && tool.getTag().contains("HasCuriosFortuneBonus")) {
+        // Manejo de compatibilidad con Curios para evitar duplicación de loot
+        ItemStack tool = context.getParamOrNull(LootContextParams.TOOL);
+        if (tool != null && tool.hasTag() && tool.getOrCreateTag().contains("HasCuriosFortuneBonus")) {
             loot.removeIf(result -> ItemUtils.dropItemToPlayer(player, result).isEmpty());
+            return;
         }
-        int curiosFortuneBonus = CuriosApi.getCuriosHelper().getCuriosHandler(player)
-                .map(ICuriosItemHandler::getFortuneBonus)
+
+        // Acceso a la API de Curios en 1.20.1
+        int curiosFortuneBonus = CuriosApi.getCuriosInventory(player)
+                .map(handler -> handler.getFortuneLevel(context)) // Usamos el nuevo método con contexto
                 .orElse(0);
+
         if (curiosFortuneBonus > 0) {
-            return; //Do not modify loot, loot modification gets re-run by curios later
+            return; // Curios re-procesará el loot después
         }
+
+        // Teletransportar los ítems al jugador y remover los que se entregaron con éxito
         loot.removeIf(result -> ItemUtils.dropItemToPlayer(player, result).isEmpty());
     }
 }

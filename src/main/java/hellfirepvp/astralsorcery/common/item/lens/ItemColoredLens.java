@@ -35,7 +35,7 @@ public abstract class ItemColoredLens extends Item implements ItemDynamicColor {
     private final LensColorType lensColorType;
 
     protected ItemColoredLens(LensColorType colorType) {
-        this(colorType, new Properties().tab(CommonProxy.ITEM_GROUP_AS));
+        this(colorType, new Properties());
     }
 
     protected ItemColoredLens(LensColorType colorType, Properties properties) {
@@ -60,7 +60,7 @@ public abstract class ItemColoredLens extends Item implements ItemDynamicColor {
                 }
 
                 SoundHelper.playSoundAround(
-                        SoundsAS.BLOCK_COLOREDLENS_ATTACH,
+                        SoundsAS.BLOCK_COLOREDLENS_ATTACH.getSoundEvent(),
                         level,
                         ctx.getClickedPos(),
                         0.8F,

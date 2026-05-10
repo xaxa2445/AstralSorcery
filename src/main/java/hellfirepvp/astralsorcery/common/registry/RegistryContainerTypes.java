@@ -21,6 +21,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.network.IContainerFactory;
+
+import java.awt.*;
+
 import static hellfirepvp.astralsorcery.common.lib.ContainerTypesAS.*;
 
 /**
@@ -47,7 +50,9 @@ public class RegistryContainerTypes {
     @OnlyIn(Dist.CLIENT)
     public static void initClient() {
         MenuScreens.register(TOME, ScreenContainerTome::new);
-        MenuScreens.register(OBSERVATORY, (menu, inv, title) -> new ScreenObservatory((ContainerObservatory) menu));
+        MenuScreens.<ContainerObservatory, ScreenObservatory>register(OBSERVATORY, (menu, inv, title) ->
+                new ScreenObservatory(menu, inv, (Component) title)
+        );
         MenuScreens.register(ALTAR_DISCOVERY, ScreenContainerAltarDiscovery::new);
         MenuScreens.register(ALTAR_ATTUNEMENT, ScreenContainerAltarAttunement::new);
         MenuScreens.register(ALTAR_CONSTELLATION, ScreenContainerAltarConstellation::new);

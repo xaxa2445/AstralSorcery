@@ -16,12 +16,16 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.modifier.AttributeModifierThorns;
 import hellfirepvp.astralsorcery.common.perk.modifier.PerkAttributeModifier;
+import hellfirepvp.astralsorcery.common.util.ASDamageTypes;
 import hellfirepvp.astralsorcery.common.util.DamageUtil;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.util.Mth; // MathHelper -> Mth
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.level.Level;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
@@ -54,10 +58,10 @@ public class AttributeTypeThorns extends PerkAttributeType {
     }
 
     private void onThronsReflect(LivingHurtEvent event) {
-        if (!(event.getEntityLiving() instanceof PlayerEntity)) {
+        if (!(event.getEntity() instanceof Player)) {
             return;
         }
-        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        Player player = (Player) event.getEntity();
         LogicalSide side = this.getSide(player);
         if (!hasTypeApplied(player, side)) {
             return;
@@ -72,32 +76,36 @@ public class AttributeTypeThorns extends PerkAttributeType {
         if (reflectAmount <= 0) {
             return;
         }
-        reflectAmount = MathHelper.clamp(reflectAmount, 0F, 1F);
+        reflectAmount = Mth.clamp(reflectAmount, 0F, 1F);
 
         DamageSource source = event.getSource();
         LivingEntity reflectTarget = null;
-        if (source.getImmediateSource() != null &&
-                source.getImmediateSource() instanceof LivingEntity &&
-                source.getImmediateSource().isAlive()) {
-            reflectTarget = (LivingEntity) source.getImmediateSource();
+        Entity immediate = source.getDirectEntity();
+        if (immediate instanceof LivingEntity livingImmediate && livingImmediate.isAlive()) {
+            reflectTarget = livingImmediate;
         }
 
         if (reflectTarget == null &&
                 AttributeEvent.postProcessModded(player, this,
                         PerkAttributeHelper.getOrCreateMap(player, side)
                                 .getModifier(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_THORNS_RANGED)) > 1) {
-            if (source.getTrueSource() != null &&
-                    source.getTrueSource() instanceof LivingEntity &&
-                    source.getTrueSource().isAlive()) {
-                reflectTarget = (LivingEntity) source.getTrueSource();
+            Entity trueSource = source.getEntity();
+            if (trueSource instanceof LivingEntity livingTrue && livingTrue.isAlive()) {
+                reflectTarget = livingTrue;
             }
         }
 
         if (reflectTarget != null) {
             float dmgReflected = event.getAmount() * reflectAmount;
-            if (dmgReflected > 0 && !event.getEntityLiving().equals(reflectTarget)) {
-                if (MiscUtils.canPlayerAttackServer(event.getEntityLiving(), reflectTarget)) {
-                    DamageUtil.attackEntityFrom(reflectTarget, CommonProxy.DAMAGE_SOURCE_REFLECT, dmgReflected, player);
+            if (dmgReflected > 0 && !event.getEntity().equals(reflectTarget)) {
+                if (MiscUtils.canPlayerAttackServer(event.getEntity(), reflectTarget)) {
+                    DamageSource reflectSource = new DamageSource(
+                            player.level().registryAccess()
+                                    .registryOrThrow(Registries.DAMAGE_TYPE)
+                                    .getHolderOrThrow(ASDamageTypes.REFLECT),
+                            player // Aquí pasamos al jugador como el 'causante' (Entity)
+                    );
+                    DamageUtil.attackEntityFrom(reflectTarget, reflectSource, dmgReflected, player);
                 }
             }
         }

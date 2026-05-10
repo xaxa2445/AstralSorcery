@@ -12,8 +12,9 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.event.AttributeEvent;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -39,10 +40,15 @@ public class AttributeTypeProjectileAttackDamage extends PerkAttributeType {
     }
 
     private void onProjectileDamage(LivingHurtEvent event) {
-        if (event.getSource().isProjectile()) {
-            DamageSource source = event.getSource();
-            if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-                PlayerEntity player = (PlayerEntity) source.getTrueSource();
+        DamageSource source = event.getSource();
+
+        // 1.20.1: isProjectile() sigue existiendo pero se recomienda verificar el DamageType
+        // o usar tags si se requiere algo más específico.
+        if (source.is(DamageTypeTags.IS_PROJECTILE)) {
+
+            // 1.20.1: getTrueSource() -> getEntity()
+            // Pattern matching para simplificar el cast de Player
+            if (source.getEntity() instanceof Player player) {
                 LogicalSide side = this.getSide(player);
                 if (!hasTypeApplied(player, side)) {
                     return;
@@ -50,6 +56,7 @@ public class AttributeTypeProjectileAttackDamage extends PerkAttributeType {
 
                 float amt = PerkAttributeHelper.getOrCreateMap(player, side)
                         .modifyValue(player, ResearchHelper.getProgress(player, side), this, event.getAmount());
+
                 amt = AttributeEvent.postProcessModded(player, this, amt);
                 event.setAmount(amt);
             }

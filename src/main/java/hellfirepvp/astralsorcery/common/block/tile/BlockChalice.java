@@ -112,7 +112,7 @@ public class BlockChalice extends BaseEntityBlock implements CustomItemBlock {
     }
 
     @Override
-    public RenderShape getRenderType(BlockState state) {
+    public RenderShape getRenderShape(BlockState state) {
         return RenderShape.MODEL;
     }
 

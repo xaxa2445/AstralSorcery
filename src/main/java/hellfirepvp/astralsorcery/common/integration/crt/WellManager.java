@@ -9,16 +9,17 @@
 package hellfirepvp.astralsorcery.common.integration.crt;
 
 import com.blamejared.crafttweaker.api.CraftTweakerAPI;
-import com.blamejared.crafttweaker.api.annotations.ZenRegister;
-import com.blamejared.crafttweaker.api.item.*;
-import com.blamejared.crafttweaker.api.managers.IRecipeManager;
-import com.blamejared.crafttweaker.impl.actions.recipes.*;
-import com.blamejared.crafttweaker.impl_native.fluid.ExpandFluid;
+import com.blamejared.crafttweaker.api.action.recipe.ActionAddRecipe;
+import com.blamejared.crafttweaker.api.action.recipe.ActionRemoveRecipe;
+import com.blamejared.crafttweaker.api.annotation.ZenRegister;
+import com.blamejared.crafttweaker.api.ingredient.IIngredient;
+import com.blamejared.crafttweaker.api.item.IItemStack;
+import com.blamejared.crafttweaker.api.recipe.manager.base.IRecipeManager;
 import hellfirepvp.astralsorcery.common.crafting.recipe.WellLiquefaction;
 import hellfirepvp.astralsorcery.common.lib.RecipeTypesAS;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.crafting.IRecipeType;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.material.Fluid;
 import org.openzen.zencode.java.ZenCodeType;
 
 import java.awt.*;
@@ -32,40 +33,39 @@ import java.awt.*;
  */
 @ZenRegister
 @ZenCodeType.Name("mods.astralsorcery.WellManager")
-public class WellManager implements IRecipeManager {
-    
+public class WellManager implements IRecipeManager<WellLiquefaction> {
+
     @ZenCodeType.Method
-    public void addRecipe(String name, Fluid output, IIngredient input, float productionMultiplier, float shatterMultiplier, @ZenCodeType.OptionalInt(0x00FF55FF) int color) {
-        name = fixRecipeName(name);
-        ResourceLocation recipeId = new ResourceLocation(name);
+    public void addRecipe(String name, Fluid output, IIngredient input, float productionMultiplier, float shatterMultiplier, @ZenCodeType.OptionalInt(0xFF55FF) int color) {
+        String fixedName = fixRecipeName(name);
+        ResourceLocation recipeId = new ResourceLocation("crafttweaker", fixedName);
+
+        // Usamos asVanilla() para el Ingredient en 1.20.1
+        // Nota: Asegúrate de que tu clase WellLiquefaction acepte java.awt.Color o cámbialo a int si es necesario
         WellLiquefaction recipe = new WellLiquefaction(recipeId, input.asVanillaIngredient(), output, new Color(color, true), productionMultiplier, shatterMultiplier);
-        CraftTweakerAPI.apply(new ActionAddRecipe(this, recipe));
+
+        CraftTweakerAPI.apply(new ActionAddRecipe<>(this, recipe));
     }
-    
+
     @Override
-    public void removeRecipe(IItemStack output) {
-        
-        throw new UnsupportedOperationException("Cannot remove Astral Sorcery Well Liquefaction recipes by IItemStacks, use the Fluid method instead!");
+    public void remove(IIngredient output) {
+        // El pozo genera fluidos, por lo que la remoción por ítem no tiene sentido lógico aquí
+        throw new UnsupportedOperationException("Cannot remove Astral Sorcery Well Liquefaction recipes by IIngredients, use the Fluid method instead!");
     }
-    
+
     @ZenCodeType.Method
     public void removeRecipe(Fluid output) {
-        
-        CraftTweakerAPI.apply(new ActionRemoveRecipe(this, iRecipe -> {
-            
-            if(iRecipe instanceof WellLiquefaction) {
-                WellLiquefaction recipe = (WellLiquefaction) iRecipe;
-                
-                return output == recipe.getFluidOutput();
+        // Usamos ActionRemoveRecipe con el truco del casteo seguro que aprendimos
+        CraftTweakerAPI.apply(new ActionRemoveRecipe(this, recipe -> {
+            if (recipe instanceof WellLiquefaction wellRecipe) {
+                return output == wellRecipe.getFluidOutput();
             }
             return false;
-        }, action -> "Removing Well Liquefaction recipes that output " + ExpandFluid.getCommandString(output)));
+        }));
     }
-    
+
     @Override
-    public IRecipeType<WellLiquefaction> getRecipeType() {
-        
+    public RecipeType<WellLiquefaction> getRecipeType() {
         return RecipeTypesAS.TYPE_WELL.getType();
     }
-    
 }

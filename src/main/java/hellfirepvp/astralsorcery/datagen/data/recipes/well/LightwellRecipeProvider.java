@@ -13,9 +13,9 @@ import hellfirepvp.astralsorcery.common.crafting.builder.WellRecipeBuilder;
 import hellfirepvp.astralsorcery.common.lib.ColorsAS;
 import hellfirepvp.astralsorcery.common.lib.FluidsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.item.Items;
+import net.minecraft.data.recipes.FinishedRecipe; // IFinishedRecipe -> FinishedRecipe
+import net.minecraft.world.level.material.Fluids; // Cambio de paquete para Fluidos
+import net.minecraft.world.item.Items; // Cambio de paquete para Items
 
 import java.awt.*;
 import java.util.function.Consumer;
@@ -29,7 +29,7 @@ import java.util.function.Consumer;
  */
 public class LightwellRecipeProvider {
 
-    public static void registerLightwellRecipes(Consumer<IFinishedRecipe> registrar) {
+    public static void registerLightwellRecipes(Consumer<FinishedRecipe> registrar) {
         WellRecipeBuilder.builder(AstralSorcery.key("starlight_aquamarine"))
                 .setItemInput(ItemsAS.AQUAMARINE)
                 .setLiquidOutput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())

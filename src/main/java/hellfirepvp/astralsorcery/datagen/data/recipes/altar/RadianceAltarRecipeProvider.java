@@ -23,12 +23,14 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.altar.builtin.Constellat
 import hellfirepvp.astralsorcery.common.item.ItemResonator;
 import hellfirepvp.astralsorcery.common.lib.*;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.data.recipes.FinishedRecipe; // IFinishedRecipe -> FinishedRecipe
+import net.minecraft.resources.ResourceLocation; // net.minecraft.util -> net.minecraft.resources
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -42,14 +44,14 @@ import java.util.function.Consumer;
  */
 public class RadianceAltarRecipeProvider {
 
-    public static void registerAltarRecipes(Consumer<IFinishedRecipe> registrar) {
+    public static void registerAltarRecipes(Consumer<FinishedRecipe> registrar) {
         registerRecipes(registrar);
         registerConstellationRecipes(registrar);
     }
 
-    private static void registerRecipes(Consumer<IFinishedRecipe> registrar) {
+    private static void registerRecipes(Consumer<FinishedRecipe> registrar) {
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.MANTLE, AltarType.RADIANCE)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.MANTLE), AltarType.RADIANCE)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -71,7 +73,7 @@ public class RadianceAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.NBT_COPY)
-                .createRecipe(NameUtil.suffixPath(ItemsAS.RESONATOR.getRegistryName(), "_upgrade_ichosic"), AltarType.RADIANCE)
+                .createRecipe(NameUtil.suffixPath(ForgeRegistries.ITEMS.getKey(ItemsAS.RESONATOR), "_upgrade_ichosic"), AltarType.RADIANCE)
                 .modify(recipe -> recipe.addNBTCopyMatchIngredient(ItemsAS.RESONATOR))
                 .setFocusConstellation(ConstellationsAS.octans)
                 .setStarlightRequirement(0.8F)
@@ -95,7 +97,7 @@ public class RadianceAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.FOUNTAIN, AltarType.RADIANCE)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.FOUNTAIN), AltarType.RADIANCE)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("WSSSW")
@@ -118,7 +120,7 @@ public class RadianceAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.FOUNTAIN_PRIME_LIQUID, AltarType.RADIANCE)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.FOUNTAIN_PRIME_LIQUID), AltarType.RADIANCE)
                 .setStarlightRequirement(0.7F)
                 .setFocusConstellation(ConstellationsAS.octans)
                 .setInputs(AltarRecipeGrid.builder()
@@ -141,7 +143,7 @@ public class RadianceAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.FOUNTAIN_PRIME_VORTEX, AltarType.RADIANCE)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.FOUNTAIN_PRIME_VORTEX), AltarType.RADIANCE)
                 .setStarlightRequirement(0.7F)
                 .setFocusConstellation(ConstellationsAS.vicio)
                 .setInputs(AltarRecipeGrid.builder()
@@ -165,7 +167,7 @@ public class RadianceAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.CHALICE, AltarType.RADIANCE)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.CHALICE), AltarType.RADIANCE)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -187,7 +189,7 @@ public class RadianceAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.OBSERVATORY, AltarType.RADIANCE)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.OBSERVATORY), AltarType.RADIANCE)
                 .setFocusConstellation(ConstellationsAS.lucerna)
                 .setStarlightRequirement(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -220,10 +222,10 @@ public class RadianceAltarRecipeProvider {
         registerShiftingStarRecipe(registrar, ConstellationsAS.vicio, ItemsAS.SHIFTING_STAR_VICIO);
     }
 
-    private static void registerShiftingStarRecipe(Consumer<IFinishedRecipe> registrar, IMajorConstellation constellation, Item shiftingStarItem) {
+    private static void registerShiftingStarRecipe(Consumer<FinishedRecipe> registrar, IMajorConstellation constellation, Item shiftingStarItem) {
         Ingredient signature = constellation.getConstellationSignatureItems().get(0);
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(shiftingStarItem, AltarType.RADIANCE)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(shiftingStarItem), AltarType.RADIANCE)
                 .setFocusConstellation(constellation)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -250,9 +252,9 @@ public class RadianceAltarRecipeProvider {
                 .build(registrar);
     }
 
-    private static void registerConstellationRecipes(Consumer<IFinishedRecipe> registrar) {
+    private static void registerConstellationRecipes(Consumer<FinishedRecipe> registrar) {
         RegistriesAS.REGISTRY_CONSTELLATIONS.forEach(cst -> {
-            if (Mods.ASTRAL_SORCERY.owns(cst)) {
+            if (Mods.ASTRAL_SORCERY.owns(cst.getRegistryName())) {
                 registerConstellationPaperRecipe(registrar, cst);
                 if (cst instanceof IWeakConstellation) {
                     registerMantleRecipe(registrar, (IWeakConstellation) cst);
@@ -261,7 +263,7 @@ public class RadianceAltarRecipeProvider {
         });
     }
 
-    private static void registerMantleRecipe(Consumer<IFinishedRecipe> registrar, IWeakConstellation constellation) {
+    private static void registerMantleRecipe(Consumer<FinishedRecipe> registrar, IWeakConstellation constellation) {
         List<Ingredient> signature = constellation.getConstellationSignatureItems();
         if (signature.isEmpty()) {
             throw new IllegalArgumentException("Cannot create a mantle recipe for constellation without signature items: " + constellation.getRegistryName());
@@ -291,7 +293,7 @@ public class RadianceAltarRecipeProvider {
         builder.build(registrar);
     }
 
-    private static void registerConstellationPaperRecipe(Consumer<IFinishedRecipe> registrar, IConstellation constellation) {
+    private static void registerConstellationPaperRecipe(Consumer<FinishedRecipe> registrar, IConstellation constellation) {
         List<Ingredient> signature = constellation.getConstellationSignatureItems();
         if (signature.isEmpty()) {
             throw new IllegalArgumentException("Cannot create a constellation paper recipe for constellation without signature items: " + constellation.getRegistryName());

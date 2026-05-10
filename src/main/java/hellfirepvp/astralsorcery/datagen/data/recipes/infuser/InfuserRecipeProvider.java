@@ -12,11 +12,12 @@ import hellfirepvp.astralsorcery.common.crafting.builder.LiquidInfusionBuilder;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.FluidsAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
-import net.minecraft.block.Blocks;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.function.Consumer;
 
@@ -29,14 +30,14 @@ import java.util.function.Consumer;
  */
 public class InfuserRecipeProvider {
 
-    public static void registerInfuserRecipes(Consumer<IFinishedRecipe> registrar) {
-        LiquidInfusionBuilder.builder(ItemsAS.AQUAMARINE)
+    public static void registerInfuserRecipes(Consumer<FinishedRecipe> registrar) {
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(ItemsAS.AQUAMARINE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.AQUAMARINE)
                 .setOutput(ItemsAS.RESONATING_GEM)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.GLASS_PANE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.GLASS_PANE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.GLASS_PANES)
                 .setOutput(ItemsAS.GLASS_LENS)
@@ -44,7 +45,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Blocks.NETHER_GOLD_ORE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.BLOCKS.getKey(Blocks.NETHER_GOLD_ORE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.NETHER_GOLD_ORE)
                 .setOutput(new ItemStack(Items.GOLD_NUGGET, 21))
@@ -52,7 +53,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Blocks.ANCIENT_DEBRIS)
+        LiquidInfusionBuilder.builder(ForgeRegistries.BLOCKS.getKey(Blocks.ANCIENT_DEBRIS))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.ANCIENT_DEBRIS)
                 .setOutput(new ItemStack(Items.NETHERITE_SCRAP, 2))
@@ -61,7 +62,7 @@ public class InfuserRecipeProvider {
                 .setConsumeMultipleFluids(true)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.SAND)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.SAND))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.SAND)
                 .setOutput(Items.CLAY)
@@ -69,7 +70,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Blocks.DIRT)
+        LiquidInfusionBuilder.builder(ForgeRegistries.BLOCKS.getKey(Blocks.DIRT))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.DIRT)
                 .setOutput(Items.GRASS_BLOCK)
@@ -77,7 +78,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.GUNPOWDER)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.GUNPOWDER))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.GUNPOWDER)
                 .setOutput(Items.GLOWSTONE_DUST)
@@ -85,7 +86,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.ENDER_PEARL)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.ENDER_PEARL))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ENDER_PEARLS)
                 .setOutput(Items.ENDER_EYE)
@@ -93,7 +94,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.REDSTONE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.REDSTONE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.DUSTS_REDSTONE)
                 .setOutput(Items.GUNPOWDER)
@@ -101,7 +102,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.BONE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.BONE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.BONES)
                 .setOutput(new ItemStack(Items.BONE_MEAL, 4))
@@ -109,7 +110,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.BLAZE_ROD)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.BLAZE_ROD))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.RODS_BLAZE)
                 .setOutput(new ItemStack(Items.BLAZE_POWDER, 4))
@@ -117,7 +118,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.SLIME_BALL)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.SLIME_BALL))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.SLIMEBALLS)
                 .setOutput(Items.MAGMA_CREAM)
@@ -125,7 +126,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.CARROT)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.CARROT))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.CROPS_CARROT)
                 .setOutput(Items.GOLDEN_CARROT)
@@ -133,7 +134,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.MELON_SLICE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.MELON_SLICE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Items.MELON_SLICE)
                 .setOutput(Items.GLISTERING_MELON_SLICE)
@@ -141,7 +142,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.IRON_ORE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.IRON_ORE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_IRON)
                 .setOutput(new ItemStack(Items.IRON_INGOT, 3))
@@ -149,7 +150,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.GOLD_ORE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.GOLD_ORE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Blocks.GOLD_ORE)
                 .setOutput(new ItemStack(Items.GOLD_INGOT, 3))
@@ -157,7 +158,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.LAPIS_ORE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.LAPIS_ORE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_LAPIS)
                 .setOutput(Items.LAPIS_BLOCK)
@@ -165,7 +166,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.REDSTONE_ORE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.REDSTONE_ORE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_REDSTONE)
                 .setOutput(Items.REDSTONE_BLOCK)
@@ -173,7 +174,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.DIAMOND_ORE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.DIAMOND_ORE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_DIAMOND)
                 .setOutput(new ItemStack(Items.DIAMOND, 5))
@@ -181,7 +182,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.EMERALD_ORE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.EMERALD_ORE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.ORES_EMERALD)
                 .setOutput(new ItemStack(Items.EMERALD, 5))
@@ -189,7 +190,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(Items.GLASS)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(Items.GLASS))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(Tags.Items.GLASS)
                 .setOutput(Items.ICE)
@@ -197,7 +198,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(BlocksAS.INFUSED_WOOD)
+        LiquidInfusionBuilder.builder(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSED_WOOD))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(BlocksAS.INFUSED_WOOD)
                 .setOutput(BlocksAS.INFUSED_WOOD_INFUSED)
@@ -205,7 +206,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(0.1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_AXE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_AXE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_AXE)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_AXE)
@@ -215,7 +216,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_PICKAXE)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_PICKAXE))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_PICKAXE)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_PICKAXE)
@@ -225,7 +226,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_SHOVEL)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_SHOVEL))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_SHOVEL)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_SHOVEL)
@@ -235,7 +236,7 @@ public class InfuserRecipeProvider {
                 .setFluidConsumptionChance(1F)
                 .build(registrar);
 
-        LiquidInfusionBuilder.builder(ItemsAS.CRYSTAL_SWORD)
+        LiquidInfusionBuilder.builder(ForgeRegistries.ITEMS.getKey(ItemsAS.CRYSTAL_SWORD))
                 .setLiquidInput(FluidsAS.LIQUID_STARLIGHT_SOURCE.get())
                 .setItemInput(ItemsAS.CRYSTAL_SWORD)
                 .setOutput(ItemsAS.INFUSED_CRYSTAL_SWORD)

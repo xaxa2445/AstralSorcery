@@ -10,11 +10,13 @@ package hellfirepvp.astralsorcery.common.network.play.server;
 
 import hellfirepvp.astralsorcery.common.network.base.ASPacket;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.fml.LogicalSide;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
 
@@ -59,9 +61,10 @@ public class PktSyncStepAssist extends ASPacket<PktSyncStepAssist> {
             @OnlyIn(Dist.CLIENT)
             public void handleClient(PktSyncStepAssist packet, NetworkEvent.Context context) {
                 context.enqueueWork(() -> {
-                    PlayerEntity player = Minecraft.getInstance().player;
-                    if (player != null) {
-                        player.stepHeight = packet.stepHeight;
+                    Player player = Minecraft.getInstance().player;
+                    AttributeInstance stepHeightAttr = player.getAttribute(Attributes.JUMP_STRENGTH);
+                    if (stepHeightAttr != null) {
+                        stepHeightAttr.setBaseValue(packet.stepHeight);
                     }
                 });
             }

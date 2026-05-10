@@ -12,10 +12,10 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.event.AttributeEvent;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.projectile.ArrowEntity;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraft.world.entity.projectile.AbstractArrow; // 1.20.1: Usamos AbstractArrow para cubrir flechas normales y espectrales
+import net.minecraftforge.event.entity.EntityJoinLevelEvent; // EntityJoinWorldEvent -> EntityJoinLevelEvent
 import net.minecraftforge.event.entity.player.CriticalHitEvent;
 import net.minecraftforge.eventbus.api.Event;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -42,16 +42,15 @@ public class AttributeTypeCritMultiplier extends PerkAttributeType {
         eventBus.addListener(EventPriority.LOWEST, this::onHitCrit);
     }
 
-    private void onArrowCrit(EntityJoinWorldEvent event) {
-        if (event.getEntity() instanceof ArrowEntity) {
-            ArrowEntity arrow = (ArrowEntity) event.getEntity();
-            if (!arrow.getIsCritical()) {
+    private void onArrowCrit(EntityJoinLevelEvent event) {
+        if (event.getEntity() instanceof AbstractArrow arrow) {
+            if (!arrow.isCritArrow()) {
                 return;
             }
 
-            Entity shooter = arrow.func_234616_v_();
-            if (shooter instanceof PlayerEntity) {
-                PlayerEntity player = (PlayerEntity) shooter;
+            Entity shooter = arrow.getOwner();
+            if (shooter instanceof Player) {
+                Player player = (Player) shooter;
                 LogicalSide side = this.getSide(player);
                 if (!hasTypeApplied(player, side)) {
                     return;
@@ -59,7 +58,7 @@ public class AttributeTypeCritMultiplier extends PerkAttributeType {
                 float dmgMod = PerkAttributeHelper.getOrCreateMap(player, side)
                         .modifyValue(player, ResearchHelper.getProgress(player, side), this, 1F);
                 dmgMod = AttributeEvent.postProcessModded(player, this, dmgMod);
-                arrow.setDamage(arrow.getDamage() * dmgMod);
+                arrow.setBaseDamage(arrow.getBaseDamage() * dmgMod);
             }
         }
     }
@@ -69,7 +68,7 @@ public class AttributeTypeCritMultiplier extends PerkAttributeType {
             return; //No crit
         }
 
-        PlayerEntity player = event.getPlayer();
+        Player player = event.getEntity();
         LogicalSide side = this.getSide(player);
         if (!hasTypeApplied(player, side)) {
             return;

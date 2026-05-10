@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.crystal.property;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crystal.CrystalProperty;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
+import net.minecraft.resources.ResourceLocation;
 
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.*;
 
@@ -22,6 +23,8 @@ import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.*;
  * Date: 02.02.2019 / 16:30
  */
 public class PropertyPurity extends CrystalProperty {
+
+    private ResourceLocation registryName;
 
     public PropertyPurity() {
         super(AstralSorcery.key("purity"));
@@ -46,5 +49,15 @@ public class PropertyPurity extends CrystalProperty {
     @Override
     public int getMaxTier() {
         return 2;
+    }
+
+    @Override
+    public void setRegistryName(ResourceLocation id) {
+        this.registryName = id;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName() {
+        return this.registryName;
     }
 }

@@ -18,15 +18,18 @@ import hellfirepvp.astralsorcery.common.world.placement.RiverbedPlacement;
 import hellfirepvp.astralsorcery.common.world.placement.WorldFilteredPlacement;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.gen.feature.ConfiguredFeature;
-import net.minecraft.world.gen.feature.NoFeatureConfig;
-import net.minecraft.world.gen.feature.structure.IStructurePieceType;
-import net.minecraft.world.gen.feature.structure.Structure;
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
+import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+
+import net.minecraft.tags.BiomeTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.biome.Biome;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static net.minecraft.world.biome.Biome.Category.*;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -39,17 +42,18 @@ public class WorldGenerationAS {
 
     public static class Structures {
 
-        public static final ResourceLocation KEY_ANCIENT_SHRINE = AstralSorcery.key("ancient_shrine");
-        public static final ResourceLocation KEY_DESERT_SHRINE = AstralSorcery.key("desert_shrine");
-        public static final ResourceLocation KEY_SMALL_SHRINE = AstralSorcery.key("small_shrine");
+        public static final ResourceLocation KEY_ANCIENT_SHRINE =
+                AstralSorcery.key("ancient_shrine");
 
-        public static IStructurePieceType ANCIENT_SHRINE_PIECE;
-        public static IStructurePieceType DESERT_SHRINE_PIECE;
-        public static IStructurePieceType SMALL_SHRINE_PIECE;
+        public static final ResourceLocation KEY_DESERT_SHRINE =
+                AstralSorcery.key("desert_shrine");
 
-        public static Structure<NoFeatureConfig> STRUCTURE_ANCIENT_SHRINE;
-        public static Structure<NoFeatureConfig> STRUCTURE_DESERT_SHRINE;
-        public static Structure<NoFeatureConfig> STRUCTURE_SMALL_SHRINE;
+        public static final ResourceLocation KEY_SMALL_SHRINE =
+                AstralSorcery.key("small_shrine");
+
+        public static StructurePieceType ANCIENT_SHRINE_PIECE;
+        public static StructurePieceType DESERT_SHRINE_PIECE;
+        public static StructurePieceType SMALL_SHRINE_PIECE;
 
     }
 
@@ -89,29 +93,29 @@ public class WorldGenerationAS {
 
         public static StructureGenerationConfig CFG_ANCIENT_SHRINE =
                 new StructureGenerationConfig(Structures.KEY_ANCIENT_SHRINE, 18, 4)
-                        .generatesInBiomes(Arrays.asList(ICY, EXTREME_HILLS))
-                        .generatesInWorlds(Collections.singletonList(World.OVERWORLD));
+                        .generatesInBiomes(Arrays.asList(BiomeTags.HAS_VILLAGE_SNOWY.location().toString(), BiomeTags.IS_MOUNTAIN.location().toString()))
+                        .generatesInWorlds(Collections.singletonList(Level.OVERWORLD));
         public static StructureGenerationConfig CFG_DESERT_SHRINE =
                 new StructureGenerationConfig(Structures.KEY_DESERT_SHRINE, 18, 4)
-                        .generatesInBiomes(Arrays.asList(MESA, DESERT, SAVANNA))
-                        .generatesInWorlds(Collections.singletonList(World.OVERWORLD));
+                        .generatesInBiomes(Arrays.asList(BiomeTags.IS_BADLANDS.location().toString(), BiomeTags.HAS_VILLAGE_DESERT.location().toString(), BiomeTags.IS_SAVANNA.location().toString()))
+                        .generatesInWorlds(Collections.singletonList(Level.OVERWORLD));
         public static StructureGenerationConfig CFG_SMALL_SHRINE =
                 new StructureGenerationConfig(Structures.KEY_SMALL_SHRINE, 18, 4)
-                        .generatesInBiomes(Arrays.asList(FOREST, PLAINS))
-                        .generatesInWorlds(Collections.singletonList(World.OVERWORLD));
+                        .generatesInBiomes(Arrays.asList(BiomeTags.IS_FOREST.location().toString(), BiomeTags.HAS_VILLAGE_PLAINS.location().toString()))
+                        .generatesInWorlds(Collections.singletonList(Level.OVERWORLD));
 
         public static FeatureGenerationConfig CFG_GLOW_FLOWER =
                 new FeatureGenerationConfig(Features.KEY_GLOW_FLOWER)
-                        .generatesInBiomes(Arrays.asList(ICY, EXTREME_HILLS))
-                        .generatesInWorlds(Collections.singletonList(World.OVERWORLD));
+                        .generatesInBiomes(Arrays.asList(BiomeTags.HAS_VILLAGE_SNOWY.location().toString(), BiomeTags.IS_MOUNTAIN.location().toString()))
+                        .generatesInWorlds(Collections.singletonList(Level.OVERWORLD));
         public static FeatureGenerationConfig CFG_ROCK_CRYSTAL =
                 new FeatureGenerationConfig(Features.KEY_ROCK_CRYSTAL)
                         .setGenerateEveryBiome()
-                        .generatesInWorlds(Collections.singletonList(World.OVERWORLD));
+                        .generatesInWorlds(Collections.singletonList(Level.OVERWORLD));
         public static FeatureGenerationConfig CFG_AQUAMARINE =
                 new FeatureGenerationConfig(Features.KEY_AQUAMARINE)
                         .setGenerateEveryBiome()
-                        .generatesInWorlds(Collections.singletonList(World.OVERWORLD));
+                        .generatesInWorlds(Collections.singletonList(Level.OVERWORLD));
         public static FeatureGenerationConfig CFG_MARBLE =
                 new FeatureGenerationConfig(Features.KEY_MARBLE)
                         .setGenerateEveryBiome()

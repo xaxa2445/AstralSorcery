@@ -16,7 +16,8 @@
         "MixinModifiableAttributeInstance",
         "MixinServerPlayNetHandler",
         "MixinVoxelShapeSpliterator",
-        "MixinWorld"
+        "MixinWorld",
+        "MixinServerItemCooldowns"
     ],
     "client": [
         "client.MixinClientWorld",

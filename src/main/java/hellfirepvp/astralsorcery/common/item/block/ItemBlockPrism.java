@@ -55,15 +55,6 @@ public class ItemBlockPrism extends ItemBlockCustom implements CrystalAttributeI
             );
         }
     }
-
-    // 🔥 Creative tab (temporal)
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> items) {
-        if (this.allowedIn(tab)) {
-            ItemStack prism = new ItemStack(this);
-            this.setAttributes(prism, CrystalPropertiesAS.LENS_PRISM_CREATIVE_ATTRIBUTES);
-            items.add(prism);
-        }
-    }
     @Nullable
     @Override
     public CrystalAttributes getAttributes(ItemStack stack) {

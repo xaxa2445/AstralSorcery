@@ -24,21 +24,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * Created by HellFirePvP
  * Date: 01.01.2022 / 09:52
  */
-@Mixin(World.class)
-public class MixinWorld {
+@Mixin(Level.class) // World.class -> Level.class
+public abstract class MixinWorld {
 
-    @Shadow private int skylightSubtracted;
+    @Shadow private int skyDarken; // En 1.20.1 'skylightSubtracted' se llama 'skyDarken'
 
-    @Inject(method = "calculateInitialSkylight", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "updateSkyBrightness", at = @At("RETURN")) // El método ahora suele ser updateSkyBrightness
     public void solarEclipseSunBrightnessServer(CallbackInfo ci) {
-        World world = (World)(Object) this;
+        Level level = (Level) (Object) this;
 
-        WorldContext ctx = SkyHandler.getContext(world);
-        String strDimKey = world.getDimensionKey().getLocation().toString();
-        if (ctx != null &&
-                ctx.getCelestialEventHandler().getSolarEclipse().isActiveNow()) {
-            this.skylightSubtracted = 11 - Math.round(ctx.getCelestialEventHandler().getSolarEclipsePercent() * 11F);
+        WorldContext ctx = SkyHandler.getContext(level);
+        if (ctx != null && ctx.getCelestialEventHandler().getSolarEclipse().isActiveNow()) {
+            // Calculamos la resta de luz basándonos en el porcentaje del eclipse (0.0 a 1.0)
+            // En 1.20.1, skyDarken controla qué tanta luz del cielo se pierde (0-15).
+            float percent = ctx.getCelestialEventHandler().getSolarEclipsePercent();
+            this.skyDarken = Math.max(this.skyDarken, Math.round(percent * 11F));
         }
     }
-
 }

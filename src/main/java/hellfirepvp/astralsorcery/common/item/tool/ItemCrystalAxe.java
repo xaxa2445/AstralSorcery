@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.item.tool;
 import com.google.common.collect.Sets;
 import hellfirepvp.astralsorcery.common.item.base.TypeEnchantableItem;
 import hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS;
+import hellfirepvp.astralsorcery.common.lib.RegistriesAS;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
 import net.minecraft.sounds.SoundEvents;
@@ -42,31 +43,13 @@ import java.util.Set;
 public class ItemCrystalAxe extends ItemCrystalTierItem implements TypeEnchantableItem {
 
     public ItemCrystalAxe() {
-        super(ToolActions.AXE_DIG, new Item.Properties(),
-                Sets.newHashSet(
-                        Blocks.OAK_LOG,
-                        Blocks.SPRUCE_LOG,
-                        Blocks.BIRCH_LOG,
-                        Blocks.JUNGLE_LOG,
-                        Blocks.ACACIA_LOG,
-                        Blocks.DARK_OAK_LOG,
-                        Blocks.MANGROVE_LOG,
-                        Blocks.CHERRY_LOG
-                ));
+        // Solo pasamos las propiedades, ya que el padre no acepta más argumentos
+        super(new Item.Properties());
     }
 
     @Override
     protected boolean isCorrectTool(BlockState state) {
         return state.is(BlockTags.MINEABLE_WITH_AXE);
-    }
-
-    @Override
-    public void fillItemCategory(CreativeModeTab tab, NonNullList<ItemStack> stacks) {
-        if (this.allowedIn(tab)) {
-            ItemStack stack = new ItemStack(this);
-            CrystalPropertiesAS.CREATIVE_CRYSTAL_TOOL_ATTRIBUTES.store(stack);
-            stacks.add(stack);
-        }
     }
 
     @Override

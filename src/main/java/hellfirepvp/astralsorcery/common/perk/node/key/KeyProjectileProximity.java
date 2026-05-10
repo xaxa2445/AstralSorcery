@@ -14,15 +14,15 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.perk.node.KeyPerk;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
-
 /**
  * This class is part of the Astral Sorcery Mod
  * The complete source code for this mod can be found on github.
@@ -49,10 +49,9 @@ public class KeyProjectileProximity extends KeyPerk {
     }
 
     private void onProjDamage(LivingHurtEvent event) {
-        if (event.getSource().isProjectile()) {
+        if (event.getSource().is(DamageTypeTags.IS_PROJECTILE)) {
             DamageSource source = event.getSource();
-            if (source.getTrueSource() != null && source.getTrueSource() instanceof PlayerEntity) {
-                PlayerEntity player = (PlayerEntity) source.getTrueSource();
+            if (source.getEntity() instanceof Player player) {
                 LogicalSide side = this.getSide(player);
                 PlayerProgress prog = ResearchHelper.getProgress(player, side);
                 if (prog.getPerkData().hasPerkEffect(this)) {
@@ -60,7 +59,7 @@ public class KeyProjectileProximity extends KeyPerk {
                     added *= PerkAttributeHelper.getOrCreateMap(player, side).getModifier(player, prog, PerkAttributeTypesAS.ATTR_TYPE_INC_PERK_EFFECT);
 
                     float capDstSq = CONFIG.capDistance.get().floatValue();
-                    float dst = -(((float) (player.getDistanceSq(event.getEntityLiving()))) - capDstSq);
+                    float dst = -(((float) (player.distanceToSqr(event.getEntity()))) - capDstSq);
                     dst /= capDstSq;
                     if (dst < 0) {
                         dst /= 10; //To make it drop a bit slower though... like. that damage reduction is... not fun :P

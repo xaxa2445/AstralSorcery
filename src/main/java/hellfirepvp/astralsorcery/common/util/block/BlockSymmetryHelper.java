@@ -9,10 +9,10 @@
 package hellfirepvp.astralsorcery.common.util.block;
 
 import hellfirepvp.astralsorcery.common.util.data.BiDiPair;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.core.Vec3i;
-import net.minecraft.world.IBlockReader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i; // net.minecraft.util.math -> net.minecraft.core
+import net.minecraft.world.level.BlockGetter; // IBlockReader -> BlockGetter
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.HashSet;
 import java.util.List;
@@ -28,13 +28,13 @@ import java.util.function.Predicate;
  */
 public class BlockSymmetryHelper {
 
-    public SymmetryResult getDotSymmetry(IBlockReader world, BlockPos center, int radiusLayer, boolean allowMirrorSymmetry, Predicate<BlockState> applicableStateFilter) {
+    public SymmetryResult getDotSymmetry(BlockGetter world, BlockPos center, int radiusLayer, boolean allowMirrorSymmetry, Predicate<BlockState> applicableStateFilter) {
         List<BlockPos> layerPositions = BlockGeometry.getHollowSphere(radiusLayer + 1, radiusLayer);
         SymmetryResult result = new SymmetryResult(layerPositions.size());
         Set<BlockPos> visitedBlocks = new HashSet<>();
 
         for (BlockPos offset : layerPositions) {
-            BlockPos at = center.add(offset);
+            BlockPos at = center.offset(offset);
             if (visitedBlocks.contains(at)) {
                 continue;
             }
@@ -42,7 +42,7 @@ public class BlockSymmetryHelper {
 
             BlockState state = world.getBlockState(at);
             if (offset.getX() == 0 || offset.getY() == 0 || offset.getZ() == 0) {
-                if (!state.isAir(world, at)) {
+                if (!state.isAir()) {
                     result.fillerBlocks.add(at);
                 }
                 continue;
@@ -55,17 +55,17 @@ public class BlockSymmetryHelper {
                     result.symmetryPairs.add(new BiDiPair<>(at, dotSym));
 
                     if (!allowMirrorSymmetry) {
-                        checkMirrorSymmetry(world, new Vector3i(-offset.getX(),  offset.getY(),  offset.getZ()), center, result, visitedBlocks);
-                        checkMirrorSymmetry(world, new Vector3i( offset.getX(), -offset.getY(),  offset.getZ()), center, result, visitedBlocks);
-                        checkMirrorSymmetry(world, new Vector3i( offset.getX(),  offset.getY(), -offset.getZ()), center, result, visitedBlocks);
+                        checkMirrorSymmetry(world, new Vec3i(-offset.getX(),  offset.getY(),  offset.getZ()), center, result, visitedBlocks);
+                        checkMirrorSymmetry(world, new Vec3i( offset.getX(), -offset.getY(),  offset.getZ()), center, result, visitedBlocks);
+                        checkMirrorSymmetry(world, new Vec3i( offset.getX(),  offset.getY(), -offset.getZ()), center, result, visitedBlocks);
                     }
-                } else if (!dotState.isAir(world, dotSym)) {
+                } else if (!dotState.isAir()) {
                     result.fillerBlocks.add(at);
                     result.fillerBlocks.add(dotSym);
                 }
 
                 visitedBlocks.add(dotSym);
-            } else if (!state.isAir(world, at)) {
+            } else if (!state.isAir()) {
                 result.fillerBlocks.add(at);
             }
         }
@@ -74,12 +74,12 @@ public class BlockSymmetryHelper {
         return result;
     }
 
-    private static void checkMirrorSymmetry(IBlockReader world, Vector3i offset, BlockPos center, SymmetryResult result, Set<BlockPos> visitedBlocks) {
-        BlockPos at = center.add(offset);
+    private static void checkMirrorSymmetry(BlockGetter world, Vec3i offset, BlockPos center, SymmetryResult result, Set<BlockPos> visitedBlocks) {
+        BlockPos at = center.offset(offset);
         BlockState state = world.getBlockState(at);
         visitedBlocks.add(at);
 
-        if (!state.isAir(world, at)) {
+        if (!state.isAir()) {
             result.fillerBlocks.add(at);
         }
 
@@ -87,7 +87,7 @@ public class BlockSymmetryHelper {
         BlockState dotState = world.getBlockState(dotSym);
         visitedBlocks.add(dotSym);
 
-        if (!dotState.isAir(world, dotSym)) {
+        if (!dotState.isAir()) {
             result.fillerBlocks.add(at);
         }
     }

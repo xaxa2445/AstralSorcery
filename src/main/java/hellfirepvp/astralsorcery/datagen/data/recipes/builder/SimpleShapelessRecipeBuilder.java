@@ -11,14 +11,13 @@ package hellfirepvp.astralsorcery.datagen.data.recipes.builder;
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.Item;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.tags.ITag;
-import net.minecraft.util.IItemProvider;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.level.ItemLike;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
@@ -40,29 +39,29 @@ public class SimpleShapelessRecipeBuilder {
 
     private String subDirectory = null;
 
-    public SimpleShapelessRecipeBuilder(IItemProvider result, int count) {
+    public SimpleShapelessRecipeBuilder(ItemLike result, int count) {
         this.result = result.asItem();
         this.count = count;
     }
 
-    public static SimpleShapelessRecipeBuilder shapelessRecipe(IItemProvider result) {
+    public static SimpleShapelessRecipeBuilder shapelessRecipe(ItemLike result) {
         return shapelessRecipe(result, 1);
     }
 
-    public static SimpleShapelessRecipeBuilder shapelessRecipe(IItemProvider result, int count) {
+    public static SimpleShapelessRecipeBuilder shapelessRecipe(ItemLike result, int count) {
         return new SimpleShapelessRecipeBuilder(result, count);
     }
 
-    public SimpleShapelessRecipeBuilder addIngredient(ITag<Item> tagIn) {
-        return this.addIngredient(Ingredient.fromTag(tagIn));
+    public SimpleShapelessRecipeBuilder addIngredient(TagKey<Item> tagIn) {
+        return this.addIngredient(Ingredient.of(tagIn));
     }
 
-    public SimpleShapelessRecipeBuilder addIngredient(IItemProvider itemIn) {
+    public SimpleShapelessRecipeBuilder addIngredient(ItemLike itemIn) {
         return this.addIngredient(itemIn, 1);
     }
-    public SimpleShapelessRecipeBuilder addIngredient(IItemProvider itemIn, int quantity) {
+    public SimpleShapelessRecipeBuilder addIngredient(ItemLike itemIn, int quantity) {
         for(int i = 0; i < quantity; ++i) {
-            this.addIngredient(Ingredient.fromItems(itemIn));
+            this.addIngredient(Ingredient.of(itemIn));
         }
 
         return this;
@@ -84,11 +83,11 @@ public class SimpleShapelessRecipeBuilder {
         return this;
     }
 
-    public void build(Consumer<IFinishedRecipe> consumerIn) {
-        this.build(consumerIn, ForgeRegistries.ITEMS.getKey(this.result.getItem()));
+    public void build(Consumer<FinishedRecipe> consumerIn) {
+        this.build(consumerIn, ForgeRegistries.ITEMS.getKey(this.result));
     }
 
-    public void build(Consumer<IFinishedRecipe> consumerIn, ResourceLocation id) {
+    public void build(Consumer<FinishedRecipe> consumerIn, ResourceLocation id) {
         String path = id.getPath();
         if (this.subDirectory != null && !this.subDirectory.isEmpty()) {
             path = this.subDirectory + "/" + path;
@@ -97,7 +96,7 @@ public class SimpleShapelessRecipeBuilder {
         consumerIn.accept(new Result(id, this.result, this.count, this.ingredients));
     }
 
-    public static class Result implements IFinishedRecipe {
+    public static class Result implements FinishedRecipe {
 
         private final ResourceLocation key;
         private final Item result;
@@ -112,41 +111,40 @@ public class SimpleShapelessRecipeBuilder {
         }
 
         @Override
-        public void serialize(JsonObject json) {
+        public void serializeRecipeData(JsonObject json) {
             JsonArray inputs = new JsonArray();
             for (Ingredient ingredient : this.ingredients) {
-                inputs.add(ingredient.serialize());
+                inputs.add(ingredient.toJson()); // serialize -> toJson
             }
             json.add("ingredients", inputs);
 
-            JsonObject result = new JsonObject();
-            result.addProperty("item", Registry.ITEM.getKey(this.result).toString());
+            JsonObject resultObj = new JsonObject();
+            resultObj.addProperty("item", ForgeRegistries.ITEMS.getKey(this.result).toString());
             if (this.count > 1) {
-                result.addProperty("count", this.count);
+                resultObj.addProperty("count", this.count);
             }
-
-            json.add("result", result);
+            json.add("result", resultObj);
         }
 
         @Override
-        public IRecipeSerializer<?> getSerializer() {
-            return IRecipeSerializer.CRAFTING_SHAPELESS;
+        public RecipeSerializer<?> getType() {
+            return RecipeSerializer.SHAPELESS_RECIPE;
         }
 
         @Override
-        public ResourceLocation getID() {
+        public ResourceLocation getId() {
             return this.key;
         }
 
         @Nullable
         @Override
-        public JsonObject getAdvancementJson() {
+        public JsonObject serializeAdvancement() {
             return null;
         }
 
         @Nullable
         @Override
-        public ResourceLocation getAdvancementID() {
+        public ResourceLocation getAdvancementId() {
             return new ResourceLocation("");
         }
     }

@@ -143,10 +143,20 @@ public abstract class ItemCrystalTierItem extends Item implements CrystalAttribu
 
     @Override
     public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlot slot, ItemStack stack) {
-        Multimap<Attribute, AttributeModifier> multimap = HashMultimap.create();
+        Multimap<Attribute, AttributeModifier> multimap = HashMultimap.create(super.getAttributeModifiers(slot, stack));
         if (slot == EquipmentSlot.MAINHAND) {
-            multimap.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Tool modifier", this.getAttackDamage(), AttributeModifier.Operation.ADDITION));
-            multimap.put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Tool modifier", this.getAttackSpeed(), AttributeModifier.Operation.ADDITION));
+            // En 1.20.1, es mejor usar los UUIDs constantes de Item para evitar conflictos
+            multimap.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(
+                    BASE_ATTACK_DAMAGE_UUID,
+                    "Tool modifier",
+                    this.getAttackDamage(),
+                    AttributeModifier.Operation.ADDITION));
+
+            multimap.put(Attributes.ATTACK_SPEED, new AttributeModifier(
+                    BASE_ATTACK_SPEED_UUID,
+                    "Tool modifier",
+                    this.getAttackSpeed(),
+                    AttributeModifier.Operation.ADDITION));
         }
         return multimap;
     }

@@ -11,6 +11,7 @@ package hellfirepvp.astralsorcery.common.crystal.property;
 import hellfirepvp.astralsorcery.AstralSorcery;
 import hellfirepvp.astralsorcery.common.crystal.CrystalProperty;
 import hellfirepvp.astralsorcery.common.data.research.ResearchProgression;
+import net.minecraft.resources.ResourceLocation;
 
 import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.USE_RITUAL_EFFECT;
 
@@ -23,6 +24,8 @@ import static hellfirepvp.astralsorcery.common.lib.CrystalPropertiesAS.Usages.US
  */
 public class PropertyRitualEffect extends CrystalProperty {
 
+    ResourceLocation registryName;
+
     public PropertyRitualEffect() {
         super(AstralSorcery.key("ritual.effect"));
         this.setRequiredResearch(ResearchProgression.ATTUNEMENT);
@@ -34,5 +37,15 @@ public class PropertyRitualEffect extends CrystalProperty {
             }
             return value;
         });
+    }
+
+    @Override
+    public void setRegistryName(ResourceLocation id) {
+        this.registryName = id;
+    }
+
+    @Override
+    public ResourceLocation getRegistryName() {
+        return this.registryName;
     }
 }

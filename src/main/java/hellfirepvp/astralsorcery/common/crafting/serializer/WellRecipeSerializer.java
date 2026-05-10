@@ -15,11 +15,12 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.WellLiquefaction;
 import hellfirepvp.astralsorcery.common.lib.RecipeSerializersAS;
 import hellfirepvp.astralsorcery.common.util.data.ByteBufUtils;
 import hellfirepvp.astralsorcery.common.util.data.JsonHelper;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.network.PacketBuffer;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.JSONUtils;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.awt.*;
@@ -38,15 +39,15 @@ public class WellRecipeSerializer extends CustomRecipeSerializer<WellLiquefactio
     }
 
     @Override
-    public WellLiquefaction read(ResourceLocation recipeId, JsonObject json) {
-        Ingredient input = Ingredient.deserialize(JSONUtils.getJsonObject(json, "input"));
-        String fluidKey = JSONUtils.getString(json, "output");
+    public WellLiquefaction fromJson(ResourceLocation recipeId, JsonObject json) {
+        Ingredient input = Ingredient.fromJson(GsonHelper.getAsJsonObject(json, "input"));
+        String fluidKey = GsonHelper.getAsString(json, "output");
         Fluid fluid = ForgeRegistries.FLUIDS.getValue(new ResourceLocation(fluidKey));
         if (fluid == null) {
             throw new JsonSyntaxException("Unknown fluid: " + fluidKey);
         }
-        float productionMultiplier = JSONUtils.getFloat(json, "productionMultiplier");
-        float shatterMultiplier = JSONUtils.getFloat(json, "shatterMultiplier");
+        float productionMultiplier = GsonHelper.getAsFloat(json, "productionMultiplier");
+        float shatterMultiplier = GsonHelper.getAsFloat(json, "shatterMultiplier");
         Color color = null;
         if (json.has("color")) {
             color = JsonHelper.getColor(json, "color");
@@ -55,8 +56,8 @@ public class WellRecipeSerializer extends CustomRecipeSerializer<WellLiquefactio
     }
 
     @Override
-    public WellLiquefaction read(ResourceLocation recipeId, PacketBuffer buffer) {
-        Ingredient input = Ingredient.read(buffer);
+    public WellLiquefaction fromNetwork(ResourceLocation recipeId, FriendlyByteBuf buffer) {
+        Ingredient input = Ingredient.fromNetwork(buffer);
         Fluid fluid = ByteBufUtils.readRegistryEntry(buffer);
         float shatter = buffer.readFloat();
         float production = buffer.readFloat();
@@ -65,8 +66,8 @@ public class WellRecipeSerializer extends CustomRecipeSerializer<WellLiquefactio
     }
 
     @Override
-    public void write(PacketBuffer buffer, WellLiquefaction recipe) {
-        recipe.getInput().write(buffer);
+    public void toNetwork(FriendlyByteBuf buffer, WellLiquefaction recipe) {
+        recipe.getInput().toNetwork(buffer);
         ByteBufUtils.writeRegistryEntry(buffer, recipe.getFluidOutput());
         buffer.writeFloat(recipe.getShatterMultiplier());
         buffer.writeFloat(recipe.getProductionMultiplier());
@@ -75,8 +76,9 @@ public class WellRecipeSerializer extends CustomRecipeSerializer<WellLiquefactio
 
     @Override
     public void write(JsonObject object, WellLiquefaction recipe) {
-        object.add("input", recipe.getInput().serialize());
-        object.addProperty("output", recipe.getFluidOutput().getRegistryName().toString());
+        object.add("input", recipe.getInput().toJson());
+        ResourceLocation fluidId = ForgeRegistries.FLUIDS.getKey(recipe.getFluidOutput());
+        object.addProperty("output", fluidId == null ? "minecraft:empty" : fluidId.toString());
         object.addProperty("productionMultiplier", recipe.getProductionMultiplier());
         object.addProperty("shatterMultiplier", recipe.getShatterMultiplier());
         object.addProperty("color", recipe.getCatalystColor() == null ? Color.WHITE.getRGB() : recipe.getCatalystColor().getRGB());

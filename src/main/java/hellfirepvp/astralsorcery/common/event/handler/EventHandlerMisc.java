@@ -105,9 +105,25 @@ public class EventHandlerMisc {
     }
 
     private static void onSpawnEffectCloud(EntityJoinLevelEvent event) {
-        if (event.getEntity() instanceof AreaEffectCloud cloud &&
-                MiscUtils.contains(cloud.effects, effect -> effect.getEffect() instanceof EffectDropModifier)) {
-            event.setCanceled(true);
+        if (event.getEntity() instanceof AreaEffectCloud cloud) {
+            // 1. Obtenemos el valor de la lista privada.
+            // 2. Realizamos el cast a (List<net.minecraft.world.effect.MobEffectInstance>).
+            java.util.List<net.minecraft.world.effect.MobEffectInstance> effectsList =
+                    net.minecraftforge.fml.util.ObfuscationReflectionHelper.getPrivateValue(
+                            AreaEffectCloud.class,
+                            cloud,
+                            "f_19705_" // Nombre SRG para 'effects' en 1.20.1
+                    );
+
+            // 3. Ahora el compilador ya reconoce 'stream()' y 'getEffect()'
+            if (effectsList != null) {
+                boolean hasModifier = effectsList.stream()
+                        .anyMatch(effectInstance -> effectInstance.getEffect() instanceof EffectDropModifier);
+
+                if (hasModifier) {
+                    event.setCanceled(true);
+                }
+            }
         }
     }
 }

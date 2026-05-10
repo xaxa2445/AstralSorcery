@@ -14,10 +14,11 @@ import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import hellfirepvp.astralsorcery.common.util.data.Vector3;
-import net.minecraft.entity.Entity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.entity.projectile.ArrowEntity;
-import net.minecraftforge.event.entity.EntityJoinWorldEvent;
+import net.minecraft.world.entity.projectile.AbstractArrow; // 1.20.1: Usamos la clase base para mayor compatibilidad
+import net.minecraft.world.phys.Vec3; // Reemplaza a Vector3d de versiones antiguas
+import net.minecraftforge.event.entity.EntityJoinLevelEvent; // EntityJoinWorldEvent -> EntityJoinLevelEvent
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -40,23 +41,23 @@ public class AttributeTypeArrowSpeed extends PerkAttributeType {
         eventBus.addListener(this::onArrowFire);
     }
 
-    private void onArrowFire(EntityJoinWorldEvent event) {
-        if (event.getEntity() instanceof ArrowEntity) {
-            ArrowEntity arrow = (ArrowEntity) event.getEntity();
-            Entity shooter = arrow.func_234616_v_();
-            if (shooter instanceof PlayerEntity) {
-                PlayerEntity player = (PlayerEntity) shooter;
+    private void onArrowFire(EntityJoinLevelEvent event) {
+        if (event.getEntity() instanceof AbstractArrow arrow) {
+            Entity shooter = arrow.getOwner();
+            if (shooter instanceof Player) {
+                Player player = (Player) shooter;
                 LogicalSide side = this.getSide(player);
                 if (!hasTypeApplied(player, side)) {
                     return;
                 }
 
-                Vector3 motion = new Vector3(arrow.getMotion());
+                Vector3 motion = new Vector3(arrow.getDeltaMovement());
                 float mul = PerkAttributeHelper.getOrCreateMap(player, side)
                         .modifyValue(player, ResearchHelper.getProgress(player, side), this, 1F);
                 mul = AttributeEvent.postProcessModded(player, this, mul);
                 motion = MiscUtils.limitVelocityToMinecraftLimit(motion.multiply(mul));
-                arrow.setMotion(motion.toVector3d());
+                arrow.setDeltaMovement(motion.toVec3());
+                arrow.hasImpulse = true;
             }
         }
     }

@@ -32,6 +32,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.client.CameraType;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec2;
@@ -53,28 +54,26 @@ import java.util.*;
  * Date: 15.02.2020 / 18:27
  */
 public class ScreenObservatory extends TileConstellationDiscoveryScreen<TileObservatory, ConstellationDiscoveryScreen.DrawArea> implements MenuAccess<ContainerObservatory> {
-
-    private static final Random RAND = new Random();
     private static final int FRAME_TEXTURE_SIZE = 16;
 
     private static final int randomStars = 220;
     private final List<net.minecraft.world.phys.Vec2> usedStars = new ArrayList<>(randomStars);
     private final ContainerObservatory container;
 
-    public ScreenObservatory(ContainerObservatory container) {
+    public ScreenObservatory(ContainerObservatory container, Inventory playerInventory, Component title) {
+        // Pasamos el título al constructor padre para que él lo asigne a la variable final
         super(container.getTileEntity(),
                 Minecraft.getInstance().getWindow().getGuiScaledHeight() - FRAME_TEXTURE_SIZE * 2,
-                Minecraft.getInstance().getWindow().getGuiScaledWidth() - FRAME_TEXTURE_SIZE * 2);
+                Minecraft.getInstance().getWindow().getGuiScaledWidth() - FRAME_TEXTURE_SIZE * 2,
+                (net.minecraft.network.chat.Component) title); // <--- Agregamos el título aquí
+
         this.container = container;
 
         Player player = Minecraft.getInstance().player;
         if (player != null) {
             TileObservatory observatory = this.getTile();
-            // Sincronización de rotación actual
             player.setXRot(observatory.observatoryPitch);
             player.setYRot(observatory.observatoryYaw);
-
-            // Sincronización de rotación previa para evitar el "flicker" de interpolación
             player.xRotO = observatory.prevObservatoryPitch;
             player.yRotO = observatory.prevObservatoryYaw;
         }

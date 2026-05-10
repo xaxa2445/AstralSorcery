@@ -12,9 +12,10 @@ import hellfirepvp.astralsorcery.common.data.research.ResearchHelper;
 import hellfirepvp.astralsorcery.common.event.AttributeEvent;
 import hellfirepvp.astralsorcery.common.lib.PerkAttributeTypesAS;
 import hellfirepvp.astralsorcery.common.perk.PerkAttributeHelper;
+import net.minecraft.tags.DamageTypeTags; // 1.20.1: Para verificar fuego/magia
+import net.minecraft.util.Mth; // MathHelper -> Mth
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.util.DamageSource;
-import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.LogicalSide;
@@ -41,10 +42,10 @@ public class AttributeTypeAllElementalResist extends PerkAttributeType {
     }
 
     private void onDamageTaken(LivingHurtEvent event) {
-        if (!(event.getEntityLiving() instanceof PlayerEntity)) {
+        if (!(event.getEntity() instanceof Player)) {
             return;
         }
-        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        Player player = (Player) event.getEntity();
         LogicalSide side = this.getSide(player);
         if (!hasTypeApplied(player, side)) {
             return;
@@ -55,24 +56,26 @@ public class AttributeTypeAllElementalResist extends PerkAttributeType {
                     .modifyValue(player, ResearchHelper.getProgress(player, side), this, 1F);
             multiplier -= 1F;
             multiplier = AttributeEvent.postProcessModded(player, this, multiplier);
-            multiplier = 1F - MathHelper.clamp(multiplier, 0F, 1F);
+            multiplier = 1F - Mth.clamp(multiplier, 0F, 1F);
             event.setAmount(event.getAmount() * multiplier);
         }
     }
 
     private boolean isMaybeElementalDamage(DamageSource source) {
         // "Magic" is often used for any kinds of damages... poison for example
-        if (source.isFireDamage() || source.isMagicDamage()) {
+        if (source.is(DamageTypeTags.IS_FIRE) || source.is(DamageTypeTags.BYPASSES_ARMOR)) {
             return true;
         }
-        String key = source.getDamageType();
-        if (key == null) {
+        String msgId = source.getMsgId();
+        if (msgId == null) {
             return false;
         }
-        key = key.toLowerCase(Locale.ROOT);
+
+        String key = msgId.toLowerCase(Locale.ROOT);
         return key.contains("fire") || key.contains("heat") || key.contains("lightning") ||
                 key.contains("cold") || key.contains("freez") || key.contains("discharg") ||
-                key.contains("electr") || key.contains("froze") || key.contains("ice");
+                key.contains("electr") || key.contains("froze") || key.contains("ice") ||
+                key.contains("magic"); // Añadido magic aquí por consistencia
     }
 
 }

@@ -15,11 +15,13 @@ import hellfirepvp.astralsorcery.common.crafting.recipe.altar.AltarRecipeGrid;
 import hellfirepvp.astralsorcery.common.crafting.recipe.altar.AltarRecipeTypeHandler;
 import hellfirepvp.astralsorcery.common.lib.*;
 import hellfirepvp.astralsorcery.common.util.NameUtil;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
+import net.minecraft.data.recipes.FinishedRecipe; // IFinishedRecipe -> FinishedRecipe
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.tags.ItemTags;
 import net.minecraftforge.common.Tags;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.function.Consumer;
 
@@ -32,14 +34,14 @@ import java.util.function.Consumer;
  */
 public class CelestialAltarRecipeProvider {
 
-    public static void registerAltarRecipes(Consumer<IFinishedRecipe> registrar) {
+    public static void registerAltarRecipes(Consumer<FinishedRecipe> registrar) {
         registerRecipes(registrar);
         registerColoredLensRecipes(registrar);
     }
 
-    private static void registerRecipes(Consumer<IFinishedRecipe> registrar) {
+    private static void registerRecipes(Consumer<FinishedRecipe> registrar) {
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.ALTAR_UPGRADE_TRAIT)
-                .createRecipe(BlocksAS.ALTAR_RADIANCE, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.ALTAR_RADIANCE), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.8F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("RM MR")
@@ -60,7 +62,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.TREE_BEACON, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.TREE_BEACON), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -78,7 +80,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.REFRACTION_TABLE, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.REFRACTION_TABLE), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("D   D")
@@ -99,7 +101,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.INFUSED_GLASS, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.INFUSED_GLASS), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.6F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("S   S")
@@ -115,7 +117,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CONSTELLATION_CRYSTAL_AVERAGE)
-                .createRecipe(BlocksAS.PRISM, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.PRISM), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" A A ")
@@ -135,8 +137,9 @@ public class CelestialAltarRecipeProvider {
                 .addOutput(BlocksAS.PRISM)
                 .build(registrar);
 
+        ResourceLocation amuletKey = ForgeRegistries.ITEMS.getKey(ItemsAS.ENCHANTMENT_AMULET);
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(NameUtil.suffixPath(ItemsAS.ENCHANTMENT_AMULET.getRegistryName(), "_init"), AltarType.CONSTELLATION)
+                .createRecipe(NameUtil.suffixPath(amuletKey, "_init"), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -155,7 +158,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(NameUtil.suffixPath(ItemsAS.ENCHANTMENT_AMULET.getRegistryName(), "_reroll"), AltarType.CONSTELLATION)
+                .createRecipe(NameUtil.suffixPath(amuletKey, "_reroll"), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -173,7 +176,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.RITUAL_LINK, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.RITUAL_LINK), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.4F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine(" N N ")
@@ -192,7 +195,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CONSTELLATION_COPY_CRYSTAL)
-                .createRecipe(BlocksAS.ROCK_COLLECTOR_CRYSTAL, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.ROCK_COLLECTOR_CRYSTAL), AltarType.CONSTELLATION)
                 .modify(recipe -> recipe.setConstellationSlot(12))
                 .setStarlightRequirement(0.65F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -210,7 +213,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.ofType(AltarRecipeTypeHandler.CONSTELLATION_COPY_CRYSTAL)
-                .createRecipe(BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.CELESTIAL_COLLECTOR_CRYSTAL), AltarType.CONSTELLATION)
                 .modify(recipe -> recipe.setConstellationSlot(12))
                 .setStarlightRequirement(0.65F)
                 .setInputs(AltarRecipeGrid.builder()
@@ -228,7 +231,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.ILLUMINATION_WAND, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.ILLUMINATION_WAND), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.7F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("   I ")
@@ -244,7 +247,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(BlocksAS.INFUSER, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.BLOCKS.getKey(BlocksAS.INFUSER), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.3F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -263,9 +266,9 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
     }
 
-    private static void registerColoredLensRecipes(Consumer<IFinishedRecipe> registrar) {
+    private static void registerColoredLensRecipes(Consumer<FinishedRecipe> registrar) {
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.COLORED_LENS_SPECTRAL, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.COLORED_LENS_SPECTRAL), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("S   S")
@@ -282,7 +285,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.COLORED_LENS_FIRE, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.COLORED_LENS_FIRE), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("B   B")
@@ -298,7 +301,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.COLORED_LENS_BREAK, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.COLORED_LENS_BREAK), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("A   A")
@@ -316,7 +319,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.COLORED_LENS_DAMAGE, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.COLORED_LENS_DAMAGE), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("     ")
@@ -334,7 +337,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.COLORED_LENS_GROWTH, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.COLORED_LENS_GROWTH), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("AK KA")
@@ -352,7 +355,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.COLORED_LENS_PUSH, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.COLORED_LENS_PUSH), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("G   G")
@@ -369,7 +372,7 @@ public class CelestialAltarRecipeProvider {
                 .build(registrar);
 
         SimpleAltarRecipeBuilder.builder()
-                .createRecipe(ItemsAS.COLORED_LENS_REGENERATION, AltarType.CONSTELLATION)
+                .createRecipe(ForgeRegistries.ITEMS.getKey(ItemsAS.COLORED_LENS_REGENERATION), AltarType.CONSTELLATION)
                 .setStarlightRequirement(0.5F)
                 .setInputs(AltarRecipeGrid.builder()
                         .patternLine("A   A")

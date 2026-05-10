@@ -16,11 +16,11 @@ import hellfirepvp.astralsorcery.datagen.data.recipes.builder.ResultCookingRecip
 import hellfirepvp.astralsorcery.datagen.data.recipes.builder.SimpleShapedRecipeBuilder;
 import hellfirepvp.astralsorcery.datagen.data.recipes.builder.SimpleShapelessRecipeBuilder;
 import hellfirepvp.astralsorcery.datagen.data.recipes.builder.StoneCuttingRecipeBuilder;
-import net.minecraft.data.CustomRecipeBuilder;
-import net.minecraft.data.IFinishedRecipe;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.data.recipes.SpecialRecipeBuilder;
+import net.minecraft.data.recipes.FinishedRecipe; // IFinishedRecipe -> FinishedRecipe
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.tags.ItemTags;
 import net.minecraftforge.common.Tags;
 
@@ -35,47 +35,47 @@ import java.util.function.Consumer;
  */
 public class VanillaTypedRecipeProvider {
 
-    public static void registerStoneCutterRecipes(Consumer<IFinishedRecipe> registrar) {
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_ARCH)
+    public static void registerStoneCutterRecipes(Consumer<FinishedRecipe> registrar) {
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_ARCH)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_BRICKS)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_BRICKS)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_CHISELED)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_CHISELED)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_ENGRAVED)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_ENGRAVED)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_PILLAR)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_PILLAR)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_RUNED)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_RUNED)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_SLAB, 2)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_SLAB, 2)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_STAIRS)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_RAW), BlocksAS.MARBLE_STAIRS)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_BRICKS), BlocksAS.MARBLE_SLAB, 2)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_BRICKS), BlocksAS.MARBLE_SLAB, 2)
                 .build(registrar, AstralSorcery.key("marble_slab_from_bricks"));
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.MARBLE_BRICKS), BlocksAS.MARBLE_STAIRS)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.MARBLE_BRICKS), BlocksAS.MARBLE_STAIRS)
                 .build(registrar, AstralSorcery.key("marble_stairs_from_bricks"));
 
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_ARCH)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_ARCH)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_BRICKS)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_BRICKS)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_CHISELED)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_CHISELED)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_ENGRAVED)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_ENGRAVED)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_PILLAR)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_PILLAR)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_RUNED)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_RUNED)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_SLAB, 2)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_SLAB, 2)
                 .build(registrar);
-        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.fromItems(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_STAIRS)
+        StoneCuttingRecipeBuilder.stoneCuttingRecipe(Ingredient.of(BlocksAS.BLACK_MARBLE_RAW), BlocksAS.BLACK_MARBLE_STAIRS)
                 .build(registrar);
     }
 
-    public static void registerShapedRecipes(Consumer<IFinishedRecipe> registrar) {
+    public static void registerShapedRecipes(Consumer<FinishedRecipe> registrar) {
         SimpleShapedRecipeBuilder.shapedRecipe(ItemsAS.TOME)
                 .patternLine(" P ")
                 .patternLine("ABA")
@@ -231,20 +231,20 @@ public class VanillaTypedRecipeProvider {
                 .build(registrar);
     }
 
-    public static void registerCookingRecipes(Consumer<IFinishedRecipe> registrar) {
-        ResultCookingRecipeBuilder.smeltingRecipe(Ingredient.fromItems(BlocksAS.STARMETAL_ORE), new ItemStack(ItemsAS.STARMETAL_INGOT), 1.8F, 200)
+    public static void registerCookingRecipes(Consumer<FinishedRecipe> registrar) {
+        ResultCookingRecipeBuilder.smeltingRecipe(Ingredient.of(BlocksAS.STARMETAL_ORE), new ItemStack(ItemsAS.STARMETAL_INGOT), 1.8F, 200)
                 .build(registrar);
-        ResultCookingRecipeBuilder.smeltingRecipe(Ingredient.fromItems(BlocksAS.AQUAMARINE_SAND_ORE), new ItemStack(ItemsAS.AQUAMARINE, 4), 1.8F, 200)
+        ResultCookingRecipeBuilder.smeltingRecipe(Ingredient.of(BlocksAS.AQUAMARINE_SAND_ORE), new ItemStack(ItemsAS.AQUAMARINE, 4), 1.8F, 200)
                 .build(registrar);
 
-        ResultCookingRecipeBuilder.blastingRecipe(Ingredient.fromItems(BlocksAS.STARMETAL_ORE), new ItemStack(ItemsAS.STARMETAL_INGOT), 2.5F, 80)
+        ResultCookingRecipeBuilder.blastingRecipe(Ingredient.of(BlocksAS.STARMETAL_ORE), new ItemStack(ItemsAS.STARMETAL_INGOT), 2.5F, 80)
                 .build(registrar);
-        ResultCookingRecipeBuilder.blastingRecipe(Ingredient.fromItems(BlocksAS.AQUAMARINE_SAND_ORE), new ItemStack(ItemsAS.AQUAMARINE, 3), 0.2F, 40)
+        ResultCookingRecipeBuilder.blastingRecipe(Ingredient.of(BlocksAS.AQUAMARINE_SAND_ORE), new ItemStack(ItemsAS.AQUAMARINE, 3), 0.2F, 40)
                 .build(registrar);
     }
 
-    public static void registerCustomRecipes(Consumer<IFinishedRecipe> registrar) {
-        CustomRecipeBuilder.customRecipe(RecipeSerializersAS.CUSTOM_CHANGE_WAND_COLOR_SERIALIZER).build(registrar, RecipeSerializersAS.CUSTOM_CHANGE_WAND_COLOR.toString());
-        CustomRecipeBuilder.customRecipe(RecipeSerializersAS.CUSTOM_CHANGE_GATEWAY_COLOR_SERIALIZER).build(registrar, RecipeSerializersAS.CUSTOM_CHANGE_GATEWAY_COLOR.toString());
+    public static void registerCustomRecipes(Consumer<FinishedRecipe> registrar) {
+        SpecialRecipeBuilder.special(RecipeSerializersAS.CUSTOM_CHANGE_WAND_COLOR_SERIALIZER).save(registrar, RecipeSerializersAS.CUSTOM_CHANGE_WAND_COLOR.toString());
+        SpecialRecipeBuilder.special(RecipeSerializersAS.CUSTOM_CHANGE_GATEWAY_COLOR_SERIALIZER).save(registrar, RecipeSerializersAS.CUSTOM_CHANGE_GATEWAY_COLOR.toString());
     }
 }

@@ -36,13 +36,13 @@ public class AttributeTypeChargeMaximum extends PerkAttributeType {
     }
 
     @Override
-    public void onApply(PlayerEntity player, LogicalSide side, ModifierSource source) {
+    public void onApply(Player player, LogicalSide side, ModifierSource source) {
         super.onApply(player, side, source);
         AlignmentChargeHandler.INSTANCE.updateMaximum(player, side);
     }
 
     @Override
-    public void onRemove(PlayerEntity player, LogicalSide side, boolean removedCompletely, ModifierSource source) {
+    public void onRemove(Player player, LogicalSide side, boolean removedCompletely, ModifierSource source) {
         super.onRemove(player, side, removedCompletely, source);
         AlignmentChargeHandler.INSTANCE.updateMaximum(player, side);
     }

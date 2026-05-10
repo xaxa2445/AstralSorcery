@@ -29,7 +29,7 @@ public class AttributeTypePerkEffect extends PerkAttributeType {
     }
 
     @Override
-    public void onApply(PlayerEntity player, LogicalSide side, ModifierSource source) {
+    public void onApply(Player player, LogicalSide side, ModifierSource source) {
         super.onApply(player, side, source);
 
         RegistriesAS.REGISTRY_PERK_ATTRIBUTE_TYPES.getValues()
@@ -39,7 +39,7 @@ public class AttributeTypePerkEffect extends PerkAttributeType {
     }
 
     @Override
-    public void onRemove(PlayerEntity player, LogicalSide side, boolean removedCompletely, ModifierSource source) {
+    public void onRemove(Player player, LogicalSide side, boolean removedCompletely, ModifierSource source) {
         super.onRemove(player, side, removedCompletely, source);
 
         RegistriesAS.REGISTRY_PERK_ATTRIBUTE_TYPES.getValues()

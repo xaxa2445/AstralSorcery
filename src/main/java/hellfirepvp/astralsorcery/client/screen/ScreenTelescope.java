@@ -31,6 +31,7 @@ import hellfirepvp.astralsorcery.common.tile.TileTelescope;
 import hellfirepvp.astralsorcery.common.util.MiscUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
 import org.lwjgl.opengl.GL11;
@@ -54,7 +55,7 @@ public class ScreenTelescope extends TileConstellationDiscoveryScreen<TileTelesc
     private Rectangle rectArrowCW = null, rectArrowCCW = null;
 
     public ScreenTelescope(TileTelescope telescope) {
-        super(telescope, 280, 280);
+        super(telescope, 280, 280, Component.translatable("screen.astralsorcery.telescope"));
         this.rotation = telescope.getRotation();
     }
 

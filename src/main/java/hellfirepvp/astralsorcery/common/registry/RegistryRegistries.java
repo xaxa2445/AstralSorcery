@@ -20,6 +20,7 @@ import hellfirepvp.astralsorcery.common.crystal.CrystalProperty;
 import hellfirepvp.astralsorcery.common.crystal.CrystalPropertyRegistry;
 import hellfirepvp.astralsorcery.common.crystal.calc.PropertyUsage;
 import hellfirepvp.astralsorcery.common.item.block.ItemBlockCollectorCrystal;
+import hellfirepvp.astralsorcery.common.item.crystal.ItemAttunedCrystalBase;
 import hellfirepvp.astralsorcery.common.lib.AstralCreativeTabs;
 import hellfirepvp.astralsorcery.common.lib.BlocksAS;
 import hellfirepvp.astralsorcery.common.lib.ItemsAS;
@@ -167,6 +168,15 @@ public class RegistryRegistries {
                     }
                 } catch (IllegalAccessException e) {
                     // Manejo de error de acceso
+                }
+            }
+            for (IWeakConstellation constellation : ConstellationRegistry.getWeakConstellations()) {
+                ItemStack stack = new ItemStack(ItemsAS.ATTUNED_ROCK_CRYSTAL);
+
+                // Obtenemos el item del stack y lo casteamos a la clase base
+                if (stack.getItem() instanceof ItemAttunedCrystalBase crystalItem) {
+                    crystalItem.setAttunedConstellation(stack, constellation);
+                    event.accept(stack);
                 }
             }
         }

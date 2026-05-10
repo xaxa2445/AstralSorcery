@@ -38,7 +38,7 @@ public class AttributeTypeEnchantmentEffectiveness extends PerkAttributeType {
     }
 
     private void onModify(DynamicEnchantmentEvent.Modify event) {
-        PlayerEntity player = event.getResolvedPlayer();
+        Player player = event.getResolvedPlayer();
         LogicalSide side = this.getSide(player);
         if (!hasTypeApplied(player, side)) {
             return;

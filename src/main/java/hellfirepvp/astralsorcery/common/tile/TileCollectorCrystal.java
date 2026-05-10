@@ -128,7 +128,7 @@ public class TileCollectorCrystal extends TileSourceBase<SimpleTransmissionSourc
 
             Vector3 from = new Vector3(starlightSource).add(rand.nextFloat(), 0.85F, rand.nextFloat());
             Vector3 motion = thisPos.clone().subtract(from).normalize().multiply(0.08F);
-            Color particleColor = MiscUtils.eitherOf(rand, Color.WHITE, c, c.brighter());
+            Color particleColor = MiscUtils.eitherOf((RandomSource) rand, Color.WHITE, c, c.brighter());
 
             EffectHelper.of(EffectTemplatesAS.GENERIC_PARTICLE)
                     .spawn(from)

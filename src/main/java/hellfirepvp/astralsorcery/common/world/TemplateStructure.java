@@ -40,67 +40,110 @@ public abstract class TemplateStructure extends TemplateStructurePiece {
 
     private int yOffset = 0;
 
-    public TemplateStructure(StructurePieceType structurePieceTypeIn, StructureTemplateManager mgr, BlockPos templatePosition) {
-        super(structurePieceTypeIn, 0, mgr, null, "", new StructurePlaceSettings(), templatePosition); // Inicialización base
+    public TemplateStructure(StructurePieceType pieceType,
+                             StructureTemplateManager templateManager,
+                             BlockPos templatePosition,
+                             ResourceLocation structureId) {
+
+        super(
+                pieceType,
+                0,
+                templateManager,
+                structureId,
+                structureId.toString(),
+                getPlaceSettings(),
+                templatePosition
+        );
+
         this.templatePosition = templatePosition;
-        this.loadTemplate(mgr);
     }
 
-    public TemplateStructure(StructurePieceType structurePieceTypeIn, StructureTemplateManager mgr, CompoundTag nbt) {
-        super(structurePieceTypeIn, nbt, mgr, (res) -> {
-            return new StructurePlaceSettings()
-                    .setIgnoreEntities(true)
-                    .addProcessor(BlockIgnoreProcessor.STRUCTURE_BLOCK);
-        });
-        this.loadTemplate(mgr);
-        if (nbt.contains("yOffset")) {
-            this.yOffset = nbt.getInt("yOffset");
+    public TemplateStructure(StructurePieceType pieceType,
+                             StructureTemplateManager templateManager,
+                             CompoundTag tag) {
+
+        super(
+                pieceType,
+                tag,
+                templateManager,
+                (id) -> getPlaceSettings()
+        );
+
+        if (tag.contains("yOffset")) {
+            this.yOffset = tag.getInt("yOffset");
         }
     }
 
-    @Override
-    protected void addAdditionalSaveData(StructurePieceSerializationContext world, CompoundTag nbt) {
-        super.addAdditionalSaveData(world, nbt);
-        nbt.putInt("yOffset", this.yOffset);
-    }
-
-    private void loadTemplate(StructureTemplateManager mgr) {
-        StructureTemplate tpl = mgr.getOrCreate(this.getStructureName());
-        StructurePlaceSettings settings = new StructurePlaceSettings()
+    private static StructurePlaceSettings getPlaceSettings() {
+        return new StructurePlaceSettings()
                 .setIgnoreEntities(true)
                 .addProcessor(BlockIgnoreProcessor.STRUCTURE_BLOCK);
-        this.template = tpl;
-        this.placeSettings = settings;
-        this.boundingBox = tpl.getBoundingBox(settings, this.templatePosition);
     }
 
-    public <T extends TemplateStructure> T setYOffset(int yOffset) {
-        this.yOffset = yOffset;
+    /**
+     * Dummy placeholder requerido por el ctor super.
+     * El template real se carga luego mediante getStructureName().
+     */
+    private static ResourceLocation getStructureLocationStatic() {
+        return new ResourceLocation("astralsorcery", "empty");
+    }
+
+    @Override
+    protected void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag tag) {
+        super.addAdditionalSaveData(context, tag);
+        tag.putInt("yOffset", this.yOffset);
+    }
+
+    public <T extends TemplateStructure> T setYOffset(int offset) {
+        this.yOffset = offset;
         return (T) this;
     }
 
     public abstract ResourceLocation getStructureName();
 
     @Override
-    public void postProcess(WorldGenLevel world, StructureManager mgr, ChunkGenerator gen, RandomSource rand, BoundingBox box, ChunkPos chunkPos, BlockPos structCenter) {
-        BoundingBox genBox = new BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ());
-        genBox.move(0, this.yOffset, 0);
+    public void postProcess(WorldGenLevel level,
+                               StructureManager structureManager,
+                               ChunkGenerator generator,
+                               RandomSource random,
+                               BoundingBox boundingBox,
+                               ChunkPos chunkPos,
+                               BlockPos centerPos) {
 
-        BlockPos original = this.templatePosition;
-        this.templatePosition = original.above(this.yOffset);
+        BlockPos oldPos = this.templatePosition;
+
+        this.templatePosition = this.templatePosition.offset(0, this.yOffset, 0);
+
         try {
-            super.postProcess(world, mgr, gen, rand, genBox, chunkPos, structCenter.above(this.yOffset));
+            super.postProcess(
+                    level,
+                    structureManager,
+                    generator,
+                    random,
+                    boundingBox,
+                    chunkPos,
+                    centerPos
+            );
         } finally {
-            this.templatePosition = original;
-            this.placeSettings.setBoundingBox(box);
-            this.boundingBox = this.template.getBoundingBox(this.placeSettings, this.templatePosition);
+            this.templatePosition = oldPos;
         }
     }
 
     @Override
-    protected void handleDataMarker(String function, BlockPos pos, ServerLevelAccessor worldIn, RandomSource rand, BoundingBox sbb) {
-        if (sbb.isInside(pos)) {
-            MarkerManagerAS.handleMarker(function, pos, worldIn, rand, boundingBox);
+    protected void handleDataMarker(String function,
+                                    BlockPos pos,
+                                    ServerLevelAccessor level,
+                                    RandomSource random,
+                                    BoundingBox box) {
+
+        if (box.isInside(pos)) {
+            MarkerManagerAS.handleMarker(
+                    function,
+                    pos,
+                    level,
+                    random,
+                    box
+            );
         }
     }
 }

@@ -15,6 +15,7 @@ import hellfirepvp.astralsorcery.client.effect.handler.EffectUpdater;
 import hellfirepvp.astralsorcery.client.event.*;
 import hellfirepvp.astralsorcery.client.event.effect.EffectRenderEventHandler;
 import hellfirepvp.astralsorcery.client.event.effect.LightbeamRenderHelper;
+import hellfirepvp.astralsorcery.client.model.armor.ModelArmorMantle;
 import hellfirepvp.astralsorcery.client.registry.RegistryKeyBindings;
 import hellfirepvp.astralsorcery.client.render.entity.layer.StarryLayerRenderer;
 import hellfirepvp.astralsorcery.client.resource.AssetLibrary;
@@ -116,6 +117,8 @@ public class ClientProxy extends CommonProxy {
         modEventBus.addListener(RegistryItems::registerColors);
         modEventBus.addListener(RegistryBlocks::registerColors);
 
+        modEventBus.addListener(this::onRegisterLayerDefinitions);
+        modEventBus.addListener(this::onAddLayers);
         // --- NUEVA LÍNEA PARA 1.20.1 ---
         modEventBus.addListener(AssetPreLoader::register);
 
@@ -211,6 +214,10 @@ public class ClientProxy extends CommonProxy {
         ScreenJournal.addBookmark(new BookmarkProvider("screen.astralsorcery.tome.perks", 30,
                 ScreenJournalPerkTree::new,
                 () -> ResearchHelper.getClientProgress().isAttuned()));
+    }
+
+    private void onRegisterLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
+        event.registerLayerDefinition(ModelArmorMantle.MANTLE_LAYER, ModelArmorMantle::createBodyLayer);
     }
 
 }

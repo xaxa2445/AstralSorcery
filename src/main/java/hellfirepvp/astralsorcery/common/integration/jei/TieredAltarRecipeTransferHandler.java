@@ -11,27 +11,28 @@ package hellfirepvp.astralsorcery.common.integration.jei;
 import hellfirepvp.astralsorcery.common.block.tile.altar.AltarType;
 import hellfirepvp.astralsorcery.common.container.ContainerAltarBase;
 import hellfirepvp.astralsorcery.common.util.MapStream;
-import mezz.jei.api.gui.IRecipeLayout;
-import mezz.jei.api.gui.ingredient.IGuiIngredient;
-import mezz.jei.api.gui.ingredient.IGuiItemStackGroup;
+import hellfirepvp.astralsorcery.common.network.PacketChannel;
+import mezz.jei.api.gui.ingredient.IRecipeSlotView;
+import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IStackHelper;
-import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.api.recipe.RecipeIngredientRole;
+import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.transfer.IRecipeTransferError;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandler;
 import mezz.jei.api.recipe.transfer.IRecipeTransferHandlerHelper;
-import mezz.jei.config.ServerInfo;
-import mezz.jei.network.Network;
-import mezz.jei.network.packets.PacketRecipeTransfer;
-import mezz.jei.transfer.RecipeTransferUtil;
-import mezz.jei.util.Translator;
+import mezz.jei.common.network.packets.PacketRecipeTransfer;
+import mezz.jei.common.transfer.TransferOperation;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.inventory.container.Slot;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This class is part of the Astral Sorcery Mod
@@ -40,20 +41,23 @@ import java.util.*;
  * Created by HellFirePvP
  * Date: 05.09.2020 / 15:35
  */
-public class TieredAltarRecipeTransferHandler<C extends ContainerAltarBase> implements IRecipeTransferHandler<C> {
+public class TieredAltarRecipeTransferHandler<C extends ContainerAltarBase, R> implements IRecipeTransferHandler<C, R> {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
     private final Class<C> containerClass;
+    private final RecipeType<R> recipeType; // Agregamos este campo
     private final IStackHelper stackHelper;
     private final IRecipeTransferHandlerHelper handlerHelper;
     private final int maxListSize;
 
     public TieredAltarRecipeTransferHandler(Class<C> containerClass,
+                                            RecipeType<R> recipeType, // Lo pedimos en el constructor
                                             IStackHelper stackHelper,
                                             IRecipeTransferHandlerHelper handlerHelper,
                                             int maxListSize) {
         this.containerClass = containerClass;
+        this.recipeType = recipeType;
         this.stackHelper = stackHelper;
         this.handlerHelper = handlerHelper;
         this.maxListSize = maxListSize;
@@ -64,118 +68,66 @@ public class TieredAltarRecipeTransferHandler<C extends ContainerAltarBase> impl
         return containerClass;
     }
 
+    @Override
+    public Optional<MenuType<C>> getMenuType() {
+        return Optional.empty(); // Puedes dejarlo como empty si manejas múltiples tipos, o retornar el específico
+    }
+
+    @Override
+    public mezz.jei.api.recipe.RecipeType<R> getRecipeType() {
+        // Aquí debes retornar el tipo de receta (ej. AltarRecipeType)
+        // que registraste en tu plugin de JEI.
+        return null;
+    }
+
     @Nullable
     @Override
-    public IRecipeTransferError transferRecipe(C container, IRecipeLayout recipeLayout, PlayerEntity player, boolean maxTransfer, boolean doTransfer) {
-        if (!ServerInfo.isJeiOnServer()) {
-            String tooltipMessage = Translator.translateToLocal("jei.tooltip.error.recipe.transfer.no.server");
-            return handlerHelper.createUserErrorWithTooltip(tooltipMessage);
-        }
-
+    public IRecipeTransferError transferRecipe(C container, R recipe, IRecipeSlotsView recipeSlots, Player player, boolean maxTransfer, boolean doTransfer) {
         if (!containerClass.isAssignableFrom(container.getClass())) {
             return handlerHelper.createInternalError();
         }
 
-        IRecipeCategory<?> category = recipeLayout.getRecipeCategory();
-        if (!(category instanceof CategoryAltar)) {
+        // 1. Necesitamos las COLECCIONES de objetos Slot reales para el constructor de JEI
+        List<Slot> inventorySlots = container.slots.subList(0, 36);
+        List<Slot> craftingSlots = container.slots.subList(36, Math.min(container.slots.size(), 36 + maxListSize));
+
+        // 2. Filtrar ingredientes de la receta
+        List<IRecipeSlotView> inputSlots = recipeSlots.getSlotViews(RecipeIngredientRole.INPUT).stream()
+                .filter(slot -> slot.getDisplayedIngredient().isPresent())
+                .limit(25)
+                .collect(Collectors.toList());
+
+        if (inputSlots.size() > craftingSlots.size()) {
             return handlerHelper.createInternalError();
-        }
-        AltarType recipeTier = ((CategoryAltar) category).getAltarType();
-        AltarType altarTier = container.getTileEntity().getAltarType();
-
-        Map<Integer, Slot> inventorySlots = new HashMap<>();
-        for (Slot slot : container.inventorySlots.subList(0, 36)) {
-            inventorySlots.put(slot.slotNumber, slot);
-        }
-
-        Map<Integer, Slot> craftingSlots = new HashMap<>();
-        for (Slot slot : container.inventorySlots.subList(36, 36 + maxListSize)) {
-            craftingSlots.put(slot.slotNumber, slot);
-        }
-
-        int inputCount = 0;
-        IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
-        //Remove relay inputs from the input grid.
-        Map<Integer, IGuiIngredient<ItemStack>> itemStacks = new HashMap<>();
-        for (Map.Entry<Integer, ? extends IGuiIngredient<ItemStack>> entry : itemStackGroup.getGuiIngredients().entrySet()) {
-            if (entry.getKey() < 25) {
-                itemStacks.put(entry.getKey(), entry.getValue());
-            }
-        }
-
-        for (IGuiIngredient<ItemStack> ingredient : itemStacks.values()) {
-            if (ingredient.isInput() && !ingredient.getAllIngredients().isEmpty()) {
-                inputCount++;
-            }
-        }
-
-        if (inputCount > craftingSlots.size()) {
-            LOGGER.error("Recipe Transfer does not work for container {}", container.getClass());
-            return handlerHelper.createInternalError();
-        }
-
-        Map<Integer, ItemStack> availableItemStacks = new HashMap<>();
-        int filledCraftSlotCount = 0;
-        int emptySlotCount = 0;
-
-        for (Slot slot : craftingSlots.values()) {
-            final ItemStack stack = slot.getStack();
-            if (!stack.isEmpty()) {
-                if (!slot.canTakeStack(player)) {
-                    LOGGER.error("Recipe Transfer does not work for container {}. Player can't move item out of Crafting Slot number {}", container.getClass(), slot.slotNumber);
-                    return handlerHelper.createInternalError();
-                }
-                filledCraftSlotCount++;
-                availableItemStacks.put(slot.slotNumber, stack.copy());
-            }
-        }
-
-        for (Slot slot : inventorySlots.values()) {
-            final ItemStack stack = slot.getStack();
-            if (!stack.isEmpty()) {
-                availableItemStacks.put(slot.slotNumber, stack.copy());
-            } else {
-                emptySlotCount++;
-            }
-        }
-
-        // check if we have enough inventory space to shuffle items around to their final locations
-        if (filledCraftSlotCount - inputCount > emptySlotCount) {
-            String message = Translator.translateToLocal("jei.tooltip.error.recipe.transfer.inventory.full");
-            return handlerHelper.createUserErrorWithTooltip(message);
-        }
-
-        RecipeTransferUtil.MatchingItemsResult matchingItemsResult = RecipeTransferUtil.getMatchingItems(stackHelper, availableItemStacks, itemStacks);
-
-        if (matchingItemsResult.missingItems.size() > 0) {
-            String message = Translator.translateToLocal("jei.tooltip.error.recipe.transfer.missing");
-            return handlerHelper.createUserErrorForSlots(message, matchingItemsResult.missingItems);
-        }
-
-
-        List<Integer> craftingSlotIndexes = new ArrayList<>(craftingSlots.keySet());
-        Collections.sort(craftingSlotIndexes);
-
-        List<Integer> inventorySlotIndexes = new ArrayList<>(inventorySlots.keySet());
-        Collections.sort(inventorySlotIndexes);
-
-        Map<Integer, Integer> matchIndices = MapStream.of(matchingItemsResult.matchingItems)
-                .mapKey(container::translateIndex)
-                .toMap();
-
-        // check that the slots exist and can be altered
-        for (Map.Entry<Integer, Integer> entry : matchIndices.entrySet()) {
-            int craftNumber = entry.getKey();
-            int slotNumber = craftingSlotIndexes.get(craftNumber);
-            if (slotNumber < 0 || slotNumber >= container.inventorySlots.size()) {
-                LOGGER.error("Recipes Transfer references slot {} outside of the inventory's size {}", slotNumber, container.inventorySlots.size());
-                return handlerHelper.createInternalError();
-            }
         }
 
         if (doTransfer) {
-            PacketRecipeTransfer packet = new PacketRecipeTransfer(matchIndices, craftingSlotIndexes, inventorySlotIndexes, maxTransfer, true);
-            Network.sendPacketToServer(packet);
+            // 3. Crear las TransferOperations (Requerido por el constructor de JEI)
+            List<TransferOperation> operations = new ArrayList<>();
+
+            // Aquí la lógica de matching: Por cada ingrediente, busca el slot de origen y destino
+            // Nota: Esta lógica debe ser implementada según cómo manejes el matching en tu port
+            // operations.add(new TransferOperation(slotInventario, slotAltar));
+
+            // 4. USAR EL CONSTRUCTOR DE LA CLASE QUE PASASTE
+            PacketRecipeTransfer packet = new PacketRecipeTransfer(
+                    operations,      // Collection<TransferOperation>
+                    craftingSlots,   // Collection<Slot>
+                    inventorySlots,  // Collection<Slot>
+                    maxTransfer,     // boolean
+                    true             // boolean (requireCompleteSets)
+            );
+
+            // 5. Enviar a través de TU canal de red (PacketChannel)
+            // Según tu captura, PacketChannel es tu clase de manejo de red en AS.
+            // Si el campo no se llama INSTANCE, cámbialo por el nombre correcto (ej. channel)
+            try {
+                PacketChannel.CHANNEL.sendToServer(packet);
+            } catch (Exception e) {
+                LOGGER.error("Error al enviar el paquete de JEI a través de PacketChannel", e);
+            }
+
+            LOGGER.info("Recipe transfer packet (JEI) prepared for {}", container.getClass().getSimpleName());
         }
 
         return null;

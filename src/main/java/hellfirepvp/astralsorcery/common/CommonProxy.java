@@ -209,8 +209,6 @@ public class CommonProxy {
         EventHelperDamageCancelling.attachListeners(eventBus);
         PerkAttributeLimiter.attachListeners(eventBus);
 
-        eventBus.addListener(RegistryWorldGeneration::loadBiomeFeatures);
-
         eventBus.addListener(PlayerAmuletHandler::onEnchantmentAdd);
         eventBus.addListener(BlockDropCaptureAssist.INSTANCE::onDrop);
         eventBus.addListener(CelestialGatewayHandler.INSTANCE::onWorldInit);
@@ -342,8 +340,6 @@ public class CommonProxy {
         CollisionManager.init();
 
         PatreonDataManager.loadPatreonEffects();
-
-        event.enqueueWork(RegistryWorldGeneration::registerStructureGeneration);
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {

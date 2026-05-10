@@ -8,15 +8,16 @@
 
 package hellfirepvp.astralsorcery.common.util.block;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.item.BlockItemUseContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.Direction;
-import net.minecraft.util.Hand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.BlockRayTraceResult;
-import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand; // Hand -> InteractionHand
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext; // BlockItemUseContext -> BlockPlaceContext
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult; // BlockRayTraceResult -> BlockHitResult
+import net.minecraft.world.phys.Vec3; // Vector3d -> Vec3
 
 import javax.annotation.Nullable;
 
@@ -27,40 +28,41 @@ import javax.annotation.Nullable;
  * Created by HellFirePvP
  * Date: 29.02.2020 / 12:07
  */
-public class TestBlockUseContext extends BlockItemUseContext {
+public class TestBlockUseContext extends BlockPlaceContext {
 
     private final Entity entity;
 
-    private TestBlockUseContext(World worldIn, @Nullable Entity usingEntity, Hand hand, ItemStack stack, BlockPos at, Direction side) {
-        super(worldIn, null, hand, stack, new BlockRayTraceResult(Vector3d.copyCentered(at), side, at, false));
+    private TestBlockUseContext(Level worldIn, @Nullable Entity usingEntity, InteractionHand hand, ItemStack stack, BlockPos at, Direction side) {
+        super(worldIn, null, hand, stack, new BlockHitResult(Vec3.atCenterOf(at), side, at, false));
         this.entity = usingEntity;
     }
 
-    public static BlockItemUseContext getHandContext(World worldIn, @Nullable Entity usingEntity, Hand usedHand, BlockPos at, Direction side) {
+    public static BlockPlaceContext getHandContext(Level worldIn, @Nullable Entity usingEntity, InteractionHand usedHand, BlockPos at, Direction side) {
         return getHandContextWithItem(worldIn, usingEntity, usedHand, ItemStack.EMPTY, at, side);
     }
 
-    public static BlockItemUseContext getHandContextWithItem(World worldIn, @Nullable Entity usingEntity, Hand usedHand, ItemStack stack, BlockPos at, Direction side) {
+    public static BlockPlaceContext getHandContextWithItem(Level worldIn, @Nullable Entity usingEntity, InteractionHand usedHand, ItemStack stack, BlockPos at, Direction side) {
         return new TestBlockUseContext(worldIn, usingEntity, usedHand, stack, at, side);
     }
 
     @Override
-    public Direction getPlacementHorizontalFacing() {
-        return this.entity == null ? Direction.NORTH : Direction.fromAngle(this.entity.rotationYaw);
+    public Direction getHorizontalDirection() { // getPlacementHorizontalFacing -> getHorizontalDirection
+        // rotationYaw -> getYRot()
+        return this.entity == null ? Direction.NORTH : Direction.fromYRot(this.entity.getYRot());
     }
 
     @Override
     public Direction getNearestLookingDirection() {
-        return Direction.getFacingDirections(this.entity)[0];
+        return Direction.orderedByNearest(this.entity)[0]; // getFacingDirections -> orderedByNearest
     }
 
     @Override
     public Direction[] getNearestLookingDirections() {
-        Direction[] adirection = Direction.getFacingDirections(this.entity);
+        Direction[] adirection = Direction.orderedByNearest(this.entity);
         if (this.replaceClicked) {
             return adirection;
         } else {
-            Direction direction = this.getFace();
+            Direction direction = this.getClickedFace(); // getFace -> getClickedFace
 
             int i;
             i = 0;
@@ -77,12 +79,12 @@ public class TestBlockUseContext extends BlockItemUseContext {
     }
 
     @Override
-    public boolean hasSecondaryUseForPlayer() {
+    public boolean isSecondaryUseActive() { // hasSecondaryUseForPlayer -> isSecondaryUseActive
         return false;
     }
 
     @Override
-    public float getPlacementYaw() {
+    public float getRotation() { // getPlacementYaw -> getRotation
         return 0F;
     }
 }
