@@ -69,35 +69,33 @@ public class RegistryFluids {
     }
 
     private static void registerStarlight() {
-
-        ForgeFlowingFluid.Properties props = new ForgeFlowingFluid.Properties(
-                ASFluidTypes.LIQUID_STARLIGHT_TYPE,
-                () -> LIQUID_STARLIGHT_SOURCE.get(),
-                () -> LIQUID_STARLIGHT_FLOWING.get()
-        );
+        // 1. NO crees las 'props' aquí afuera como una variable estática o local inmediata.
+        // 2. Definimos los registros usando Suppliers para las propiedades.
 
         LIQUID_STARLIGHT_SOURCE = FLUIDS.register("liquid_starlight",
-                () -> new FluidLiquidStarlight.Source(props));
+                () -> new FluidLiquidStarlight.Source(makeProperties()));
 
         LIQUID_STARLIGHT_FLOWING = FLUIDS.register("liquid_starlight_flowing",
-                () -> new FluidLiquidStarlight.Flowing(props));
+                () -> new FluidLiquidStarlight.Flowing(makeProperties()));
 
         LIQUID_STARLIGHT_BLOCK = BLOCKS.register("liquid_starlight",
                 () -> new LiquidBlock(
-                        (FlowingFluid) LIQUID_STARLIGHT_SOURCE.get(),
+                        LIQUID_STARLIGHT_SOURCE, // RegistryObject es un Supplier por sí mismo
                         Block.Properties.of()
                 ));
 
         LIQUID_STARLIGHT_BUCKET = ITEMS.register("liquid_starlight_bucket",
                 () -> new BucketItem(LIQUID_STARLIGHT_SOURCE,
                         new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1)));
+    }
 
-        //LIQUID_STARLIGHT_BUCKET = ITEMS.register("liquid_starlight_bucket",
-                //() -> {
-                    //Item bucket = new BucketItem(LIQUID_STARLIGHT_SOURCE,
-                            //new Item.Properties().craftRemainder(Items.BUCKET).stacksTo(1));
-                    // Ojo: Esto solo se ejecuta cuando Forge registra el ítem
-                    //return bucket;
-                //});
+    private static ForgeFlowingFluid.Properties makeProperties() {
+        return new ForgeFlowingFluid.Properties(
+                ASFluidTypes.LIQUID_STARLIGHT_TYPE, // Pasamos el RegistryObject
+                LIQUID_STARLIGHT_SOURCE,
+                LIQUID_STARLIGHT_FLOWING
+        )
+                .bucket(LIQUID_STARLIGHT_BUCKET)
+                .block(LIQUID_STARLIGHT_BLOCK);
     }
 }
